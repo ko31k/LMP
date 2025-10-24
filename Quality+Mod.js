@@ -82,12 +82,23 @@
         		quality_code: 1080, 
         		full_label: '1080 ВDRemux', //✅ Повна мітка
         		simple_label: 'FHD'  	 //✅ Спрощена мітка
+    		},
+    		'604079': { 
+        		quality_code: 2160, 
+        		full_label: '4K WEB-DL', //✅ Повна мітка
+        		simple_label: '4K'  	 //✅ Спрощена мітка
+    		},
+	    	'1267905': { 
+        		quality_code: 2160, 
+        		full_label: '4K WEB-DL', //✅ Повна мітка
+        		simple_label: '4K'  	 //✅ Спрощена мітка
     		}
+	
 			/*'Тут ID фільму': { 
         		quality_code: 1080, 
         		full_label: '1080p WEB-DLRip',  //✅ Повна мітка
         		simple_label: 'FHD'  		    //✅ Спрощена мітка
-    		},*/
+    		}*/
 		}
     };
     var currentGlobalMovieId = null; // Змінна для відстеження поточного ID фільму
