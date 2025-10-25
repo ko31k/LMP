@@ -4,39 +4,31 @@
     // Конфигурация плагина
     var CONFIG = {
         API_KEY: 'm8po461k1zq14sroj2ez5d7um',
-        // Исправленный базовый URL для изображений
+
+        // Базовий URL для SVG-іконок
         ICON_BASE_URL: (function() {
             var base = window.location.origin;
-            var path = window.location.pathname;
 
-        // Для GitHub Pages
-        if (window.location.hostname === 'ko31k.github.io') {
-            return base + '/LMP/wwwroot/img/';
-        }
-            
-            // Если на localhost
-            if (window.location.hostname === 'localhost' || 
+            // Якщо локально — використовуємо локальні іконки
+            if (window.location.hostname === 'localhost' ||
                 window.location.hostname === '127.0.0.1') {
                 return base + '/wwwroot/img/';
             }
-            // Для сервера
-            else {
-                // Пытаемся определить корневую папку
-                if (path.includes('wwwroot')) {
-                    return base + '/wwwroot/img/';
-                } else {
-                    return base + '/img/';
-                }
-            }
+
+            // Якщо не локально — підтягуємо з GitHub RAW
+            return 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/';
         })(),
+
         ICONS: {
-            imdb: { file: 'imdb.svg', bg: 'rgba(0, 0, 0, 0.1)', text: '#F5C518' },
-            tomatoes: { file: 'rt.svg', bg: 'rgba(0, 0, 0, 0.1)', text: '#F93109' },
-            tomatoes_bad: { file: 'rt-bad.svg', bg: 'rgba(0, 0, 0, 0.1)', text: '#00a600' },
-            popcorn: { file: 'pcrn.svg', bg: 'rgba(0, 0, 0, 0.1)', text: '#FCD24C' },
-            tmdb: { file: 'tmdb.svg', bg: 'rgba(0, 0, 0, 0.1)', text: '#00b3e5' }
+            imdb: { file: 'imdb.svg', bg: 'rgba(0,0,0,0.1)', text: '#F5C518' },
+            tomatoes: { file: 'rt.svg', bg: 'rgba(0,0,0,0.1)', text: '#F93109' },
+            tomatoes_bad: { file: 'rt-bad.svg', bg: 'rgba(0,0,0,0.1)', text: '#00a600' },
+            popcorn: { file: 'pcrn.svg', bg: 'rgba(0,0,0,0.1)', text: '#FCD24C' },
+            tmdb: { file: 'tmdb.svg', bg: 'rgba(0,0,0,0.1)', text: '#00b3e5' },
+            metacritic: { file: 'metacritic.svg', bg: 'rgba(0,0,0,0.1)', text: '#FFCC33' }
         },
-        RATING_ORDER: ['imdb', 'tomatoes', 'popcorn', 'tmdb']
+
+        RATING_ORDER: ['tomatoes', 'popcorn', 'imdb', 'tmdb', 'metacritic']
     };
 
     // Локализация
@@ -56,31 +48,29 @@
 
     function createRatingElement(source, value) {
         if (!value || value <= 0) return '';
-        
+
         var icon = CONFIG.ICONS[source] || CONFIG.ICONS.tmdb;
-        var isPercent = source === 'tomatoes' || source === 'popcorn';
-        
-        // Исправление для TMDB рейтинга
+        var isPercent = source === 'tomatoes' || source === 'popcorn' || source === 'metacritic';
+
         var displayValue;
         if (source === 'tmdb') {
-            // TMDB рейтинг от 0 до 100 -> конвертируем в 0-10
             displayValue = (value / 10).toFixed(1);
         } else if (isPercent) {
             displayValue = Math.round(value) + '%';
         } else {
             displayValue = parseFloat(value).toFixed(1);
         }
-        
+
         var finalSource = (source === 'tomatoes' && value < 50) ? 'tomatoes_bad' : source;
         var finalIcon = CONFIG.ICONS[finalSource] || icon;
 
         return '<div class="full-start__rate rate--' + finalSource + '" ' +
-               'style="background: ' + finalIcon.bg + '; color: ' + finalIcon.text + '">' +
-               '<img src="' + CONFIG.ICON_BASE_URL + finalIcon.file + '" ' +
-               'alt="' + finalSource.toUpperCase() + '" height="16" ' +
-               'onerror="this.style.display=\'none\'">' +
-               '<span style="font-weight: bold;">' + displayValue + '</span>' +
-               '</div>';
+            'style="background:' + finalIcon.bg + ';color:' + finalIcon.text + '">' +
+            '<img src="' + CONFIG.ICON_BASE_URL + finalIcon.file + '" ' +
+            'alt="' + finalSource.toUpperCase() + '" height="16" ' +
+            'onerror="this.style.display=\'none\'">' +
+            '<span style="font-weight:bold;">' + displayValue + '</span>' +
+            '</div>';
     }
 
     function getAllRatings(cardData, apiRatings) {
@@ -92,7 +82,7 @@
                 var rating = apiRatings[i];
                 if (rating.value > 0) {
                     if (rating.source === 'tmdb' && cardData.source === 'cub') continue;
-                    
+
                     ratings.push({
                         source: rating.source,
                         value: rating.value
@@ -106,16 +96,16 @@
             { source: 'imdb', value: cardData.movie && cardData.movie.imdb_rating },
             { source: 'tmdb', value: cardData.movie && cardData.movie.vote_average },
             { source: 'tomatoes', value: cardData.movie && cardData.movie.rt_rating },
-            { source: 'popcorn', value: cardData.movie && cardData.movie.popcorn_rating }
+            { source: 'popcorn', value: cardData.movie && cardData.movie.popcorn_rating },
+            { source: 'metacritic', value: cardData.movie && cardData.movie.metacritic_rating }
         ];
 
         for (var j = 0; j < sourcesToAdd.length; j++) {
             var item = sourcesToAdd[j];
             if (item.value > 0 && !apiSources[item.source]) {
-                // Исправление для TMDB рейтинга
                 var finalValue = item.value;
                 if (item.source === 'tmdb' && item.value > 10) {
-                    finalValue = item.value / 10; // Конвертируем 100-балльную систему в 10-балльную
+                    finalValue = item.value / 10;
                 }
                 ratings.push({
                     source: item.source,
@@ -126,7 +116,7 @@
 
         var uniqueRatings = [];
         var seenSources = {};
-        
+
         for (var k = 0; k < ratings.length; k++) {
             var rating = ratings[k];
             if (!seenSources[rating.source]) {
@@ -135,11 +125,11 @@
             }
         }
 
-        var allowedSources = ['imdb', 'tomatoes', 'popcorn', 'tmdb'];
+        var allowedSources = ['imdb', 'tomatoes', 'popcorn', 'metacritic', 'tmdb'];
         var filteredRatings = uniqueRatings.filter(function(r) {
             return allowedSources.includes(r.source);
         });
-        
+
         return filteredRatings.sort(function(a, b) {
             var indexA = CONFIG.RATING_ORDER.indexOf(a.source);
             var indexB = CONFIG.RATING_ORDER.indexOf(b.source);
@@ -156,7 +146,7 @@
 
         var pgElement = $(".full-start__pg");
         var statusElement = $(".full-start__status");
-        
+
         rateLine.empty().css({
             'display': 'flex',
             'flex-wrap': 'wrap',
@@ -165,7 +155,7 @@
         });
 
         var allRatings = getAllRatings(cardData, ratings);
-        
+
         for (var i = 0; i < allRatings.length; i++) {
             var rating = allRatings[i];
             var ratingElement = createRatingElement(rating.source, rating.value);
@@ -176,7 +166,7 @@
         if (statusElement.length) rateLine.append(statusElement);
 
         if (rateLine.children().length === 0) {
-            rateLine.html('<div style="color: #999; font-size: 14px;">Рейтинги не найдены</div>');
+            rateLine.html('<div style="color:#999;font-size:14px;">Рейтинги не знайдені</div>');
         }
     }
 
@@ -209,23 +199,23 @@
     function initPlugin() {
         addLocalization();
         main();
-        
+
         $('<style>').text(
             '.full-start__rate {' +
-            'display: inline-flex;' +
-            'align-items: center;' +
-            'gap: 6px;' +
-            'padding: 7px 7px;' +
-            'border-radius: 9px;' +
-            'font-size: 15px;' +
-            'font-weight: bold;' +
-            'text-shadow: 0 1px 2px rgba(0,0,0,0.1);' +
-            'z-index: 10;' +
-            'position: relative;' +
+            'display:inline-flex;' +
+            'align-items:center;' +
+            'gap:6px;' +
+            'padding:7px 7px;' +
+            'border-radius:9px;' +
+            'font-size:15px;' +
+            'font-weight:bold;' +
+            'text-shadow:0 1px 2px rgba(0,0,0,0.1);' +
+            'z-index:10;' +
+            'position:relative;' +
             '}' +
             '.full-start__rate img {' +
-            'height: 20px;' +
-            'width: auto;' +
+            'height:20px;' +
+            'width:auto;' +
             '}'
         ).appendTo('head');
     }
@@ -233,13 +223,13 @@
     if (!window.plugin_enhanced_ratings) {
         window.plugin_enhanced_ratings = true;
         console.log('Enhanced Ratings plugin initialized');
-        
+
         var manifest = {
             type: "other",
-            version: "0.0.7",
-            author: 'anonymous',
+            version: "0.0.8",
+            author: 'ko31k',
             name: "Enhanced Ratings",
-            description: "Adds ratings with SVG icons",
+            description: "Adds ratings with SVG icons from GitHub"
         };
 
         if (window.appready) {
