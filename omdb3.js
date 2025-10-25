@@ -6,10 +6,10 @@
     // ---------------------------------------------------
 
     /** MDBList API key (основні рейтинги) */
-    var MDBLIST_API_KEY = '000000000000000000000000'; // ← заміни своїм
+    var MDBLIST_API_KEY = 'm8po461k1zq14sroj2ez5d7um'; // ← заміни своїм
 
     /** OMDB API key (вік, нагороди, фолбек-рейтинги) */
-    var OMDB_API_KEY = (window.RATINGS_PLUGIN_TOKENS && window.RATINGS_PLUGIN_TOKENS.OMDB_API_KEY) || '00000000';
+    var OMDB_API_KEY = (window.RATINGS_PLUGIN_TOKENS && window.RATINGS_PLUGIN_TOKENS.OMDB_API_KEY) || '12c9249c';
 
     /** Перемикач ч/б іконок (true = ч/б). За замовчуванням КОЛЬОРОВІ */
     var USE_GRAYSCALE_ICONS = false;
