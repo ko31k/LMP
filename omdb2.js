@@ -8,7 +8,7 @@
     /** * Встановіть 'true' для чорно-білих іконок, 'false' для кольорових
      * @type {boolean} 
      */
-    var USE_GRAYSCALE_ICONS = false; 
+    var USE_GRAYSCALE_ICONS = true; 
     
     /**
      * Базовий URL для нових іконок
