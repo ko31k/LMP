@@ -1,48 +1,104 @@
 (function() {
     'use strict';
 
-    // ---------------------------------------------------
-    // -- КОНФІГУРАЦІЯ ПЛАГІНА --
-    // ---------------------------------------------------
+    // ===================================================
+    // ============== К О Н Ф І Г У Р А Ц І Я ============
+    // ===================================================
 
-    /** MDBList API key (основні рейтинги) */
-    var MDBLIST_API_KEY = 'm8po461k1zq14sroj2ez5d7um'; // ← заміни своїм
+    /**
+     * Ключ для MDBList (основні рейтинги: IMDb/TMDB/RT/MC)
+     * https://api.mdblist.com
+     */
+    var MDBLIST_API_KEY = 'm8po461k1zq14sroj2ez5d7um'; // 👈 заміни за потреби
 
-    /** OMDB API key (вік, нагороди, фолбек-рейтинги) */
-    var OMDB_API_KEY = (window.RATINGS_PLUGIN_TOKENS && window.RATINGS_PLUGIN_TOKENS.OMDB_API_KEY) || '12c9249c';
+    /**
+     * Ключ OMDb (нагороди, віковий рейтинг, фолбек рейтинги)
+     * https://www.omdbapi.com
+     */
+    var OMDB_API_KEY = window.RATINGS_PLUGIN_TOKENS?.OMDB_API_KEY || '12c9249c';
 
-    /** Перемикач ч/б іконок (true = ч/б). За замовчуванням КОЛЬОРОВІ */
+    /**
+     * Брати іконки у кольорі (користувач просив КОЛЬОРОВІ)
+     */
     var USE_GRAYSCALE_ICONS = false;
 
-    /** База для "своєї" GitHub-папки (інші іконки) */
+    /**
+     * Базовий URL для додаткових іконок (RT bad / popcorn тощо)
+     * (RT bad — з твоєї GitHub-папки; інші — як у тебе далі у коді)
+     */
     var ICON_BASE_URL = 'https://raw.githubusercontent.com/ko31k/LMPStyle/main/wwwroot/';
 
-    /** База для streamingdiscovery (IMDb, TMDB, MC і RT good) */
-    var STREAMING_BASE_URL = 'https://www.streamingdiscovery.com/logo/';
+    /**
+     * Ваги для TOTAL (усе конвертуємо в /10 перед розрахунком)
+     * IMDb 40% + TMDB 40% + MC 10% + RT 10%
+     */
+    var WEIGHTS = { imdb: 0.40, tmdb: 0.40, mc: 0.10, rt: 0.10 };
 
-    // ---------------------------------------------------
-    // -- ГЕНЕРАТОРИ ІКОНОК --
-    // ---------------------------------------------------
+    /**
+     * Кеш: 3 дні
+     */
+    var CACHE_TIME = 3 * 24 * 60 * 60 * 1000;
+    var AWARDS_CACHE = 'maxsm_rating_omdb';      // OMDb (нагороди, Rated, фолбек)
+    var MDBLIST_CACHE = 'maxsm_rating_mdblist';  // MDBList (рейтинги)
+    var ID_MAPPING_CACHE = 'maxsm_rating_id_mapping';
 
-    var grayscaleFilter = USE_GRAYSCALE_ICONS ? ' filter: grayscale(100%);' : '';
+    /**
+     * Вік-рейтинги → короткий формат
+     */
+    var AGE_RATINGS = {
+        'G':'3+','PG':'6+','PG-13':'13+','R':'17+','NC-17':'18+',
+        'TV-Y':'0+','TV-Y7':'7+','TV-G':'3+','TV-PG':'6+','TV-14':'14+','TV-MA':'17+'
+    };
 
-    // універсальний IMG (розмір як у твоїй спробі)
-    function iconImg(src) {
-        return '<img src="' + src + '" style="height:14px; width:auto; display:inline-block; vertical-align:middle; object-fit:contain; transform:scale(1.2);' + grayscaleFilter + '">';
+    // ===================================================
+    // ================== І К О Н К И ====================
+    // ===================================================
+
+    // Глобальний фільтр для ч/б (нам НЕ треба, але збережемо опцію)
+    var grayscaleFilter = USE_GRAYSCALE_ICONS ? 'filter: grayscale(100%);' : '';
+
+    // Іконка RT (GOOD) — із твого payload (base64)
+    var RT_GOOD_IMG = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8KPCF...'; // ⚠️ скорочено: підстав свій повний base64 з твого повідомлення
+
+    // Іконка RT (BAD) — з GitHub папки
+    var RT_BAD_FILE = ICON_BASE_URL + 'RottenBad.png';
+
+    // Popcorn іконка з GitHub (як домовлялися)
+    var POPCORN_FILE = ICON_BASE_URL + 'popcorn.png';
+
+    // IMDb / TMDB / Metacritic — як у streamingdiscovery
+    var ICON_IMDB = 'https://www.streamingdiscovery.com/logo/imdb.png';
+    var ICON_TMDB = 'https://www.streamingdiscovery.com/logo/tmdb.png';
+    var ICON_MC   = 'https://www.streamingdiscovery.com/logo/metacritic.png';
+
+    // OSCAR (іконка з твого блоку, base64)
+    var OSCAR_IMG = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8KPHN2Zy...'; // ⚠️ скорочено: підстав свій повний base64 з твого блоку Lampa.Lang.add
+
+    // EMMY (візьми svg з твого блоку emmy_svg)
+    var EMMY_SVG = (function(){/*
+      (тут твій повний emmy_svg – довгий <svg ...>...</svg>)
+    */}).toString().split('\n').slice(1,-1).join('\n');
+
+    // Хелпер: IMG-тег іконки з потрібним розміром
+    function iconImg(src, sizePx) {
+        return '<img src="'+src+'" style="height:'+sizePx+'px;width:auto;display:inline-block;vertical-align:middle;object-fit:contain;'+grayscaleFilter+'">';
     }
 
-    function iconFromStreaming(file) { return iconImg(STREAMING_BASE_URL + file); }
-    function iconFromGithub(file)    { return iconImg(ICON_BASE_URL + file); }
+    // Хелпер: SVG (Emmy) в контейнері розміру
+    function iconSvg(svg, sizePx) {
+        return '<span style="display:inline-block;height:'+sizePx+'px;vertical-align:middle;transform:translateY(1px)">'+svg+'</span>';
+    }
 
-    // ---------------------------------------------------
-    // -- ЛОКАЛІЗАЦІЯ (лейбли-іконки) --
-    // ---------------------------------------------------
+    // ===================================================
+    // ============= Л О К А Л І З А Ц І Я ===============
+    // ===================================================
 
+    // Підміняємо джерела (назви під іконками), і «TOTAL», «Awards», тощо
     Lampa.Lang.add({
         ratimg_omdb_avg: {
             ru: 'ИТОГ',
             en: 'TOTAL',
-            uk: '<svg width="14" height="14" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="#FFAC33" d="M27.287 34.627c-.404 0-.806-.124-1.152-.371L18 28.422l-8.135 5.834a1.97 1.97 0 0 1-2.312-.008a1.971 1.971 0 0 1-.721-2.194l3.034-9.792l-8.062-5.681a1.98 1.98 0 0 1-.708-2.203a1.978 1.978 0 0 1 1.866-1.363L12.947 13l3.179-9.549a1.976 1.976 0 0 1 3.749 0L23 13l10.036.015a1.975 1.975 0 0 1 1.159 3.566l-8.062 5.681l3.034 9.792a1.97 1.97 0 0 1-.72 2.194a1.957 1.957 0 0 1-1.16.379z"/></svg>',
+            uk: '<svg width="16px" height="16px" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" class="iconify iconify--twemoji" preserveAspectRatio="xMidYMid meet"><path fill="#FFAC33" d="M27.287 34.627c-.404 0-.806-.124-1.152-.371L18 28.422l-8.135 5.834a1.97 1.97 0 0 1-2.312-.008a1.971 1.971 0 0 1-.721-2.194l3.034-9.792l-8.062-5.681a1.98 1.98 0 0 1-.708-2.203a1.978 1.978 0 0 1 1.866-1.363L12.947 13l3.179-9.549a1.976 1.976 0 0 1 3.749 0L23 13l10.036.015a1.975 1.975 0 0 1 1.159 3.566l-8.062 5.681l3.034 9.792a1.97 1.97 0 0 1-.72 2.194a1.957 1.957 0 0 1-1.16.379z"></path></svg>',
             be: 'ВЫНІК'
         },
         loading_dots: {
@@ -51,123 +107,271 @@
             uk: 'Трішки зачекаємо ...',
             be: 'Загрузка рэйтынгаў'
         },
-        // Нагороди — залишаємо як було (іконки з GitHub-папки)
-        maxsm_omdb_oscars:      { uk: iconFromGithub('oscar.png'), en: 'Oscars',  ru: 'Оскары' },
-        maxsm_omdb_emmy:        { uk: iconFromGithub('emmy.png'),  en: 'Emmy',    ru: 'Эмми'   },
-        maxsm_omdb_awards_other:{ uk: iconFromGithub('awards.png'),en: 'Awards',  ru: 'Награды' },
+        // Джерела
+        source_imdb: { ru:'IMDB', en:'IMDB', uk: iconImg(ICON_IMDB,16), be:'IMDB' },
+        source_tmdb: { ru:'TMDB', en:'TMDB', uk: iconImg(ICON_TMDB,16), be:'TMDB' },
+        source_mc:   { ru:'Metacritic', en:'Metacritic', uk: iconImg(ICON_MC,16), be:'Metacritic' },
+        source_rt:   { ru:'Rotten Tomatoes', en:'Rotten Tomatoes', uk: iconImg(RT_GOOD_IMG,16), be:'Rotten Tomatoes' },
 
-        // Джерела — IMDb/TMDB/MC з streamingdiscovery
-        source_imdb: { uk: iconFromStreaming('imdb.png'), en: 'IMDB', ru: 'IMDB' },
-        source_tmdb: { uk: iconFromStreaming('tmdb.png'), en: 'TMDB', ru: 'TMDB' },
-        source_mc:   { uk: iconFromStreaming('metacritic.png'), en: 'Metacritic', ru: 'Metacritic' }
-        // RT іконка буде динамічна (good/bad), тому окремий ключ не фіксуємо
+        // Нагороди (золотий колір; іконки — як просив)
+        maxsm_omdb_oscars: { ru:'Оскары', en:'Oscars', uk: iconImg(OSCAR_IMG,16), be:'Оскары' },
+        maxsm_omdb_emmy:   { ru: iconSvg(EMMY_SVG,14), en: iconSvg(EMMY_SVG,14), uk: iconSvg(EMMY_SVG,14) },
+        maxsm_omdb_awards_other: {
+            ru:'<span style="display:inline-block;height:14px;vertical-align:middle">🏆</span>',
+            en:'<span style="display:inline-block;height:14px;vertical-align:middle">🏆</span>',
+            uk:'<span style="display:inline-block;height:14px;vertical-align:middle">🏆</span>'
+        }
     });
 
-    // ---------------------------------------------------
-    // -- СТИЛІ --
-    // ---------------------------------------------------
+    // ===================================================
+    // =================== С Т И Л І =====================
+    // ===================================================
 
-    var style = "<style id=\"maxsm_omdb_rating\">\
-.full-start-new__rate-line{visibility:hidden;flex-wrap:wrap;gap:0.4em 0;}\
-.full-start-new__rate-line>*{margin-left:0!important;margin-right:0.6em!important;}\
-.rate--avg.rating--green{color:#4caf50;}\
-.rate--avg.rating--lime{color:#3399ff;}\
-.rate--avg.rating--orange{color:#ff9933;}\
-.rate--avg.rating--red{color:#f44336;}\
-.rate--oscars{color:gold;}\
-.rate--emmy{color:gold;}\
-.rate--awards{color:gold;}\
-</style>";
+    // Візуал як у Enchancer: великі іконки/числа, але з напівпрозорою КАПСУЛОЮ
+    var style = `
+    <style id="maxsm_omdb_rating">
+        .full-start-new__rate-line{
+            position:relative;
+            visibility:hidden;
+            display:flex;
+            flex-wrap:wrap;
+            gap:.45em .55em;
+        }
+        .full-start-new__rate-line > *{
+            margin:0 !important;
+        }
+        /* капсула */
+        .rate-chip{
+            display:inline-flex;
+            align-items:center;
+            gap:.45em;
+            padding:.24em .6em;
+            border-radius:10px;
+            background: rgba(0,0,0,.35);
+            backdrop-filter: blur(2px);
+            line-height:1;
+        }
+        .rate-chip .value{
+            font-weight:700;
+            font-size:14px; /* як у Enchancer */
+            letter-spacing:.3px;
+        }
+        .rate-chip .src{
+            display:inline-flex;
+            align-items:center;
+            line-height:1;
+        }
+        /* кольори TOTAL */
+        .rate--avg.rating--green  { color:#4caf50; }
+        .rate--avg.rating--lime   { color:#3399ff; }
+        .rate--avg.rating--orange { color:#ff9933; }
+        .rate--avg.rating--red    { color:#f44336; }
 
+        /* золото для нагород */
+        .rate--oscars .value,
+        .rate--emmy .value,
+        .rate--awards .value{
+            color:#FFD54F; /* золотистий; якщо нема кольору — помаранчевий */
+        }
+
+        /* іконка всередині капсули */
+        .rate-chip img,
+        .rate-chip svg{
+            height:16px; /* як у Enchancer */
+            width:auto;
+            display:inline-block;
+            vertical-align:middle;
+            object-fit:contain;
+            ${grayscaleFilter}
+        }
+
+        /* проміжні відступи щоб шеренга була щільною */
+        .full-start__rate{ margin:0 !important; }
+    </style>`;
     Lampa.Template.add('card_css', style);
     $('body').append(Lampa.Template.get('card_css', {}, true));
 
-    var loadingStyles = "<style id=\"maxsm_loading_animation\">\
-.loading-dots-container{position:absolute;top:50%;left:0;right:0;text-align:left;transform:translateY(-50%);z-index:10;}\
-.full-start-new__rate-line{position:relative;}\
-.loading-dots{display:inline-flex;align-items:center;gap:0.4em;color:#fff;font-size:1em;background:rgba(0,0,0,.3);padding:.6em 1em;border-radius:.5em;}\
-.loading-dots__text{margin-right:1em;}\
-.loading-dots__dot{width:.5em;height:.5em;border-radius:50%;background-color:currentColor;animation:loading-dots-bounce 1.4s infinite ease-in-out both;}\
-.loading-dots__dot:nth-child(1){animation-delay:-.32s;}\
-.loading-dots__dot:nth-child(2){animation-delay:-.16s;}\
-@keyframes loading-dots-bounce{0%,80%,100%{transform:translateY(0);opacity:.6;}40%{transform:translateY(-.5em);opacity:1;}}\
-</style>";
-
-    Lampa.Template.add('loading_animation_css', loadingStyles);
+    // Лоадер
+    var loadingCss = `
+    <style id="maxsm_loading_animation">
+        .loading-dots-container{
+            position:absolute; top:50%; left:0; right:0;
+            transform:translateY(-50%);
+            z-index:10;
+        }
+        .loading-dots{
+            display:inline-flex; align-items:center; gap:.5em;
+            color:#fff; font-size:.95em;
+            background:rgba(0,0,0,.35);
+            padding:.5em .9em; border-radius:.6em;
+        }
+        .loading-dots__dot{
+            width:.5em;height:.5em;border-radius:50%;
+            background:currentColor; animation:ldots 1.4s infinite ease-in-out both;
+        }
+        .loading-dots__dot:nth-child(1){ animation-delay:-.32s; }
+        .loading-dots__dot:nth-child(2){ animation-delay:-.16s; }
+        @keyframes ldots {
+            0%,80%,100%{ transform:translateY(0); opacity:.6;}
+            40%{ transform:translateY(-.45em); opacity:1;}
+        }
+    </style>`;
+    Lampa.Template.add('loading_animation_css', loadingCss);
     $('body').append(Lampa.Template.get('loading_animation_css', {}, true));
 
-    // ---------------------------------------------------
-    // -- КОНСТАНТИ / КЕШ --
-    // ---------------------------------------------------
-
-    var CACHE_TIME       = 3 * 24 * 60 * 60 * 1000; // 3 дні
-    var AWARDS_CACHE     = 'maxsm_rating_omdb';      // OMDB (нагороди, вік, фолбек-рейтинги)
-    var MDBLIST_CACHE    = 'maxsm_rating_mdblist';   // MDBList (рейтинги)
-    var ID_MAPPING_CACHE = 'maxsm_rating_id_mapping';
-
-    var AGE_RATINGS = {
-        'G':'3+','PG':'6+','PG-13':'13+','R':'17+','NC-17':'18+',
-        'TV-Y':'0+','TV-Y7':'7+','TV-G':'3+','TV-PG':'6+','TV-14':'14+','TV-MA':'17+'
-    };
-
-    // Ваги TOTAL (в 10-бальній шкалі)
-    var WEIGHTS = { imdb:0.40, tmdb:0.40, mc:0.10, rt:0.10 };
-
-    // ---------------------------------------------------
-    // -- ХЕЛПЕРИ --
-    // ---------------------------------------------------
+    // ===================================================
+    // =============== У Т И Л І Т И =====================
+    // ===================================================
 
     function addLoadingAnimation(){
-        var render = Lampa.Activity.active().activity.render(); if(!render) return;
+        var render = Lampa.Activity.active().activity.render();
+        if(!render) return;
         var line = $('.full-start-new__rate-line', render);
         if(!line.length || $('.loading-dots-container', line).length) return;
-        line.append('<div class="loading-dots-container">\
-            <div class="loading-dots">\
-            <span class="loading-dots__text">'+Lampa.Lang.translate("loading_dots")+'</span>\
-            <span class="loading-dots__dot"></span><span class="loading-dots__dot"></span><span class="loading-dots__dot"></span>\
-            </div></div>');
+        line.append(
+            '<div class="loading-dots-container">'+
+              '<div class="loading-dots">'+
+                '<span class="loading-dots__text">'+Lampa.Lang.translate('loading_dots')+'</span>'+
+                '<span class="loading-dots__dot"></span>'+
+                '<span class="loading-dots__dot"></span>'+
+                '<span class="loading-dots__dot"></span>'+
+              '</div>'+
+            '</div>'
+        );
         $('.loading-dots-container', line).css({opacity:'1',visibility:'visible'});
     }
     function removeLoadingAnimation(){
-        var render = Lampa.Activity.active().activity.render(); if(!render) return;
+        var render = Lampa.Activity.active().activity.render();
+        if(!render) return;
         $('.loading-dots-container', render).remove();
     }
 
     function getCardType(card){
         var t = card.media_type || card.type;
-        if(t === 'movie' || t === 'tv') return t;
-        return (card.name || card.original_name) ? 'tv' : 'movie';
+        if(t==='movie'||t==='tv') return t;
+        return card.name || card.original_name ? 'tv' : 'movie';
     }
 
-    function getRatingClass(x){
-        if(x>=8.0) return 'rating--green';
-        if(x>=6.0) return 'rating--lime';
-        if(x>=5.5) return 'rating--orange';
+    function getRatingClass(v){ // для TOTAL
+        if(v>=8.0) return 'rating--green';
+        if(v>=6.0) return 'rating--lime';
+        if(v>=5.5) return 'rating--orange';
         return 'rating--red';
     }
 
-    function getCache(ns, key){
-        var c = Lampa.Storage.get(ns) || {}, item = c[key];
-        return item && (Date.now()-item.timestamp < CACHE_TIME) ? item.data : null;
+    function getCache(cacheName, key){
+        var cache = Lampa.Storage.get(cacheName)||{};
+        var it = cache[key];
+        return it && (Date.now()-it.timestamp<CACHE_TIME) ? it.data : null;
     }
-    function setCache(ns, key, data){
-        var c = Lampa.Storage.get(ns) || {};
-        c[key] = { data:data, timestamp:Date.now() };
-        Lampa.Storage.set(ns, c);
+    function setCache(cacheName, key, data){
+        var cache = Lampa.Storage.get(cacheName)||{};
+        cache[key] = { data:data, timestamp:Date.now() };
+        Lampa.Storage.set(cacheName, cache);
     }
 
-    // OMDB Ratings (масив Ratings) → числові значення
-    function extractOmdbRating(ratings, source){
-        if(!Array.isArray(ratings)) return 0;
+    function getImdbId(card, cb){
+        if(card.imdb_id) return cb(card.imdb_id);
+        var type = getCardType(card);
+        var ckey = type+'_'+card.id;
+        var cached = getCache(ID_MAPPING_CACHE, ckey);
+        if(cached) return cb(cached);
+
+        var url = 'https://api.themoviedb.org/3/'+type+'/'+card.id+'/external_ids?api_key='+Lampa.TMDB.key();
+        new Lampa.Reguest().silent(url,function(d){
+            if(d && d.imdb_id){
+                setCache(ID_MAPPING_CACHE, ckey, d.imdb_id);
+                cb(d.imdb_id);
+            }else cb(null);
+        },function(){ cb(null); });
+    }
+
+    // Парсимо OMDb нагороди
+    function parseAwards(text){
+        if(typeof text!=='string') return {oscars:0,emmy:0,awards:0};
+        var r={oscars:0,emmy:0,awards:0};
+        var m1=text.match(/Won (\d+) Oscars?/i); if(m1) r.oscars=parseInt(m1[1],10);
+        var m2=text.match(/Won (\d+) Primetime Emmys?/i); if(m2) r.emmy=parseInt(m2[1],10);
+        var m3=text.match(/Another (\d+) wins?/i); if(m3) r.awards=parseInt(m3[1],10);
+        if(r.awards===0){
+            var s=text.match(/(\d+) wins?/i); if(s) r.awards=parseInt(s[1],10);
+        }
+        return r;
+    }
+
+    // ===================================================
+    // ============= А П І  В И К Л И ====================
+    // ===================================================
+
+    // MDBList: основні рейтинги
+    function fetchMdbListData(card){
+        return new Promise(function(resolve){
+            var ctype = getCardType(card)==='tv'?'show':'movie';
+            var ckey = ctype+'_'+card.id;
+            var cached = getCache(MDBLIST_CACHE, ckey);
+            if(cached) return resolve(cached);
+
+            var url = 'https://api.mdblist.com/tmdb/'+ctype+'/'+card.id+'?apikey='+MDBLIST_API_KEY;
+            new Lampa.Reguest().silent(url,function(d){
+                var r={imdb:0, tmdb:0, rt:0, mc:0};
+                if(d && d.ratings && d.ratings.length){
+                    d.ratings.forEach(function(x){
+                        if(x.source==='imdb')       r.imdb=parseFloat(x.value)||0;          // 0–10
+                        if(x.source==='tmdb')       r.tmdb=parseFloat(x.value)||0;          // 0–10
+                        if(x.source==='tomatoes')   r.rt=Math.round(parseFloat(x.value)||0);// 0–100
+                        if(x.source==='metacritic') r.mc=Math.round(parseFloat(x.value)||0);// 0–100
+                    });
+                }
+                setCache(MDBLIST_CACHE, ckey, r);
+                resolve(r);
+            },function(){ resolve({}); });
+        });
+    }
+
+    // OMDb: нагороди + Rated + фолбек рейтингів
+    function fetchOmdbData(card){
+        return new Promise(function(resolve){
+            getImdbId(card, function(imdbId){
+                if(!imdbId) return resolve({});
+                var type = getCardType(card);
+                var ckey = type+'_'+imdbId;
+                var cached = getCache(AWARDS_CACHE, ckey);
+                if(cached) return resolve(cached);
+
+                var typeParam = (type==='tv') ? '&type=series' : '';
+                var url = 'https://www.omdbapi.com/?apikey='+OMDB_API_KEY+'&i='+imdbId+typeParam;
+
+                new Lampa.Reguest().silent(url,function(d){
+                    if(d && d.Response==='True'){
+                        var awards = parseAwards(d.Awards||'');
+                        var out = {
+                            // фолбеки
+                            imdb: (d.imdbRating && d.imdbRating!=="N/A") ? parseFloat(d.imdbRating) : 0, // 0–10
+                            rt:   omdbExtract(d.Ratings,'Rotten Tomatoes'), // повернемо 0–100
+                            mc:   omdbExtract(d.Ratings,'Metacritic'),      // повернемо 0–100 (число)
+                            ageRating: d.Rated || null,
+                            oscars: awards.oscars,
+                            emmy: awards.emmy,
+                            awards: awards.awards
+                        };
+                        setCache(AWARDS_CACHE, ckey, out);
+                        resolve(out);
+                    } else resolve({});
+                },function(){ resolve({}); });
+            });
+        });
+    }
+
+    function omdbExtract(ratings, source){
+        if(!ratings || !Array.isArray(ratings)) return 0;
         for(var i=0;i<ratings.length;i++){
-            if(ratings[i].Source === source){
+            var it = ratings[i];
+            if(it.Source===source){
                 try{
-                    if(source === 'Rotten Tomatoes'){
-                        // OMDB RT приходить як "83%" → повертаємо 0–100
-                        return parseFloat(String(ratings[i].Value).replace('%','')) || 0;
-                    }else if(source === 'Metacritic'){
-                        // "78/100" → повертаємо 0–100
-                        return parseFloat(String(ratings[i].Value).split('/')[0]) || 0;
+                    if(source==='Rotten Tomatoes'){ // "92%"
+                        return Math.round(parseFloat(it.Value.replace('%',''))||0);
+                    }else if(source==='Metacritic'){ // "78/100"
+                        return Math.round(parseFloat(it.Value.split('/')[0])||0);
                     }
                 }catch(e){ return 0; }
             }
@@ -175,308 +379,192 @@
         return 0;
     }
 
-    // Нагороди (як у твоєму omdb.js)
-    function parseAwards(text){
-        if(typeof text!=='string') return {oscars:0, emmy:0, awards:0};
-        var res = {oscars:0, emmy:0, awards:0};
-        var m;
-        m = text.match(/Won (\d+) Oscars?/i);          if(m && m[1]) res.oscars = parseInt(m[1],10);
-        m = text.match(/Won (\d+) Primetime Emmys?/i);  if(m && m[1]) res.emmy   = parseInt(m[1],10);
-        m = text.match(/Another (\d+) wins?/i);         if(m && m[1]) res.awards = parseInt(m[1],10);
-        if(res.awards===0){
-            m = text.match(/(\d+) wins?/i);
-            if(m && m[1]) res.awards = parseInt(m[1],10);
-        }
-        return res;
+    // ===================================================
+    // =================== U I  Б Л О К ==================
+    // ===================================================
+
+    function chip(valueHtml, sourceHtml, extraClass){
+        extraClass = extraClass||'';
+        return (
+            '<div class="full-start__rate rate-chip '+extraClass+'">'+
+                '<div class="value">'+valueHtml+'</div>'+
+                '<div class="src">'+sourceHtml+'</div>'+
+            '</div>'
+        );
     }
 
-    // ---------------------------------------------------
-    // -- ФЕТЧЕРИ --
-    // ---------------------------------------------------
+    // Віковий рейтинг + IMDb/TMDB (сховані штатні) — оновлюємо
+    function updateHiddenBuiltIns(r){
+        var render = Lampa.Activity.active().activity.render();
+        if(!render||!render[0]) return;
 
-    // MDBList: основні рейтинги (imdb 0–10, tmdb 0–10, rt 0–100, mc 0–100, + можлива popcorn)
-    function fetchMdbListData(card){
-        return new Promise(function(resolve){
-            var kind = getCardType(card) === 'tv' ? 'show' : 'movie';
-            var cacheKey = kind + '_' + card.id;
-            var cached = getCache(MDBLIST_CACHE, cacheKey);
-            if(cached) return resolve(cached);
-
-            if(!MDBLIST_API_KEY){
-                console.warn('MDBList key not set');
-                return resolve({});
-            }
-
-            var url = "https://api.mdblist.com/tmdb/" + kind + "/" + card.id + "?apikey=" + MDBLIST_API_KEY;
-
-            new Lampa.Reguest().silent(url, function(data){
-                var out = { imdb:0, tmdb:0, rt:0, mc:0, popcorn:0 };
-                if(data && Array.isArray(data.ratings)){
-                    data.ratings.forEach(function(r){
-                        if(r.source === 'imdb')        out.imdb = parseFloat(r.value) || 0;
-                        if(r.source === 'tmdb')        out.tmdb = parseFloat(r.value) || 0;
-                        if(r.source === 'tomatoes')    out.rt   = parseFloat(r.value) || 0;     // 0–100
-                        if(r.source === 'metacritic')  out.mc   = parseFloat(r.value) || 0;     // 0–100
-                        if(r.source === 'popcornmeter')out.popcorn = parseFloat(r.value) || 0;  // 0–100
-                    });
-                }
-                setCache(MDBLIST_CACHE, cacheKey, out);
-                resolve(out);
-            }, function(){ resolve({}); });
-        });
-    }
-
-    // TMDB → IMDb ID
-    function getImdbId(card, cb){
-        if(card.imdb_id) return cb(card.imdb_id);
-        var kind = getCardType(card);
-        var cacheKey = kind + '_' + card.id;
-        var cached = getCache(ID_MAPPING_CACHE, cacheKey);
-        if(cached) return cb(cached);
-
-        var url = 'https://api.themoviedb.org/3/' + kind + '/' + card.id + '/external_ids?api_key=' + Lampa.TMDB.key();
-        new Lampa.Reguest().silent(url, function(data){
-            if(data && data.imdb_id){
-                setCache(ID_MAPPING_CACHE, cacheKey, data.imdb_id);
-                cb(data.imdb_id);
-            }else cb(null);
-        }, function(){ cb(null); });
-    }
-
-    // OMDB: вік, нагороди + фолбек рейтинги
-    function fetchOmdbData(card){
-        return new Promise(function(resolve){
-            getImdbId(card, function(imdbId){
-                if(!imdbId || !OMDB_API_KEY) return resolve({});
-                var kind = getCardType(card);
-                var cacheKey = kind + '_' + imdbId;
-                var cached = getCache(AWARDS_CACHE, cacheKey);
-                if(cached) return resolve(cached);
-
-                var typeParam = (kind==='tv') ? '&type=series' : '';
-                var url = 'https://www.omdbapi.com/?apikey=' + OMDB_API_KEY + '&i=' + imdbId + typeParam;
-
-                new Lampa.Reguest().silent(url, function(data){
-                    if(data && data.Response==='True'){
-                        var aw = parseAwards(data.Awards || '');
-                        var result = {
-                            // фолбек-рейтинги (0–100 для RT/MC; 0–10 для IMDb)
-                            rt:   extractOmdbRating(data.Ratings, 'Rotten Tomatoes') || 0,
-                            mc:   extractOmdbRating(data.Ratings, 'Metacritic') || 0,
-                            imdb: (data.imdbRating && data.imdbRating!=='N/A') ? parseFloat(data.imdbRating) : 0,
-
-                            ageRating: data.Rated || null,
-                            oscars: aw.oscars,
-                            emmy: aw.emmy,
-                            awards: aw.awards
-                        };
-                        setCache(AWARDS_CACHE, cacheKey, result);
-                        resolve(result);
-                    } else resolve({});
-                }, function(){ resolve({}); });
-            });
-        });
-    }
-
-    // ---------------------------------------------------
-    // -- ОНОВЛЕННЯ UI --
-    // ---------------------------------------------------
-
-    // НЕ чіпаємо базові елементи (ті що вже є): просто наповнюємо їх
-    function updateHiddenElements(r){
-        var render = Lampa.Activity.active().activity.render(); if(!render || !render[0]) return;
-
-        // Віковий рейтинг
-        var pgEl = $('.full-start__pg.hide', render);
-        if(pgEl.length && r.ageRating){
+        // Вік
+        var pg = $('.full-start__pg.hide', render);
+        if(pg.length && r.ageRating){
             var bad = ['N/A','Not Rated','Unrated'];
-            if(bad.indexOf(r.ageRating) === -1){
-                pgEl.removeClass('hide').text(AGE_RATINGS[r.ageRating] || r.ageRating);
+            if(bad.indexOf(r.ageRating)===-1){
+                pg.removeClass('hide').text(AGE_RATINGS[r.ageRating]||r.ageRating);
             }
         }
 
         // IMDb
-        var imdbBox = $('.rate--imdb', render);
-        if(imdbBox.length && r.imdb>0){
-            imdbBox.removeClass('hide');
-            imdbBox.children('div').eq(0).text(parseFloat(r.imdb).toFixed(1)); // 0–10
-            imdbBox.children('div').eq(1).html(Lampa.Lang.translate('source_imdb'));
+        var imdbC = $('.rate--imdb', render);
+        if(imdbC.length && r.imdb>0){
+            imdbC.removeClass('hide');
+            imdbC.children('div').eq(0).text(parseFloat(r.imdb).toFixed(1));
+            imdbC.children('div').eq(1).html(Lampa.Lang.translate('source_imdb'));
         }
 
         // TMDB
-        var tmdbBox = $('.rate--tmdb', render);
-        if(tmdbBox.length && r.tmdb>0){
-            tmdbBox.removeClass('hide');
-            tmdbBox.children('div').eq(0).text(parseFloat(r.tmdb).toFixed(1)); // 0–10
-            tmdbBox.children('div').eq(1).html(Lampa.Lang.translate('source_tmdb'));
+        var tmdbC = $('.rate--tmdb', render);
+        if(tmdbC.length && r.tmdb>0){
+            tmdbC.removeClass('hide');
+            tmdbC.children('div').eq(0).text(parseFloat(r.tmdb).toFixed(1));
+            tmdbC.children('div').eq(1).html(Lampa.Lang.translate('source_tmdb'));
         }
     }
 
-    // Підставляємо нові плашки у потрібному порядку:
+    // Вставка кастомних чипів у твоєму ПОРЯДКУ:
     // TOTAL → Oscars → Emmy → Awards → TMDB → IMDb → MC → RT → Popcorn
-    function insertRatings(r){
-        var render = Lampa.Activity.active().activity.render(); if(!render) return;
-        var line = $('.full-start-new__rate-line', render); if(!line.length) return;
+    function insertChips(r){
+        var render = Lampa.Activity.active().activity.render();
+        if(!render) return;
+        var line = $('.full-start-new__rate-line', render);
+        if(!line.length) return;
 
-        // очищаємо наші "додані" блоки (щоб не дублювати при повторному відкритті)
-        ['avg','oscars','emmy','awards','mc','rt','popcorn'].forEach(function(cls){
-            $('.rate--'+cls, line).remove();
-        });
+        // Почистимо наші попередні
+        line.find('.rate-chip.rate--avg,.rate-chip.rate--oscars,.rate-chip.rate--emmy,.rate-chip.rate--awards,.rate-chip.rate--tmdb2,.rate-chip.rate--imdb2,.rate-chip.rate--mc,.rate-chip.rate--rt,.rate-chip.rate--popcorn').remove();
 
-        // --- Нагороди спочатку (prepend в зворотньому порядку, щоб зліва був Oscars, потім Emmy, потім Awards) ---
-        if(r.awards>0 && !$('.rate--awards', line).length){
-            var awardsEl = $('<div class="full-start__rate rate--awards rate--gold">\
-                <div>'+ r.awards +'</div><div class="source--name"></div></div>');
-            awardsEl.find('.source--name').html(Lampa.Lang.translate('maxsm_omdb_awards_other'));
-            line.prepend(awardsEl);
-        }
-        if(r.emmy>0 && !$('.rate--emmy', line).length){
-            var emmyEl = $('<div class="full-start__rate rate--emmy rate--gold">\
-                <div>'+ r.emmy +'</div><div class="source--name"></div></div>');
-            emmyEl.find('.source--name').html(Lampa.Lang.translate('maxsm_omdb_emmy'));
-            line.prepend(emmyEl);
-        }
-        if(r.oscars>0 && !$('.rate--oscars', line).length){
-            var oscEl = $('<div class="full-start__rate rate--oscars">\
-                <div>'+ r.oscars +'</div><div class="source--name"></div></div>');
-            oscEl.find('.source--name').html(Lampa.Lang.translate('maxsm_omdb_oscars'));
-            line.prepend(oscEl);
+        // 1) TOTAL (якщо є хоча б 2 джерела з вагами > 0)
+        var total = calcTotal(r);
+        if(total.show){
+            var cls = getRatingClass(total.value);
+            var totalHtml = chip(total.value.toFixed(1), Lampa.Lang.translate('ratimg_omdb_avg'), 'rate--avg '+cls);
+            line.prepend(totalHtml);
         }
 
-        // --- TMDB (залишаємо вбудований блок як є; ми його показуємо в updateHiddenElements) ---
-
-        // --- IMDb (так само) ---
-
-        // --- Metacritic (ціле число, БЕЗ відсотка) ---
-        if(r.mc>0 && !$('.rate--mc', line).length){
-            var mcInt = Math.round(r.mc); // наприклад 78
-            var mcEl = $('<div class="full-start__rate rate--mc">\
-                <div>'+ mcInt +'</div><div class="source--name"></div></div>');
-            mcEl.find('.source--name').html(Lampa.Lang.translate('source_mc'));
-            // після IMDb/TMDB — тобто шукаємо їх і вставляємо після
-            var afterEl = $('.rate--imdb', line).length ? $('.rate--imdb', line) : ($('.rate--tmdb', line).length ? $('.rate--tmdb', line) : $('.full-start__rate:last', line));
-            if(afterEl.length) mcEl.insertAfter(afterEl); else line.append(mcEl);
+        // 2) Нагороди (Oscars → Emmy → Awards)
+        if(r.oscars>0){
+            line.append( chip(r.oscars, Lampa.Lang.translate('maxsm_omdb_oscars'), 'rate--oscars') );
+        }
+        if(r.emmy>0){
+            line.append( chip(r.emmy, Lampa.Lang.translate('maxsm_omdb_emmy'), 'rate--emmy') );
+        }
+        if(r.awards>0){
+            line.append( chip(r.awards, Lampa.Lang.translate('maxsm_omdb_awards_other'), 'rate--awards') );
         }
 
-        // --- RottenTomatoes (відображення у %, іконка good/bad) ---
-        if(r.rt>0 && !$('.rate--rt', line).length){
-            var rtInt = Math.round(r.rt);
-            var rtIcon = (rtInt >= 60)
-                ? iconFromStreaming('rotten-tomatoes.png') // GOOD (зі streamingdiscovery)
-                : iconFromGithub('RottenBad.png');         // BAD  (з GitHub)
-            var rtEl = $('<div class="full-start__rate rate--rt">\
-                <div>'+ rtInt +'%</div><div class="source--name"></div></div>');
-            rtEl.find('.source--name').html(rtIcon);
-            // після MC
-            var afterMc = $('.rate--mc', line).length ? $('.rate--mc', line) : $('.full-start__rate:last', line);
-            if(afterMc.length) rtEl.insertAfter(afterMc); else line.append(rtEl);
+        // 3) TMDB (десяткова)
+        if(r.tmdb>0){
+            line.append( chip(parseFloat(r.tmdb).toFixed(1), Lampa.Lang.translate('source_tmdb'), 'rate--tmdb2') );
         }
 
-        // --- PopcornMeter (тільки з GitHub-папки) ---
-        if(r.popcorn>0 && !$('.rate--popcorn', line).length){
-            var pcInt = Math.round(r.popcorn);
-            var pcEl = $('<div class="full-start__rate rate--popcorn">\
-                <div>'+ pcInt +'%</div><div class="source--name"></div></div>');
-            pcEl.find('.source--name').html(iconFromGithub('popcorn.png'));
-            // в самому кінці
-            line.append(pcEl);
+        // 4) IMDb (десяткова)
+        if(r.imdb>0){
+            line.append( chip(parseFloat(r.imdb).toFixed(1), Lampa.Lang.translate('source_imdb'), 'rate--imdb2') );
+        }
+
+        // 5) Metacritic — ЦІЛЕ (наприклад, 78) — БЕЗ «%»
+        if(r.mc>0){
+            line.append( chip(parseInt(r.mc,10), Lampa.Lang.translate('source_mc'), 'rate--mc') );
+        }
+
+        // 6) Rotten Tomatoes — показуємо у %
+        if(r.rt>0){
+            // ≥60 — GOOD (твій критерій 60+ good, ≤59 bad)
+            var isGood = r.rt>=60;
+            var rtIcon = isGood ? iconImg(RT_GOOD_IMG,16) : iconImg(RT_BAD_FILE,16);
+            var rtHtml = chip( parseInt(r.rt,10), rtIcon, 'rate--rt' );
+            line.append(rtHtml);
+        }
+
+        // 7) PopcornMeter (якщо прийшов)
+        if(r.popcorn>0){
+            line.append( chip(parseInt(r.popcorn,10), iconImg(POPCORN_FILE,16), 'rate--popcorn') );
         }
     }
 
-    // TOTAL (10-бальна, з вагами; RT/MC перетворюємо у 0–10)
-    function calculateAverageRating(r){
-        var render = Lampa.Activity.active().activity.render(); if(!render) return;
-        var line = $('.full-start-new__rate-line', render); if(!line.length) return;
+    function calcTotal(r){
+        // все в /10
+        var imdb = r.imdb||0;             // вже /10
+        var tmdb = r.tmdb||0;             // вже /10
+        var mc   = r.mc ? (r.mc/10) : 0;  // 0–100 → /10
+        var rt   = r.rt ? (r.rt/10) : 0;  // 0–100 → /10
 
-        // очищаємо попередній TOTAL
-        $('.rate--avg', line).remove();
-
-        var imdb = r.imdb || 0;           // 0–10
-        var tmdb = r.tmdb || 0;           // 0–10
-        var mc   = r.mc ? (r.mc/10) : 0;  // 0–100 → 0–10
-        var rt   = r.rt ? (r.rt/10) : 0;  // 0–100 → 0–10
-
-        var values = { imdb:imdb, tmdb:tmdb, mc:mc, rt:rt };
-        var sum = 0, wsum = 0, count = 0;
-
-        Object.keys(values).forEach(function(k){
-            var v = values[k];
-            if(v && !isNaN(v) && v>0){
-                sum += v * WEIGHTS[k];
-                wsum += WEIGHTS[k];
-                count++;
-            }
-        });
+        var wsum=0, s=0, count=0;
+        if(imdb>0){ s+=imdb*WEIGHTS.imdb; wsum+=WEIGHTS.imdb; count++; }
+        if(tmdb>0){ s+=tmdb*WEIGHTS.tmdb; wsum+=WEIGHTS.tmdb; count++; }
+        if(mc>0){   s+=mc*WEIGHTS.mc;     wsum+=WEIGHTS.mc;   count++; }
+        if(rt>0){   s+=rt*WEIGHTS.rt;     wsum+=WEIGHTS.rt;   count++; }
 
         if(count>1 && wsum>0){
-            var avg = sum/wsum;
-            var cls = getRatingClass(avg);
-            var avgEl = $('<div class="full-start__rate rate--avg '+cls+'">\
-                <div>'+ avg.toFixed(1) +'</div><div class="source--name">'+Lampa.Lang.translate('ratimg_omdb_avg')+'</div></div>');
-            // TOTAL має бути першим
-            line.prepend(avgEl);
+            return { show:true, value:(s/wsum) };
         }
-
-        removeLoadingAnimation();
-        line.css('visibility','visible');
+        return { show:false, value:0 };
     }
 
-    // ---------------------------------------------------
-    // -- КОНТРОЛЕР --
-    // ---------------------------------------------------
+    // ===================================================
+    // =========== Г О Л О В Н И Й   П О Т О К ===========
+    // ===================================================
 
     function fetchAdditionalRatings(card){
-        var render = Lampa.Activity.active().activity.render(); if(!render) return;
+        var render = Lampa.Activity.active().activity.render();
+        if(!render) return;
+
         var line = $('.full-start-new__rate-line', render);
-        if(line.length){ line.css('visibility','hidden'); addLoadingAnimation(); }
+        if(line.length){
+            line.css('visibility','hidden');
+            addLoadingAnimation();
+        }
 
-        // паралельно тягнемо обидва джерела
+        // Попкорн одразу з картки (якщо є)
+        var popcornFromCard = card.popcorn_rating || 0;
+
+        // Паралельно тягнемо OMDb + MDBList
         Promise.all([
-            fetchMdbListData(card), // основні рейтинги
-            fetchOmdbData(card)     // нагороди, вік + фолбек
-        ]).then(function(rs){
-            var mdb = rs[0] || {};
-            var omd = rs[1] || {};
+            fetchOmdbData(card),
+            fetchMdbListData(card)
+        ]).then(function(res){
+            var omdb = res[0]||{};
+            var mdb  = res[1]||{};
 
-            // ПРІОРИТЕТ: MDBList → OMDB → card
+            // Фінальний набір (MDBList пріоритет, OMDb як фолбек)
             var final = {
-                imdb:    (mdb.imdb || omd.imdb || card.imdb_rating || 0),
-                tmdb:    (mdb.tmdb || card.vote_average || 0),
-                rt:      (mdb.rt   || omd.rt   || 0),           // завжди 0–100 для відображення %
-                mc:      (mdb.mc   || omd.mc   || 0),           // завжди 0–100, показуємо цілим
-                popcorn: (mdb.popcorn || card.popcorn_rating || 0),
-
-                ageRating: omd.ageRating || null,
-                oscars:    omd.oscars || 0,
-                emmy:      omd.emmy   || 0,
-                awards:    omd.awards || 0
+                imdb: mdb.imdb || omdb.imdb || card.imdb_rating || 0, // /10
+                tmdb: mdb.tmdb || (card.vote_average ? parseFloat(card.vote_average) : 0) || 0, // /10
+                rt:   mdb.rt   || omdb.rt   || 0, // 0–100, у UI показуємо %
+                mc:   mdb.mc   || omdb.mc   || 0, // 0–100, у UI — цілим, без %
+                popcorn: popcornFromCard ? Math.round(popcornFromCard) : 0, // %
+                ageRating: omdb.ageRating || null,
+                oscars: omdb.oscars||0,
+                emmy: omdb.emmy||0,
+                awards: omdb.awards||0
             };
 
-            // Оновити існуючі елементи (імовірно приховані)
-            updateHiddenElements(final);
-
-            // Додати/оновити наші додаткові плашки в потрібному порядку
-            insertRatings(final);
-
-            // TOTAL зверху
-            calculateAverageRating(final);
+            // Оновлюємо штатні сховані: PG/IMDb/TMDB
+            updateHiddenBuiltIns(final);
+            // Наші «капсули» у твоєму порядку
+            insertChips(final);
 
         }).catch(function(err){
             console.error('Ratings load error', err);
+        }).finally(function(){
             removeLoadingAnimation();
             line && line.css('visibility','visible');
         });
     }
 
-    // ---------------------------------------------------
-    // -- ІНІЦІАЛІЗАЦІЯ --
-    // ---------------------------------------------------
+    // ===================================================
+    // ================= І Н І Ц І А Л І З А Ц І Я =======
+    // ===================================================
 
     function startPlugin(){
         window.combined_ratings_plugin = true;
         Lampa.Listener.follow('full', function(e){
-            if(e.type === 'complite'){
-                setTimeout(function(){ fetchAdditionalRatings(e.data.movie); }, 500);
+            if(e.type==='complite'){
+                setTimeout(function(){
+                    fetchAdditionalRatings(e.data.movie);
+                }, 500);
             }
         });
     }
