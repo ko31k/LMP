@@ -8,6 +8,11 @@
         ICON_BASE_URL: (function() {
             var base = window.location.origin;
             var path = window.location.pathname;
+
+        // Для GitHub Pages
+        if (window.location.hostname === 'ko31k.github.io') {
+            return base + '/LMP/wwwroot/img/';
+        }
             
             // Если на localhost
             if (window.location.hostname === 'localhost' || 
