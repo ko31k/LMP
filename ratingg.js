@@ -3,7 +3,7 @@
 
     // Конфигурация плагина
     var CONFIG = {
-        API_KEY: 'КлюЧ сюда',
+        API_KEY: 'm8po461k1zq14sroj2ez5d7um',
         // Исправленный базовый URL для изображений
         ICON_BASE_URL: (function() {
             var base = window.location.origin;
