@@ -1368,24 +1368,6 @@
     return '';
    }
   
-  /*function ageCategoryFor(text) {
-    for (var k in __ageGroups) {
-      if (__ageGroups[k].some(function (mark) {
-          return text.indexOf(mark) !== -1;
-        })) return k;
-    }
-    var m = text.match(/(^|\D)(\d{1,2})\s*\+(?=\D|$)/);
-    if (m) {
-      var n = parseInt(m[2], 10);
-      if (n <= 3) return 'kids';
-      if (n <= 7) return 'children';
-      if (n <= 14) return 'teens';
-      if (n <= 17) return 'almostAdult';
-      return 'adult';
-    }
-    return '';
-  }*/
-
   /**
    * Застосовує кольори до вікових рейтингів (PG)
    */
@@ -1944,7 +1926,7 @@
 
         // ===================== СИСТЕМА ТЕКСТОВИХ ЗАМІН =====================
         const REPLACEMENTS = [
-          ['Uaflix', 'UAFlix'],
+          ['Uaflix', 'UaFlix'],
           ['Zetvideo', 'UaFlix'],
           ['Нет истории просмотра', 'Історія перегляду відсутня'],
           ['Дублированный', 'Дубльований'],
@@ -2529,7 +2511,7 @@
 
 
 // Синхронізуємо ТІЛЬКИ кольори з якості (фон/текст).
-// Якщо нічого не знайдено — дефолт як у твоєму прикладі.
+// Якщо нічого не знайдено — дефолт.
 function ifxSyncAltBadgeThemeFromQuality(){
   try{
     // Спершу сезонні мітки Quality, потім card__quality
@@ -2692,7 +2674,7 @@ function ensureAltBadgesCss(){
     var d = $root.data() || {};
     
     // 1) Дані Lampa: Пріоритет - рік виходу СЕРІАЛУ або ФІЛЬМУ
-    // (Ми свідомо ігноруємо d.air_date та d.next_episode_date, бо це дати епізодів)
+    
     var y = (d.first_air_date || '').slice(0,4) // << Пріоритет #1: Рік виходу серіалу
          || (d.release_date || '').slice(0,4) // << Пріоритет #2: Рік виходу фільму
          || d.release_year // << Резерв
@@ -2713,7 +2695,7 @@ function ensureAltBadgesCss(){
       title.match(/(?:[–—·\/-]\s*)((?:19|20)\d{2})\s*$/);
     if (mTitle) return mTitle[1];
     
-    // МИ ПРИБРАЛИ ПОШУК .full-episode__date, оскільки він дає рік ЕПІЗОДУ.
+    
 
     return '';
   }
@@ -2868,33 +2850,11 @@ function injectAll($scope){
   applyTitleYearHide($scope);
 }   
   
-  /*function injectAll($scope){
-    $scope = $scope || $(document.body);
-
-    if (S.year_on){
-      // Списки тайтлів (не повні картки)
-      $scope.find('.card').each(function(){
-        var $c = $(this);
-        if ($c.closest('.full-start, .full-start-new, .full, .details').length) return;
-        applyListCard($c);
-      });
-      // Епізоди (alt і стандарт)
-      $scope.find('.card-episode').each(function(){ applyEpisodeCard($(this)); });
-    } else {
-      // якщо вимкнено — прибираємо локальні класи
-      $scope.find('.card.ifx-hide-age').removeClass('ifx-hide-age');
-      $scope.find('.card-episode .full-episode.ifx-hide-age').removeClass('ifx-hide-age');
-    }
-
-    applyNumberOnly($scope);
-    applyTitleYearHide($scope);
-  }*/
-
   // ---------- «лише номер серії» (та ALT) ----------
   function applyNumberOnly($scope){
     $scope = $scope || $(document.body);
     
-    // [!!!] ВИПРАВЛЕНО (з минулого разу):
+    // [!!!] ВИПРАВЛЕНО:
     // Тепер 'force' залежить ТІЛЬКИ від S.num_only
     var force = S.num_only;
 
@@ -2955,22 +2915,16 @@ function injectAll($scope){
           
           // [!!!] ВИПРАВЛЕНО:
           // Умовне ввімкнення/вимкнення обсервера видалено.
-          // if (S.year_on) enableObserver(); else disableObserver(); // <--- ВИДАЛЕНО
         }
         if (k===KEY_ALT){
           S.alt_ep = (v===true || v==='true' || Lampa.Storage.get(KEY_ALT,'false')==='true');
           setEpisodeAlt(S.alt_ep);
-          
-          // [!!!] ВИПРАВЛЕНО (з минулого разу):
-          // Рядок document.body.classList.toggle('ifx-num-only', S.alt_ep || S.num_only);
-          // ВИДАЛЕНО, оскільки setEpisodeAlt() тепер робить це коректно.
-          
           setTimeout(function(){ injectAll($(document.body)); }, 50);
         }
         if (k===KEY_NUM){
           S.num_only = (v===true || v==='true' || Lampa.Storage.get(KEY_NUM,'false')==='true');
 
-          // [!!!] ВИПРАВЛЕНО (з минулого разу):
+          // [!!!] ВИПРАВЛЕНО:
           // Тепер логіка незалежна:
           document.body.classList.toggle('ifx-num-only', S.num_only);
           
@@ -3026,8 +2980,6 @@ function injectAll($scope){
   if (window.appready) boot();
   else Lampa.Listener.follow('app', function(e){ if (e.type==='ready') boot(); });
 })(); 
-  
-
   
 
 })();
