@@ -5,8 +5,8 @@
  *  - Мітки на повній і спискових картках
  *  - Спрощені (4K/FHD/HD/SD, TS/TC/CAM) або повні підписи — перемикається
  *  - Ручні оверрайди для окремих ID
- *  - Кеш 24h + тихе фонове оновлення
- *  - Черга запитів (до 12 парал.), проксі (HTTPS), поліфіли для старих WebView
+ *  - Кеш 72h + тихе фонове оновлення
+ *  - Черга запитів (до 10 парал.), проксі (HTTPS), поліфіли для старих WebView
  *
  * Налаштування: Інтерфейс → «Мітки якості»
  */
@@ -93,14 +93,14 @@
         })();
     }
 
-    // 2. requestAnimationFrame поліфіл (деякі дуже древні WebView його не мають)
+    // 2. requestAnimationFrame поліфіл
     if (typeof window.requestAnimationFrame !== 'function') {
         window.requestAnimationFrame = function (cb) {
             return setTimeout(cb, 16); // ~60fps
         };
     }
 
-    // 3. Безпечне localStorage (деякі бокси кидають SecurityError або просто забороняють сховище)
+    // 3. Безпечне localStorage
     var safeLocalStorage = (function () {
         try {
             var testKey = '__lqe_test__';
@@ -109,7 +109,7 @@
             // якщо дійшли сюди — localStorage живий
             return window.localStorage;
         } catch (e) {
-            // fallback у RAM (не переживає перезапуск, але не падає)
+            // fallback у RAM 
             var memoryStore = {};
             return {
                 getItem: function (k) { return memoryStore[k] || null; },
@@ -119,7 +119,7 @@
         }
     })();
 
-    // 4. Якщо чомусь немає Lampa.Storage (деякі форки Lampa TV кастрять API),
+    // 4. Якщо чомусь немає Lampa.Storage
     // створимо просту сумісну версію поверх safeLocalStorage.
     if (!window.Lampa) window.Lampa = {};
     if (!Lampa.Storage) {
@@ -205,7 +205,7 @@
         LOGGING_QUALITY: false, // Логування процесу визначення якості
         LOGGING_CARDLIST: false, // Логування для спискових карток
         CACHE_VALID_TIME_MS: 72 * 60 * 60 * 1000, // Час життя кешу (72 години)
-        CACHE_REFRESH_THRESHOLD_MS: 24 * 60 * 60 * 1000, // Час для фонового оновлення кешу (12 годин)
+        CACHE_REFRESH_THRESHOLD_MS: 24 * 60 * 60 * 1000, // Час для фонового оновлення кешу (24 години)
         CACHE_KEY: 'lampa_quality_cache', // Ключ для зберігання кешу в LocalStorage
         JACRED_PROTOCOL: 'http://', // Протокол для API JacRed
         JACRED_URL: 'jacred.xyz', // Домен API JacRed
@@ -454,7 +454,7 @@
     	"}" +
 		"</style>";
 
-// === LQE: пошук якості всередині rate-line (оновлені стилі) ===
+// === LQE: пошук якості всередині rate-line ===
 var lqeLoaderCss = "<style id=\"lqe_search_loader_css\">" +
 "#lqe-search-loader.loading-dots-container{display:inline-flex;align-items:center;gap:.4em;color:#ccc;font-size:.85em;background:rgba(0,0,0,.3);padding:.6em 1em;border-radius:.5em;pointer-events:none;}" +
 "#lqe-search-loader .loading-dots__text{margin-right:.6em;}" +
@@ -557,7 +557,7 @@ $('body').append(Lampa.Template.get('lqe_search_loader_css', {}, true));
      * @param {Element} renderElement - DOM елемент
      */
 /**
- * Додає анімацію завантаження всЕРЕДИНІ рядка рейтингів,
+ * Додає анімацію завантаження всередині рядка рейтингів,
  * не змінюючи видимість самого рядка.
  * - НІКОЛИ не ховає .full-start-new__rate-line
  * - Не додає дублікат, якщо анімація вже є
@@ -686,7 +686,7 @@ function simplifyQualityLabel(fullLabel, originalTitle) {
     if (!fullLabel) return ''; // Перевірка на пусту назву
     
     var lowerLabel = fullLabel.toLowerCase(); // Нижній регістр для порівняння
-    // var lowerTitle = (originalTitle || '').toLowerCase(); // ❌ БІЛЬШЕ НЕ ВИКОРИСТОВУЄМО (бо перебиває якісний реліз)
+    // var lowerTitle = (originalTitle || '').toLowerCase(); // ❌ БІЛЬШЕ НЕ ВИКОРИСТОВУЄМО
 
     // --- Крок 1: Погані якості (найвищий пріоритет) ---
     // Якщо JacRed вибрав реліз з поганою якістю - показуємо тип якості
@@ -1789,13 +1789,6 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
         }
     }
 
-
-
-
-
-
-	
-
 /* ===== LQE: Settings (Interface -> "Мітки якості") ===== */
 (function(){
   'use strict';
@@ -1821,9 +1814,6 @@ function lqeToast(msg){
   setTimeout(function(){ el.style.opacity='0'; }, 1300);
 }
  
-	
-  
-
   function load(){
     var s = (Lampa.Storage.get(SETTINGS_KEY) || {});
     return {
