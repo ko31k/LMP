@@ -36,7 +36,6 @@ body{
     radial-gradient(900px 420px at 45% 0%, rgba(255,255,255,.06), transparent 60%),
     radial-gradient(800px 520px at 60% 90%, rgba(255,255,255,.04), transparent 60%);
   pointer-events:none;
-  filter: blur(0px);
 }
 
 .container{
@@ -92,6 +91,12 @@ body{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+}
+
+.header__actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
 .lang{
@@ -224,7 +229,7 @@ body{
   display:flex;
   flex-direction:column;
   gap:12px;
-  min-height:170px;
+  min-height:184px;
   transition: .15s ease;
 }
 .card:hover{
@@ -253,11 +258,19 @@ body{
   line-height:1.35;
 }
 
-.card__urlrow{
+.card__actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
   margin-top:auto;
+}
+
+.card__urlrow{
   display:flex;
   gap:10px;
   align-items:center;
+  flex: 1 1 auto;
 }
 
 .url{
@@ -290,6 +303,20 @@ body{
   border-color: rgba(25,195,125,.55);
   background: linear-gradient(180deg, rgba(25,195,125,.16), rgba(255,255,255,.06));
 }
+
+/* New: details button */
+.more{
+  flex:0 0 auto;
+  padding:12px 12px;
+  border-radius:16px;
+  border:1px solid rgba(124,92,255,.40);
+  background: linear-gradient(180deg, rgba(124,92,255,.14), rgba(255,255,255,.06));
+  color:var(--text);
+  font-weight:900;
+  cursor:pointer;
+  transition:.15s ease;
+}
+.more:hover{border-color: rgba(124,92,255,.65)}
 
 .empty{
   padding:40px 0 60px 0;
@@ -324,6 +351,9 @@ body{
   box-shadow: var(--shadow);
   padding:16px;
 }
+.modal__card--details{
+  width:min(860px, 100%);
+}
 .modal__head{
   display:flex;
   align-items:center;
@@ -345,21 +375,51 @@ body{
 }
 .modal__close:hover{border-color:rgba(255,255,255,.18)}
 .modal__body{padding:0 6px 8px 6px;color:var(--muted)}
+.modal__body--details{display:flex;flex-direction:column;gap:14px}
 
 .steps{margin:0; padding-left:18px}
 .steps li{margin:8px 0; line-height:1.35}
-.note{
-  margin-top:14px;
-  padding:12px 12px;
+
+/* New: details modal content */
+.details__desc{
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 13.5px;
+}
+
+.details__shotsTitle{
+  font-size: 12px;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+
+.shots{
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:10px;
+}
+.shot{
   border-radius:18px;
+  overflow:hidden;
   border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.05);
-  color: rgba(233,236,243,.75);
+  background: rgba(255,255,255,.04);
+}
+.shot img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+.details__urlrow{
+  display:flex;
+  gap:10px;
+  align-items:center;
 }
 
 @media (max-width: 980px){
   .grid{grid-template-columns: repeat(2, 1fr)}
   .pill{display:none}
+  .shots{grid-template-columns: 1fr}
 }
 @media (max-width: 640px){
   .toolbar{flex-direction:column; align-items:stretch}
@@ -367,22 +427,3 @@ body{
   .grid{grid-template-columns: 1fr}
   .brand__subtitle{display:none}
 }
-
-/* ---- Modal visibility: hard rules ---- */
-.modal.is-hidden{
-  display:none !important;
-}
-
-/* (опційно) щоб при показі модалки не було "кліку" по бекграунду */
-.modal{
-  display:flex;
-}
-
-/* ---- Header actions wrapper (у тебе є в HTML, але стилю нема) ---- */
-.header__actions{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex:0 0 auto;
-}
-
