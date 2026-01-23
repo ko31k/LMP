@@ -7,7 +7,8 @@
   const state = {
     lang: "uk",
     plugins: [],
-    q: ""
+    q: "",
+    details: null
   };
 
   const el = {
@@ -19,13 +20,24 @@
     countLabel: $("#countLabel"),
     subtitle: $("#subtitle"),
     howto: $("#howto"),
+
     modal: $("#modal"),
     modalClose: $("#modalClose"),
     backdrop: $("#modal .modal__backdrop"),
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
     steps: $("#steps"),
-    modalTitle: $("#modalTitle")
+    modalTitle: $("#modalTitle"),
+
+    detailsModal: $("#detailsModal"),
+    detailsClose: $("#detailsClose"),
+    detailsBackdrop: $("#detailsModal .modal__backdrop"),
+    detailsTitle: $("#detailsTitle"),
+    detailsDesc: $("#detailsDesc"),
+    detailsShotsTitle: $("#detailsShotsTitle"),
+    detailsShots: $("#detailsShots"),
+    detailsUrl: $("#detailsUrl"),
+    detailsCopy: $("#detailsCopy")
   };
 
   const i18n = {
@@ -39,14 +51,13 @@
       modalTitle: "Як встановити",
       stepsHtml: `
         <li>Скопіюй URL потрібного плагіна.</li>
-        <li>
-          В Lampa відкрий: <b>Налаштування → Розширення</b>
-          та натисни <b>"Додати плагін"</b>.
-        </li>
+        <li>В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.</li>
         <li>Встав скопійоване посилання у поле та підтверди.</li>
       `,
       copy: "Copy",
-      copied: "Copied"
+      copied: "Copied",
+      more: "Детальніше",
+      screenshots: "Скріншоти"
     },
     en: {
       subtitle: "Lampa plugins catalog • quick search • easy copy",
@@ -58,14 +69,13 @@
       modalTitle: "How to install",
       stepsHtml: `
         <li>Copy the plugin URL.</li>
-        <li>
-          In Lampa open: <b>Settings → Extensions</b>
-          and press <b>"Add plugin"</b>.
-        </li>
+        <li>In Lampa open: <b>Settings → Extensions</b> and press <b>"Add plugin"</b>.</li>
         <li>Paste the copied link into the field and confirm.</li>
       `,
       copy: "Copy",
-      copied: "Copied"
+      copied: "Copied",
+      more: "Details",
+      screenshots: "Screenshots"
     }
   };
 
@@ -73,14 +83,24 @@
     return i18n[state.lang][key];
   }
 
-  function getDesc(p) {
+  function getDescFull(p) {
     return state.lang === "en"
       ? (p.desc_en || p.desc_uk || "")
       : (p.desc_uk || p.desc_en || "");
   }
 
+  function getDescShort(p) {
+    const key = state.lang === "en" ? "desc_short_en" : "desc_short_uk";
+    const fallback = getDescFull(p);
+    return (p[key] || fallback || "");
+  }
+
   function absUrl(file) {
     return new URL(file, window.location.href).href;
+  }
+
+  function absAsset(path) {
+    return new URL(path, window.location.href).href;
   }
 
   async function load() {
@@ -93,7 +113,7 @@
 
   function matches(p, q) {
     if (!q) return true;
-    const text = [(p.title || ""), getDesc(p)].join(" ").toLowerCase();
+    const text = [(p.title || ""), getDescFull(p), getDescShort(p)].join(" ").toLowerCase();
     return text.includes(q);
   }
 
@@ -121,15 +141,80 @@
     }
   }
 
+  function setCopyButtonState(btn, done) {
+    if (!btn) return;
+    if (done) {
+      btn.classList.add("is-done");
+      btn.textContent = t("copied");
+      window.setTimeout(() => {
+        btn.classList.remove("is-done");
+        btn.textContent = t("copy");
+      }, 900);
+    } else {
+      btn.classList.remove("is-done");
+      btn.textContent = t("copy");
+    }
+  }
+
+  function openModal() {
+    el.modal.classList.remove("is-hidden");
+  }
+
+  function closeModal() {
+    el.modal.classList.add("is-hidden");
+  }
+
+  function openDetails(p) {
+    state.details = p;
+
+    const url = absUrl(p.file);
+    el.detailsTitle.textContent = p.title || p.id || "Plugin";
+    el.detailsDesc.textContent = getDescFull(p);
+
+    el.detailsUrl.textContent = url;
+    el.detailsUrl.title = url;
+    setCopyButtonState(el.detailsCopy, false);
+
+    // Screenshots
+    const screens = Array.isArray(p.screens) ? p.screens : [];
+    el.detailsShots.innerHTML = "";
+
+    if (screens.length) {
+      el.detailsShotsTitle.textContent = t("screenshots");
+      el.detailsShots.parentElement.classList.remove("is-hidden");
+
+      for (const s of screens) {
+        const wrap = document.createElement("div");
+        wrap.className = "shot";
+
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.src = absAsset(s.src);
+        img.alt = state.lang === "en" ? (s.alt_en || s.alt_uk || "") : (s.alt_uk || s.alt_en || "");
+        wrap.appendChild(img);
+
+        el.detailsShots.appendChild(wrap);
+      }
+    } else {
+      el.detailsShotsTitle.textContent = "";
+      el.detailsShots.parentElement.classList.add("is-hidden");
+    }
+
+    el.detailsModal.classList.remove("is-hidden");
+  }
+
+  function closeDetails() {
+    el.detailsModal.classList.add("is-hidden");
+    state.details = null;
+  }
+
   function render() {
     const q = (state.q || "").trim().toLowerCase();
     const list = state.plugins.filter(p => matches(p, q));
 
-    if (el.countValue) el.countValue.textContent = String(state.plugins.length);
-    if (el.grid) el.grid.innerHTML = "";
-    if (el.empty) el.empty.classList.toggle("is-hidden", list.length !== 0);
-
-    if (!el.grid) return;
+    el.countValue.textContent = String(state.plugins.length);
+    el.grid.innerHTML = "";
+    el.empty.classList.toggle("is-hidden", list.length !== 0);
 
     for (const p of list) {
       const url = absUrl(p.file);
@@ -147,7 +232,10 @@
 
       const desc = document.createElement("div");
       desc.className = "card__desc";
-      desc.textContent = getDesc(p);
+      desc.textContent = getDescShort(p);
+
+      const actions = document.createElement("div");
+      actions.className = "card__actions";
 
       const row = document.createElement("div");
       row.className = "card__urlrow";
@@ -157,43 +245,34 @@
       urlBox.title = url;
       urlBox.textContent = url;
 
-      const btn = document.createElement("button");
-      btn.className = "copy";
-      btn.type = "button";
-      btn.textContent = t("copy");
-
-      btn.addEventListener("click", async () => {
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy";
+      copyBtn.type = "button";
+      copyBtn.textContent = t("copy");
+      copyBtn.addEventListener("click", async () => {
         const ok = await copyText(url);
         if (!ok) return;
-
-        btn.classList.add("is-done");
-        btn.textContent = t("copied");
-
-        window.setTimeout(() => {
-          btn.classList.remove("is-done");
-          btn.textContent = t("copy");
-        }, 900);
+        setCopyButtonState(copyBtn, true);
       });
 
       row.appendChild(urlBox);
-      row.appendChild(btn);
+      row.appendChild(copyBtn);
+
+      const moreBtn = document.createElement("button");
+      moreBtn.className = "more";
+      moreBtn.type = "button";
+      moreBtn.textContent = t("more");
+      moreBtn.addEventListener("click", () => openDetails(p));
+
+      actions.appendChild(row);
+      actions.appendChild(moreBtn);
 
       card.appendChild(top);
       card.appendChild(desc);
-      card.appendChild(row);
+      card.appendChild(actions);
 
       el.grid.appendChild(card);
     }
-  }
-
-  function openModal() {
-    if (!el.modal) return;
-    el.modal.classList.remove("is-hidden");
-  }
-
-  function closeModal() {
-    if (!el.modal) return;
-    el.modal.classList.add("is-hidden");
   }
 
   function setLang(lang) {
@@ -203,47 +282,60 @@
       b.classList.toggle("is-active", b.dataset.lang === state.lang);
     });
 
-    if (el.subtitle) el.subtitle.textContent = t("subtitle");
-    if (el.q) el.q.placeholder = t("searchPlaceholder");
-    if (el.countLabel) el.countLabel.textContent = t("pluginsCount");
-    if (el.howto) el.howto.textContent = t("howto");
+    el.subtitle.textContent = t("subtitle");
+    el.q.placeholder = t("searchPlaceholder");
+    el.countLabel.textContent = t("pluginsCount");
+    el.howto.textContent = t("howto");
 
-    if (el.emptyTitle) el.emptyTitle.textContent = t("emptyTitle");
-    if (el.emptyHint) el.emptyHint.textContent = t("emptyHint");
+    el.emptyTitle.textContent = t("emptyTitle");
+    el.emptyHint.textContent = t("emptyHint");
 
-    if (el.modalTitle) el.modalTitle.textContent = t("modalTitle");
-    if (el.steps) el.steps.innerHTML = t("stepsHtml");
+    el.modalTitle.textContent = t("modalTitle");
+    el.steps.innerHTML = t("stepsHtml");
+
+    // If details modal open — refresh text content in it
+    if (state.details) openDetails(state.details);
 
     render();
   }
 
   function wire() {
-    if (el.q) {
-      el.q.addEventListener("input", () => {
-        state.q = el.q.value;
-        if (el.clear) el.clear.classList.toggle("is-hidden", !state.q);
-        render();
-      });
-    }
+    el.q.addEventListener("input", () => {
+      state.q = el.q.value;
+      el.clear.classList.toggle("is-hidden", !state.q);
+      render();
+    });
 
-    if (el.clear) {
-      el.clear.addEventListener("click", () => {
-        if (el.q) el.q.value = "";
-        state.q = "";
-        el.clear.classList.add("is-hidden");
-        if (el.q) el.q.focus();
-        render();
-      });
-    }
+    el.clear.addEventListener("click", () => {
+      el.q.value = "";
+      state.q = "";
+      el.clear.classList.add("is-hidden");
+      el.q.focus();
+      render();
+    });
 
-    // Modal open/close
-    if (el.howto) el.howto.addEventListener("click", openModal);
-    if (el.backdrop) el.backdrop.addEventListener("click", closeModal);
-    if (el.modalClose) el.modalClose.addEventListener("click", closeModal);
+    // How-to modal open/close
+    el.howto.addEventListener("click", openModal);
+    el.backdrop.addEventListener("click", closeModal);
+    el.modalClose.addEventListener("click", closeModal);
+
+    // Details modal open/close
+    el.detailsBackdrop.addEventListener("click", closeDetails);
+    el.detailsClose.addEventListener("click", closeDetails);
+
+    el.detailsCopy.addEventListener("click", async () => {
+      if (!state.details) return;
+      const url = absUrl(state.details.file);
+      const ok = await copyText(url);
+      if (!ok) return;
+      setCopyButtonState(el.detailsCopy, true);
+    });
 
     document.addEventListener("keydown", (e) => {
-      if (!el.modal) return;
-      if (e.key === "Escape" && !el.modal.classList.contains("is-hidden")) closeModal();
+      if (e.key === "Escape") {
+        if (!el.detailsModal.classList.contains("is-hidden")) closeDetails();
+        else if (!el.modal.classList.contains("is-hidden")) closeModal();
+      }
     });
 
     $$(".lang__btn").forEach(btn => {
@@ -253,17 +345,13 @@
 
   (async function init() {
     wire();
-
-    // Страховка: модалка завжди закрита при старті
-    if (el.modal) el.modal.classList.add("is-hidden");
-
     await load();
     setLang("uk");
   })().catch((err) => {
     console.error(err);
-    if (el.grid) el.grid.innerHTML = "";
-    if (el.empty) el.empty.classList.remove("is-hidden");
-    if (el.emptyTitle) el.emptyTitle.textContent = "Error";
-    if (el.emptyHint) el.emptyHint.textContent = "Failed to load data/plugins.json";
+    el.grid.innerHTML = "";
+    el.empty.classList.remove("is-hidden");
+    el.emptyTitle.textContent = "Error";
+    el.emptyHint.textContent = "Failed to load data/plugins.json";
   });
 })();
