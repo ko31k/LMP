@@ -234,18 +234,17 @@
     // ============================================================
     // ===  НАЛАШТУВАННЯ ПЛАГІНА                                ===
     // ============================================================
-    //
     // Тут зберігається вся конфігурація.
-    // - tmdbApiKey: ключ TMDB (використовується і нашим XMLHttpRequest, і Lampa.TMDB.*)
+    // - tmdbApiKey:  ключ TMDB (використовується і нашим XMLHttpRequest, і Lampa.TMDB.*)
     // - cacheTime:   скільки тримати дані в кеші (мілісекунди)
     // - enabled:     чи вмикати логіку взагалі
     // - language:    мова запитів до TMDB (наприклад 'uk', 'ru', 'en')
     //
     var CONFIG = {
-        tmdbApiKey: '',     //✅ API ключ для доступу до TMDB
-        cacheTime: 20 * 60 * 60 * 1000,                     //✅ Час зберігання кешу (20 годин)
-        enabled: true,                                      // Активувати/деактивувати плагін
-        language: 'uk'                                      // Мова для запитів до TMDB
+        tmdbApiKey: '',                 //✅✅✅ API ключ для доступу до TMDB
+        cacheTime: 23 * 60 * 60 * 1000, //✅✅✅ Час зберігання кешу (23 години)
+        enabled: true,                  // Активувати/деактивувати плагін
+        language: 'uk'                  // Мова для запитів до TMDB
     };
 
     // ============================================================
@@ -976,10 +975,7 @@
         setTimeout(initPlugin, 2000);
     }
 
-
-
-
-/* ===== Seasons Progress Badges — Settings (Інтерфейс → "Мітки прогресу серій/сезонів") ===== */
+/* Seasons Progress Badges — Settings (Інтерфейс → "Мітки прогресу серій/сезонів") */
 (function(){
   'use strict';
 
@@ -1058,9 +1054,5 @@
   if (window.appready) start();
   else if (Lampa?.Listener) Lampa.Listener.follow('app', e=>{ if(e.type==='ready') start(); });
 })();
-
-
-
-    
-    
+ 
 })();
