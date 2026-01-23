@@ -367,3 +367,22 @@ body{
   .grid{grid-template-columns: 1fr}
   .brand__subtitle{display:none}
 }
+
+/* ---- Modal visibility: hard rules ---- */
+.modal.is-hidden{
+  display:none !important;
+}
+
+/* (опційно) щоб при показі модалки не було "кліку" по бекграунду */
+.modal{
+  display:flex;
+}
+
+/* ---- Header actions wrapper (у тебе є в HTML, але стилю нема) ---- */
+.header__actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex:0 0 auto;
+}
+
