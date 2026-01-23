@@ -31,6 +31,10 @@
     detailsUrl: $("#detailsUrl"),
     detailsCopy: $("#detailsCopy"),
 
+    imageModal: $("#imageModal"),
+    imageClose: $("#imageClose"),
+    imageFull: $("#imageFull"),
+
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint")
   };
@@ -45,7 +49,6 @@
       emptyHint: "Спробуй інший запит.",
 
       details: "Детальніше",
-      url: "URL",
       copy: "Copy",
       copied: "Copied",
 
@@ -65,7 +68,6 @@
       emptyHint: "Try another query.",
 
       details: "Details",
-      url: "URL",
       copy: "Copy",
       copied: "Copied",
 
@@ -136,7 +138,7 @@
     }
   }
 
-  // ===== Modal manager (2 modals) =====
+  // ===== Modal manager (supports multiple modals) =====
   let activeModal = null;
 
   function lockScroll(lock) {
@@ -155,8 +157,11 @@
     modalEl.classList.add("is-hidden");
     if (activeModal === modalEl) activeModal = null;
 
-    // якщо жодна модалка не відкрита — повертаємо скрол
-    const anyOpen = !el.howtoModal.classList.contains("is-hidden") || !el.detailsModal.classList.contains("is-hidden");
+    const anyOpen =
+      !el.howtoModal.classList.contains("is-hidden") ||
+      !el.detailsModal.classList.contains("is-hidden") ||
+      !el.imageModal.classList.contains("is-hidden");
+
     if (!anyOpen) lockScroll(false);
   }
 
@@ -243,7 +248,6 @@
     }
   }
 
-  // ===== Details modal =====
   async function setCopyBtn(btn, text) {
     const ok = await copyText(text);
     if (!ok) return;
@@ -255,6 +259,18 @@
     }, 900);
   }
 
+  // ===== Image lightbox =====
+  function openImage(src, alt) {
+    el.imageFull.alt = alt || "Preview";
+    el.imageFull.src = src;
+
+    // клік по самому фото теж закриває
+    el.imageFull.onclick = () => closeModal(el.imageModal);
+
+    openModal(el.imageModal);
+  }
+
+  // ===== Details modal =====
   function openDetails(plugin) {
     const url = absUrl(plugin.file);
 
@@ -264,21 +280,24 @@
     el.detailsUrl.textContent = url;
     el.detailsUrl.title = url;
 
-    // Copy button for details modal
     el.detailsCopy.textContent = t("copy");
     el.detailsCopy.onclick = () => setCopyBtn(el.detailsCopy, url);
 
-    // Gallery
     el.detailsGallery.innerHTML = "";
     const screens = Array.isArray(plugin.screens) ? plugin.screens : [];
+
     for (const src of screens) {
       const img = document.createElement("img");
       img.className = "shot";
       img.loading = "lazy";
       img.alt = plugin.title || plugin.id || "screenshot";
       img.src = src;
+
+      img.addEventListener("click", () => openImage(src, img.alt));
+
       el.detailsGallery.appendChild(img);
     }
+
     el.detailsGallery.classList.toggle("is-hidden", screens.length === 0);
 
     openModal(el.detailsModal);
@@ -300,7 +319,6 @@
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
 
-    // Howto modal text
     $("#howtoTitle").textContent = t("howtoTitle");
     $("#howtoSteps").innerHTML = t("howtoStepsHtml");
 
@@ -326,9 +344,10 @@
     // Howto open
     el.howtoBtn.addEventListener("click", () => openModal(el.howtoModal));
 
-    // Modals close wiring
+    // Modals wiring
     wireModal(el.howtoModal, el.howtoClose);
     wireModal(el.detailsModal, el.detailsClose);
+    wireModal(el.imageModal, el.imageClose);
 
     // Esc closes active modal
     document.addEventListener("keydown", (e) => {
@@ -342,9 +361,10 @@
   }
 
   (async function init() {
-    // гарантія: обидві модалки закриті на старті
+    // гарантія: модалки закриті на старті
     el.howtoModal.classList.add("is-hidden");
     el.detailsModal.classList.add("is-hidden");
+    el.imageModal.classList.add("is-hidden");
     lockScroll(false);
 
     wire();
