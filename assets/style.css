@@ -20,6 +20,7 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
+
 body{
   margin:0;
   color:var(--text);
@@ -60,12 +61,16 @@ body.is-modal-open{overflow:hidden}
   justify-content:space-between;
   gap:16px;
   padding:18px 0;
+  min-width:0;
 }
 
 .header__actions{
   display:flex;
   align-items:center;
+  justify-content:flex-end;
   gap:12px;
+  flex:0 0 auto;
+  flex-wrap:wrap; /* важливо: щоб нічого не “вилазило” */
 }
 
 .brand{
@@ -83,6 +88,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.10);
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  flex:0 0 auto;
 }
 
 .brand__text{min-width:0}
@@ -106,6 +112,7 @@ body.is-modal-open{overflow:hidden}
   gap:8px;
   flex:0 0 auto;
 }
+
 .lang__btn{
   border:1px solid var(--stroke);
   background: rgba(255,255,255,.05);
@@ -115,6 +122,7 @@ body.is-modal-open{overflow:hidden}
   cursor:pointer;
   transition:.15s ease;
   font-weight:700;
+  min-height:44px; /* тач */
 }
 .lang__btn:hover{border-color:var(--stroke2)}
 .lang__btn.is-active{
@@ -143,6 +151,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.05);
   border:1px solid var(--stroke);
   box-shadow: var(--shadow2);
+  min-width:0;
 }
 
 .search__icon{
@@ -155,6 +164,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.08);
   color: rgba(233,236,243,.85);
+  flex:0 0 auto;
 }
 
 .search__input{
@@ -164,6 +174,7 @@ body.is-modal-open{overflow:hidden}
   background:transparent;
   color:var(--text);
   font-size:15px;
+  min-width:0;
 }
 .search__input::placeholder{color:rgba(233,236,243,.55)}
 
@@ -179,6 +190,7 @@ body.is-modal-open{overflow:hidden}
   align-items:center;
   justify-content:center;
   transition:.15s ease;
+  flex:0 0 auto;
 }
 .search__clear:hover{border-color:rgba(255,255,255,.18)}
 .search__clear.is-hidden{display:none}
@@ -212,6 +224,8 @@ body.is-modal-open{overflow:hidden}
   font-weight:800;
   cursor:pointer;
   transition:.15s ease;
+  min-height:44px; /* тач */
+  white-space:nowrap;
 }
 .btn:hover{border-color: rgba(124,92,255,.65)}
 
@@ -233,7 +247,18 @@ body.is-modal-open{overflow:hidden}
   gap:12px;
   min-height:170px;
   transition: .15s ease;
+  min-width:0;
 }
+
+/* ВИДІЛЕННЯ ВИБРАНОГО ПЛАГІНА (JS додасть клас .is-active) */
+.card.is-active{
+  border-color: rgba(124,92,255,.55);
+  box-shadow:
+    0 0 0 1px rgba(124,92,255,.25) inset,
+    var(--shadow2);
+  background: linear-gradient(180deg, rgba(124,92,255,.10), var(--card));
+}
+
 .card:hover{
   border-color: rgba(255,255,255,.16);
   background: var(--card2);
@@ -245,6 +270,7 @@ body.is-modal-open{overflow:hidden}
   align-items:flex-start;
   justify-content:space-between;
   gap:12px;
+  min-width:0;
 }
 
 .card__title{
@@ -252,6 +278,7 @@ body.is-modal-open{overflow:hidden}
   font-weight:900;
   letter-spacing:.2px;
   line-height:1.2;
+  min-width:0;
 }
 
 .details{
@@ -264,6 +291,7 @@ body.is-modal-open{overflow:hidden}
   font-weight:900;
   cursor:pointer;
   transition:.15s ease;
+  white-space:nowrap;
 }
 .details:hover{border-color: rgba(124,92,255,.70)}
 
@@ -278,6 +306,7 @@ body.is-modal-open{overflow:hidden}
   display:flex;
   gap:10px;
   align-items:center;
+  min-width:0;
 }
 
 .url{
@@ -292,6 +321,7 @@ body.is-modal-open{overflow:hidden}
   overflow:hidden;
   white-space:nowrap;
   text-overflow:ellipsis;
+  min-width:0;
 }
 
 .copy{
@@ -304,6 +334,8 @@ body.is-modal-open{overflow:hidden}
   font-weight:900;
   cursor:pointer;
   transition:.15s ease;
+  min-height:44px; /* тач */
+  white-space:nowrap;
 }
 .copy:hover{border-color: rgba(43,212,255,.55)}
 .copy.is-done{
@@ -362,7 +394,7 @@ body.is-modal-open{overflow:hidden}
 .modal__title{font-size:16px;font-weight:900}
 
 .modal__close{
-  width:40px;height:40px;
+  width:44px;height:44px; /* тач */
   border-radius:16px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
@@ -390,6 +422,7 @@ body.is-modal-open{overflow:hidden}
   gap:10px;
   align-items:center;
   margin: 12px 0 10px 0;
+  min-width:0;
 }
 
 .gallery{
@@ -444,29 +477,19 @@ body.is-modal-open{overflow:hidden}
   transform: translate(8px, -8px);
 }
 
+/* ===== Responsive ===== */
 @media (max-width: 980px){
   .grid{grid-template-columns: repeat(2, 1fr)}
   .pill{display:none}
 }
-@media (max-width: 640px){
-  .toolbar{flex-direction:column; align-items:stretch}
-  .toolbar__right{justify-content:space-between}
-  .grid{grid-template-columns: 1fr}
-  .brand__subtitle{display:none}
-  .gallery{grid-template-columns: 1fr}
-}
 
-/* =========================
-   Mobile-first improvements
-   Append to the end of style.css
-   ========================= */
-
-/* Better tap targets + less “stuck” spacing on small screens */
+/* ключова мобільна точка — саме вона прибирає “баги” зі скрінів */
 @media (max-width: 720px){
   .container{
     width: calc(100% - 28px);
   }
 
+  /* HEADER: в 2 рядки, без накладань */
   .header__inner{
     padding:14px 0;
     gap:12px;
@@ -488,28 +511,26 @@ body.is-modal-open{overflow:hidden}
     font-size:20px;
   }
 
-  /* Header actions: button + lang in one row */
+  .brand__subtitle{
+    display:none; /* на мобільному прибираємо, щоб не ламало ширину */
+  }
+
+  /* actions: кнопка + перемикач мови в одному рядку */
   .header__actions{
-    display:flex;
-    align-items:center;
     justify-content:space-between;
     gap:10px;
   }
 
   .btn{
-    padding:12px 14px;
+    min-height:44px;
     border-radius:18px;
-    min-height:44px; /* touch target */
-    width:auto;
-    white-space:nowrap;
   }
 
   .lang__btn{
-    padding:10px 12px;
-    min-height:44px; /* touch target */
+    min-height:44px;
   }
 
-  /* Toolbar: make it “sticky-ish” and vertical */
+  /* toolbar */
   .toolbar{
     padding:14px 0 12px 0;
     flex-direction:column;
@@ -523,7 +544,7 @@ body.is-modal-open{overflow:hidden}
     border-radius:22px;
   }
 
-  /* Larger search icon for mobile */
+  /* трохи більша лупа */
   .search__icon{
     width:42px;
     height:42px;
@@ -544,7 +565,7 @@ body.is-modal-open{overflow:hidden}
     display:none;
   }
 
-  /* Cards: single column */
+  /* cards */
   .grid{
     grid-template-columns: 1fr;
     gap:12px;
@@ -556,15 +577,17 @@ body.is-modal-open{overflow:hidden}
     min-height:unset;
   }
 
-  .card__title{
-    font-size:16px;
+  .card__top{
+    align-items:center;
   }
 
-  .card__desc{
-    font-size:13px;
+  /* Детальніше: компактніше, щоб не “з’їдало” ширину */
+  .details{
+    padding:9px 12px;
+    border-radius:16px;
   }
 
-  /* URL row becomes stacked for narrow screens */
+  /* URL row: stack */
   .card__urlrow{
     flex-direction:column;
     align-items:stretch;
@@ -584,10 +607,10 @@ body.is-modal-open{overflow:hidden}
     min-height:44px;
   }
 
-  /* Modal: near full-screen card */
+  /* modal: bottom-sheet vibe */
   .modal{
     padding:12px;
-    align-items:flex-end; /* bottom-sheet vibe */
+    align-items:flex-end;
   }
 
   .modal__card{
@@ -597,22 +620,14 @@ body.is-modal-open{overflow:hidden}
     margin-bottom:8px;
   }
 
-  .modal__close{
-    width:44px;
-    height:44px;
-    border-radius:16px;
-  }
-
-  .steps{
-    padding-left:18px;
+  .gallery{
+    grid-template-columns: 1fr;
   }
 }
 
-/* Ultra small phones */
 @media (max-width: 380px){
   .brand__title{font-size:18px}
   .btn{padding:11px 12px}
   .lang__btn{padding:9px 10px}
   .search__input{font-size:14px}
 }
-
