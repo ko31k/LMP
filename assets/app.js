@@ -1,111 +1,209 @@
 (async function () {
   const grid = document.getElementById('grid');
-  const q = document.getElementById('q');
-  const tagsWrap = document.getElementById('tags');
-  const langBtns = document.querySelectorAll('.lang');
+  const search = document.getElementById('search');
+  const clearBtn = document.getElementById('clear');
+  const empty = document.getElementById('empty');
+  const statusLine = document.getElementById('statusLine');
 
-  const repoBase = location.origin + location.pathname.replace(/\/$/, '');
-  let lang = 'uk';
-  let activeTag = 'ALL';
-  let all = [];
+  const statTotal = document.getElementById('statTotal');
+  const statShown = document.getElementById('statShown');
+  const year = document.getElementById('year');
 
-  function pluginUrl(file) {
-    return repoBase + '/' + file;
+  const btnHow = document.getElementById('btnHow');
+  const modal = document.getElementById('modal');
+
+  year.textContent = String(new Date().getFullYear());
+
+  function setStatus(text) {
+    if (statusLine) statusLine.textContent = text;
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, m => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[m]));
+  function normalizeList(data) {
+    // підтримка двох форматів:
+    // 1) масив плагінів: [...]
+    // 2) об'єкт: { plugins: [...] }
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.plugins)) return data.plugins;
+    return [];
   }
 
-  function renderTags(items) {
-    const set = new Set(['ALL']);
-    items.forEach(p => (p.tags || []).forEach(t => set.add(t)));
-    const arr = Array.from(set);
-
-    tagsWrap.innerHTML = arr.map(t => `
-      <div class="tag ${t===activeTag?'active':''}" data-tag="${escapeHtml(t)}">
-        ${escapeHtml(t === 'ALL' ? (lang === 'uk' ? 'ВСЕ' : 'ALL') : t)}
-      </div>
-    `).join('');
-
-    tagsWrap.querySelectorAll('.tag').forEach(el => {
-      el.addEventListener('click', () => {
-        activeTag = el.dataset.tag;
-        render();
-      });
-    });
+  function pageUrlFor(filePath) {
+    // base = origin + repo path ending with /
+    const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/');
+    return base + String(filePath || '').replace(/^\//, '');
   }
 
-  function matches(p) {
-    const text = (q.value || '').trim().toLowerCase();
-    const title = (p.title || '').toLowerCase();
-    const desc = (lang === 'uk' ? p.desc_uk : p.desc_en || p.desc_uk || '').toLowerCase();
-    const tagOk = activeTag === 'ALL' || (p.tags || []).includes(activeTag);
-    const textOk = !text || title.includes(text) || desc.includes(text);
-    return tagOk && textOk;
+  function safeText(v) {
+    return String(v || '').trim();
   }
 
-  function card(p) {
-    const desc = lang === 'uk' ? p.desc_uk : (p.desc_en || p.desc_uk);
-    const url = pluginUrl(p.file);
+  function cardTemplate(p) {
+    const name = safeText(p.name) || safeText(p.id) || 'Plugin';
+    const desc = safeText(p.desc);
+    const id = safeText(p.id);
+    const version = safeText(p.version);
+    const file = safeText(p.file);
+
+    const url = pageUrlFor(file);
+
+    const badgeVersion = version ? `<span class="badge">v${escapeHtml(version)}</span>` : '';
+    const badgeId = id ? `<span class="badge badge--mono">${escapeHtml(id)}</span>` : '';
 
     return `
       <article class="card">
-        <h3 class="card__title">${escapeHtml(p.title)}</h3>
-        <p class="card__desc">${escapeHtml(desc || '')}</p>
+        <div class="card__inner">
+          <div class="card__top">
+            <div class="card__title">${escapeHtml(name)}</div>
+            <div class="badges">${badgeVersion}${badgeId}</div>
+          </div>
 
-        <div class="card__row">
-          <button class="btn primary" data-dl="${escapeHtml(url)}">Завантажити</button>
-          <button class="btn ghost" data-copy="${escapeHtml(url)}">URL-link</button>
+          <div class="card__desc">${escapeHtml(desc)}</div>
+
+          <div class="urlbox" title="${escapeHtml(url)}">
+            <code>${escapeHtml(url)}</code>
+          </div>
+
+          <div class="row">
+            <button class="btn btn--ghost small" type="button" data-open="${escapeHtml(url)}">Open</button>
+            <button class="btn btn--accent small" type="button" data-copy="${escapeHtml(url)}">Copy</button>
+          </div>
         </div>
-
-        <div class="code">${escapeHtml(url)}</div>
       </article>
     `;
   }
 
-  function render() {
-    const filtered = all.filter(matches);
-    grid.innerHTML = filtered.map(card).join('');
+  function escapeHtml(str) {
+    return String(str || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
 
-    grid.querySelectorAll('[data-copy]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const url = btn.getAttribute('data-copy');
-        try {
-          await navigator.clipboard.writeText(url);
-          btn.textContent = 'Скопійовано';
-          setTimeout(() => (btn.textContent = 'URL-link'), 900);
-        } catch {
-          prompt('Скопіюй URL:', url);
-        }
+  function render(list) {
+    grid.innerHTML = list.map(cardTemplate).join('');
+
+    // Open
+    grid.querySelectorAll('[data-open]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const url = btn.getAttribute('data-open');
+        window.open(url, '_blank', 'noopener');
       });
     });
 
-    grid.querySelectorAll('[data-dl]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const url = btn.getAttribute('data-dl');
-        window.open(url, '_blank');
+    // Copy
+    grid.querySelectorAll('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const url = btn.getAttribute('data-copy');
+
+        const ok = await copyToClipboard(url);
+        if (ok) {
+          const old = btn.textContent;
+          btn.textContent = 'Copied ✓';
+          btn.classList.add('copy-ok');
+          setTimeout(() => {
+            btn.textContent = old;
+            btn.classList.remove('copy-ok');
+          }, 900);
+        } else {
+          prompt('Copy URL:', url);
+        }
       });
     });
   }
 
-  langBtns.forEach(b => {
-    b.addEventListener('click', () => {
-      langBtns.forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      lang = b.dataset.lang;
-      renderTags(all);
-      render();
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function applySearch(list, q) {
+    const query = String(q || '').trim().toLowerCase();
+    if (!query) return list;
+
+    return list.filter((p) => {
+      const hay = `${p.name || ''} ${p.id || ''} ${p.desc || ''} ${p.file || ''}`.toLowerCase();
+      return hay.includes(query);
     });
-  });
+  }
 
-  q.addEventListener('input', () => render());
+  function updateStats(total, shown) {
+    if (statTotal) statTotal.textContent = String(total);
+    if (statShown) statShown.textContent = String(shown);
+  }
 
-  const res = await fetch('data/plugins.json', { cache: 'no-store' });
-  const json = await res.json();
-  all = (json.plugins || []);
-  renderTags(all);
-  render();
+  function setEmpty(isEmpty) {
+    if (!empty) return;
+    empty.classList.toggle('hidden', !isEmpty);
+  }
+
+  function openModal() {
+    modal.classList.remove('hidden');
+  }
+  function closeModal() {
+    modal.classList.add('hidden');
+  }
+
+  // modal close handlers
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-close') === '1') closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+  }
+
+  if (btnHow) btnHow.addEventListener('click', openModal);
+
+  // Load JSON
+  setStatus('Завантаження списку…');
+
+  let plugins = [];
+  try {
+    const res = await fetch('./data/plugins.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    plugins = normalizeList(data);
+  } catch (e) {
+    setStatus('Помилка завантаження plugins.json');
+    grid.innerHTML = `
+      <div class="empty">
+        <div class="empty__title">Не вдалося завантажити список</div>
+        <div class="empty__text">Перевір, що файл <span class="mono">/data/plugins.json</span> існує і валідний JSON.</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Initial render
+  updateStats(plugins.length, plugins.length);
+  setStatus('Готово');
+  render(plugins);
+  setEmpty(plugins.length === 0);
+
+  function refresh() {
+    const filtered = applySearch(plugins, search?.value);
+    updateStats(plugins.length, filtered.length);
+    setEmpty(filtered.length === 0);
+    render(filtered);
+  }
+
+  if (search) search.addEventListener('input', refresh);
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (!search) return;
+      search.value = '';
+      search.focus();
+      refresh();
+    });
+  }
 })();
