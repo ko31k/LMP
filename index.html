@@ -3,30 +3,74 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Плагіни для Lampa</title>
-  <link rel="stylesheet" href="assets/style.css" />
+  <meta name="color-scheme" content="dark" />
+  <title>LMP — Plugins</title>
+
+  <link rel="stylesheet" href="./assets/style.css" />
 </head>
 <body>
-  <header class="hero">
-    <div class="hero__inner">
-      <div class="hero__title">Плагіни для Lampa</div>
-      <div class="hero__subtitle">Каталог плагінів з прямими URL для встановлення</div>
-      <div class="hero__actions">
-        <button class="lang active" data-lang="uk">UKR</button>
-        <button class="lang" data-lang="en">ENG</button>
+  <div class="bg"></div>
+
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero__left">
+        <div class="brand">
+          <div class="brand__logo" aria-hidden="true"></div>
+          <div class="brand__text">
+            <div class="brand__title">LMP Plugins</div>
+            <div class="brand__subtitle">Каталог плагінів для Lampa • швидкий пошук • зручне копіювання URL</div>
+          </div>
+        </div>
+
+        <div class="hint">
+          Порада: натисни <span class="kbd">Ctrl</span> + <span class="kbd">F</span> або користуйся полем пошуку нижче.
+        </div>
       </div>
-    </div>
-  </header>
 
-  <main class="container">
-    <section class="controls">
-      <input id="q" class="search" placeholder="Пошук плагіна..." />
-      <div id="tags" class="tags"></div>
-    </section>
+      <div class="hero__right">
+        <div class="search">
+          <div class="search__icon" aria-hidden="true">⌕</div>
+          <input id="search" class="search__input" type="text" placeholder="Пошук плагіна за назвою або описом…" autocomplete="off" />
+          <button id="clear" class="btn btn--ghost" type="button" title="Очистити">×</button>
+        </div>
 
-    <section id="grid" class="grid"></section>
-  </main>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat__label">Плагінів</div>
+            <div class="stat__value" id="statTotal">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">У списку</div>
+            <div class="stat__value" id="statShown">—</div>
+          </div>
+        </div>
 
-  <script src="assets/app.js"></script>
-</body>
-</html>
+        <div class="actions">
+          <button id="btnHow" class="btn btn--accent" type="button">Як встановити</button>
+          <a class="btn btn--ghost" href="https://github.com/ko31k/LMP" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="panel">
+        <div class="panel__head">
+          <div class="panel__title">Список плагінів</div>
+          <div class="panel__note" id="statusLine">Завантаження…</div>
+        </div>
+
+        <div id="grid" class="grid" aria-live="polite"></div>
+
+        <div id="empty" class="empty hidden">
+          <div class="empty__title">Нічого не знайдено</div>
+          <div class="empty__text">Спробуй інший запит або очисти пошук.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__left">
+        © <span id="year"></span> ko31k • GitHub Pages
+      </div>
+      <div class="footer__right">
+        <span class="dot"></span> JSO
