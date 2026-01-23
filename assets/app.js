@@ -1,209 +1,264 @@
-(async function () {
-  const grid = document.getElementById('grid');
-  const search = document.getElementById('search');
-  const clearBtn = document.getElementById('clear');
-  const empty = document.getElementById('empty');
-  const statusLine = document.getElementById('statusLine');
+(() => {
+  "use strict";
 
-  const statTotal = document.getElementById('statTotal');
-  const statShown = document.getElementById('statShown');
-  const year = document.getElementById('year');
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const btnHow = document.getElementById('btnHow');
-  const modal = document.getElementById('modal');
+  const state = {
+    lang: "uk",
+    plugins: [],
+    q: ""
+  };
 
-  year.textContent = String(new Date().getFullYear());
+  const el = {
+    q: $("#q"),
+    clear: $("#clear"),
+    grid: $("#grid"),
+    empty: $("#empty"),
+    countValue: $("#countValue"),
+    countLabel: $("#countLabel"),
+    subtitle: $("#subtitle"),
+    howto: $("#howto"),
+    modal: $("#modal"),
+    modalBody: $("#modalBody"),
+    emptyTitle: $("#emptyTitle"),
+    emptyHint: $("#emptyHint"),
+    steps: $("#steps"),
+    note: $("#note")
+  };
 
-  function setStatus(text) {
-    if (statusLine) statusLine.textContent = text;
+  const i18n = {
+    uk: {
+      subtitle: "Каталог плагінів для Lampa • швидкий пошук • зручне копіювання",
+      searchPlaceholder: "Пошук плагіна за назвою або описом…",
+      pluginsCount: "Плагінів",
+      howto: "Як встановити",
+      emptyTitle: "Нічого не знайдено",
+      emptyHint: "Спробуй інший запит.",
+      modalTitle: "Як встановити",
+      steps: [
+        "Скопіюй URL потрібного плагіна.",
+        "В Lampa відкрий: <b>Налаштування → Плагіни</b>.",
+        "Встав URL у поле встановлення та підтверди."
+      ],
+      note: "Порада: у браузері можна натиснути <b>Ctrl</b> + <b>F</b> для швидкого пошуку по сторінці.",
+      copy: "Copy",
+      copied: "Copied"
+    },
+    en: {
+      subtitle: "Lampa plugins catalog • quick search • easy copy",
+      searchPlaceholder: "Search plugin by name or description…",
+      pluginsCount: "Plugins",
+      howto: "How to install",
+      emptyTitle: "Nothing found",
+      emptyHint: "Try another query.",
+      modalTitle: "How to install",
+      steps: [
+        "Copy the plugin URL.",
+        "In Lampa open: <b>Settings → Plugins</b>.",
+        "Paste the URL into the install field and confirm."
+      ],
+      note: "Tip: press <b>Ctrl</b> + <b>F</b> to quickly search the page.",
+      copy: "Copy",
+      copied: "Copied"
+    }
+  };
+
+  function t(key) {
+    return i18n[state.lang][key];
   }
 
-  function normalizeList(data) {
-    // підтримка двох форматів:
-    // 1) масив плагінів: [...]
-    // 2) об'єкт: { plugins: [...] }
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.plugins)) return data.plugins;
-    return [];
+  function getDesc(p) {
+    return state.lang === "en" ? (p.desc_en || p.desc_uk || "") : (p.desc_uk || p.desc_en || "");
   }
 
-  function pageUrlFor(filePath) {
-    // base = origin + repo path ending with /
-    const base = location.origin + location.pathname.replace(/\/[^/]*$/, '/');
-    return base + String(filePath || '').replace(/^\//, '');
+  function absUrl(file) {
+    // works on GitHub Pages under /LMP/
+    return new URL(file, window.location.href).href;
   }
 
-  function safeText(v) {
-    return String(v || '').trim();
+  async function load() {
+    // cache-bust on each deploy
+    const url = `data/plugins.json?v=${Date.now()}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load plugins.json");
+    const json = await res.json();
+    state.plugins = Array.isArray(json.plugins) ? json.plugins : [];
   }
 
-  function cardTemplate(p) {
-    const name = safeText(p.name) || safeText(p.id) || 'Plugin';
-    const desc = safeText(p.desc);
-    const id = safeText(p.id);
-    const version = safeText(p.version);
-    const file = safeText(p.file);
-
-    const url = pageUrlFor(file);
-
-    const badgeVersion = version ? `<span class="badge">v${escapeHtml(version)}</span>` : '';
-    const badgeId = id ? `<span class="badge badge--mono">${escapeHtml(id)}</span>` : '';
-
-    return `
-      <article class="card">
-        <div class="card__inner">
-          <div class="card__top">
-            <div class="card__title">${escapeHtml(name)}</div>
-            <div class="badges">${badgeVersion}${badgeId}</div>
-          </div>
-
-          <div class="card__desc">${escapeHtml(desc)}</div>
-
-          <div class="urlbox" title="${escapeHtml(url)}">
-            <code>${escapeHtml(url)}</code>
-          </div>
-
-          <div class="row">
-            <button class="btn btn--ghost small" type="button" data-open="${escapeHtml(url)}">Open</button>
-            <button class="btn btn--accent small" type="button" data-copy="${escapeHtml(url)}">Copy</button>
-          </div>
-        </div>
-      </article>
-    `;
+  function matches(p, q) {
+    if (!q) return true;
+    const text = [
+      (p.title || ""),
+      getDesc(p)
+    ].join(" ").toLowerCase();
+    return text.includes(q);
   }
 
-  function escapeHtml(str) {
-    return String(str || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
+  function render() {
+    const q = (state.q || "").trim().toLowerCase();
+    const list = state.plugins.filter(p => matches(p, q));
 
-  function render(list) {
-    grid.innerHTML = list.map(cardTemplate).join('');
+    el.countValue.textContent = String(state.plugins.length);
 
-    // Open
-    grid.querySelectorAll('[data-open]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const url = btn.getAttribute('data-open');
-        window.open(url, '_blank', 'noopener');
+    el.grid.innerHTML = "";
+    el.empty.classList.toggle("is-hidden", list.length !== 0);
+
+    for (const p of list) {
+      const url = absUrl(p.file);
+
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const top = document.createElement("div");
+      top.className = "card__top";
+
+      const title = document.createElement("div");
+      title.className = "card__title";
+      title.textContent = p.title || p.id || "Plugin";
+
+      top.appendChild(title);
+
+      const desc = document.createElement("div");
+      desc.className = "card__desc";
+      desc.textContent = getDesc(p);
+
+      const row = document.createElement("div");
+      row.className = "card__urlrow";
+
+      const urlBox = document.createElement("div");
+      urlBox.className = "url";
+      urlBox.title = url;
+      urlBox.textContent = url;
+
+      const btn = document.createElement("button");
+      btn.className = "copy";
+      btn.type = "button";
+      btn.textContent = t("copy");
+
+      btn.addEventListener("click", async () => {
+        const ok = await copyText(url);
+        if (!ok) return;
+        btn.classList.add("is-done");
+        btn.textContent = t("copied");
+        window.setTimeout(() => {
+          btn.classList.remove("is-done");
+          btn.textContent = t("copy");
+        }, 900);
       });
-    });
 
-    // Copy
-    grid.querySelectorAll('[data-copy]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const url = btn.getAttribute('data-copy');
+      row.appendChild(urlBox);
+      row.appendChild(btn);
 
-        const ok = await copyToClipboard(url);
-        if (ok) {
-          const old = btn.textContent;
-          btn.textContent = 'Copied ✓';
-          btn.classList.add('copy-ok');
-          setTimeout(() => {
-            btn.textContent = old;
-            btn.classList.remove('copy-ok');
-          }, 900);
-        } else {
-          prompt('Copy URL:', url);
-        }
-      });
-    });
+      card.appendChild(top);
+      card.appendChild(desc);
+      card.appendChild(row);
+
+      el.grid.appendChild(card);
+    }
   }
 
-  async function copyToClipboard(text) {
+  async function copyText(text) {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         await navigator.clipboard.writeText(text);
         return true;
       }
     } catch (e) {}
-    return false;
+
+    // fallback
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
   }
 
-  function applySearch(list, q) {
-    const query = String(q || '').trim().toLowerCase();
-    if (!query) return list;
+  function setLang(lang) {
+    state.lang = (lang === "en") ? "en" : "uk";
 
-    return list.filter((p) => {
-      const hay = `${p.name || ''} ${p.id || ''} ${p.desc || ''} ${p.file || ''}`.toLowerCase();
-      return hay.includes(query);
+    // buttons
+    $$(".lang__btn").forEach(b => {
+      b.classList.toggle("is-active", b.dataset.lang === state.lang);
     });
-  }
 
-  function updateStats(total, shown) {
-    if (statTotal) statTotal.textContent = String(total);
-    if (statShown) statShown.textContent = String(shown);
-  }
+    // texts
+    el.subtitle.textContent = t("subtitle");
+    el.q.placeholder = t("searchPlaceholder");
+    el.countLabel.textContent = t("pluginsCount");
+    el.howto.textContent = t("howto");
 
-  function setEmpty(isEmpty) {
-    if (!empty) return;
-    empty.classList.toggle('hidden', !isEmpty);
+    el.emptyTitle.textContent = t("emptyTitle");
+    el.emptyHint.textContent = t("emptyHint");
+
+    $("#modalTitle").textContent = t("modalTitle");
+    el.steps.innerHTML = (t("steps") || []).map(x => `<li>${x}</li>`).join("");
+    el.note.innerHTML = t("note");
+
+    render();
   }
 
   function openModal() {
-    modal.classList.remove('hidden');
+    el.modal.classList.remove("is-hidden");
   }
+
   function closeModal() {
-    modal.classList.add('hidden');
+    el.modal.classList.add("is-hidden");
   }
 
-  // modal close handlers
-  if (modal) {
-    modal.addEventListener('click', (e) => {
+  function wire() {
+    el.q.addEventListener("input", () => {
+      state.q = el.q.value;
+      el.clear.classList.toggle("is-hidden", !state.q);
+      render();
+    });
+
+    el.clear.addEventListener("click", () => {
+      el.q.value = "";
+      state.q = "";
+      el.clear.classList.add("is-hidden");
+      el.q.focus();
+      render();
+    });
+
+    el.howto.addEventListener("click", openModal);
+
+    el.modal.addEventListener("click", (e) => {
       const t = e.target;
-      if (t && t.getAttribute && t.getAttribute('data-close') === '1') closeModal();
+      if (t && t.dataset && t.dataset.close === "1") closeModal();
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !el.modal.classList.contains("is-hidden")) closeModal();
     });
-  }
 
-  if (btnHow) btnHow.addEventListener('click', openModal);
-
-  // Load JSON
-  setStatus('Завантаження списку…');
-
-  let plugins = [];
-  try {
-    const res = await fetch('./data/plugins.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    plugins = normalizeList(data);
-  } catch (e) {
-    setStatus('Помилка завантаження plugins.json');
-    grid.innerHTML = `
-      <div class="empty">
-        <div class="empty__title">Не вдалося завантажити список</div>
-        <div class="empty__text">Перевір, що файл <span class="mono">/data/plugins.json</span> існує і валідний JSON.</div>
-      </div>
-    `;
-    return;
-  }
-
-  // Initial render
-  updateStats(plugins.length, plugins.length);
-  setStatus('Готово');
-  render(plugins);
-  setEmpty(plugins.length === 0);
-
-  function refresh() {
-    const filtered = applySearch(plugins, search?.value);
-    updateStats(plugins.length, filtered.length);
-    setEmpty(filtered.length === 0);
-    render(filtered);
-  }
-
-  if (search) search.addEventListener('input', refresh);
-
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      if (!search) return;
-      search.value = '';
-      search.focus();
-      refresh();
+    $$(".lang__btn").forEach(btn => {
+      btn.addEventListener("click", () => setLang(btn.dataset.lang));
     });
+
+    // initial clear button state
+    el.clear.classList.add("is-hidden");
   }
+
+  (async function init() {
+    wire();
+    await load();
+    setLang("uk");
+    render();
+  })().catch((err) => {
+    console.error(err);
+    el.grid.innerHTML = "";
+    el.empty.classList.remove("is-hidden");
+    el.emptyTitle.textContent = "Error";
+    el.emptyHint.textContent = "Failed to load data/plugins.json";
+  });
 })();
