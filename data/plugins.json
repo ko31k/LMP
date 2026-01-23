@@ -1,0 +1,52 @@
+{
+  "plugins": [
+    {
+      "id": "parsers",
+      "title": "Parsers",
+      "tags": ["UI", "Парсер"],
+      "desc_uk": "Каталог парсерів з перевірками доступності та пошуку.",
+      "desc_en": "Parser catalog with availability and search checks.",
+      "file": "plugins/Parsers.js"
+    },
+    {
+      "id": "quality",
+      "title": "Quality+Mod",
+      "tags": ["UI"],
+      "desc_uk": "Модифікація якості/відміток у інтерфейсі.",
+      "desc_en": "Quality markers UI modification.",
+      "file": "plugins/Quality+Mod.js"
+    },
+    {
+      "id": "seasons",
+      "title": "SeasonsInfo",
+      "tags": ["UI", "Аніме"],
+      "desc_uk": "Показ інформації про сезон/серії у картках.",
+      "desc_en": "Shows season/episode info on cards.",
+      "file": "plugins/SeasonsInfo.js"
+    },
+    {
+      "id": "ua-finder",
+      "title": "UA-Finder+Mod",
+      "tags": ["Онлайн"],
+      "desc_uk": "Пошук/позначення українських доріжок у релізах.",
+      "desc_en": "Finds/marks Ukrainian audio tracks in releases.",
+      "file": "plugins/UA-Finder+Mod.js"
+    },
+    {
+      "id": "interface",
+      "title": "interface+",
+      "tags": ["UI"],
+      "desc_uk": "Додаткові покращення інтерфейсу.",
+      "desc_en": "Additional UI improvements.",
+      "file": "plugins/interface+.js"
+    },
+    {
+      "id": "rtg",
+      "title": "rtg",
+      "tags": ["Онлайн"],
+      "desc_uk": "Плагін rtg (опис додаси за потреби).",
+      "desc_en": "rtg plugin (add description if needed).",
+      "file": "plugins/rtg.js"
+    }
+  ]
+}
