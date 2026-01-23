@@ -20,11 +20,12 @@
     subtitle: $("#subtitle"),
     howto: $("#howto"),
     modal: $("#modal"),
-    modalBody: $("#modalBody"),
+    modalClose: $("#modalClose"),
+    backdrop: $(".modal__backdrop"),
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
     steps: $("#steps"),
-    note: $("#note")
+    modalTitle: $("#modalTitle")
   };
 
   const i18n = {
@@ -36,12 +37,13 @@
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       modalTitle: "Як встановити",
-      steps: [
-        "Скопіюй URL потрібного плагіна.",
-        "В Lampa відкрий: <b>Налаштування → Плагіни</b>.",
-        "Встав URL у поле встановлення та підтверди."
-      ],
-      note: "Порада: у браузері можна натиснути <b>Ctrl</b> + <b>F</b> для швидкого пошуку по сторінці.",
+      stepsHtml: `
+        <li>Скопіюй URL потрібного плагіна.</li>
+        <li>
+          В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.
+          <br/>Встав URL у поле та підтверди.
+        </li>
+      `,
       copy: "Copy",
       copied: "Copied"
     },
@@ -53,12 +55,13 @@
       emptyTitle: "Nothing found",
       emptyHint: "Try another query.",
       modalTitle: "How to install",
-      steps: [
-        "Copy the plugin URL.",
-        "In Lampa open: <b>Settings → Plugins</b>.",
-        "Paste the URL into the install field and confirm."
-      ],
-      note: "Tip: press <b>Ctrl</b> + <b>F</b> to quickly search the page.",
+      stepsHtml: `
+        <li>Copy the plugin URL.</li>
+        <li>
+          In Lampa open: <b>Settings → Extensions</b> and press <b>"Add plugin"</b>.
+          <br/>Paste the URL into the field and confirm.
+        </li>
+      `,
       copy: "Copy",
       copied: "Copied"
     }
@@ -73,12 +76,10 @@
   }
 
   function absUrl(file) {
-    // works on GitHub Pages under /LMP/
     return new URL(file, window.location.href).href;
   }
 
   async function load() {
-    // cache-bust on each deploy
     const url = `data/plugins.json?v=${Date.now()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load plugins.json");
@@ -88,11 +89,32 @@
 
   function matches(p, q) {
     if (!q) return true;
-    const text = [
-      (p.title || ""),
-      getDesc(p)
-    ].join(" ").toLowerCase();
+    const text = [(p.title || ""), getDesc(p)].join(" ").toLowerCase();
     return text.includes(q);
+  }
+
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {}
+
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
   }
 
   function render() {
@@ -100,7 +122,6 @@
     const list = state.plugins.filter(p => matches(p, q));
 
     el.countValue.textContent = String(state.plugins.length);
-
     el.grid.innerHTML = "";
     el.empty.classList.toggle("is-hidden", list.length !== 0);
 
@@ -116,7 +137,6 @@
       const title = document.createElement("div");
       title.className = "card__title";
       title.textContent = p.title || p.id || "Plugin";
-
       top.appendChild(title);
 
       const desc = document.createElement("div");
@@ -158,40 +178,21 @@
     }
   }
 
-  async function copyText(text) {
-    try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch (e) {}
+  function openModal() {
+    el.modal.classList.remove("is-hidden");
+  }
 
-    // fallback
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.setAttribute("readonly", "");
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch (e) {
-      return false;
-    }
+  function closeModal() {
+    el.modal.classList.add("is-hidden");
   }
 
   function setLang(lang) {
     state.lang = (lang === "en") ? "en" : "uk";
 
-    // buttons
     $$(".lang__btn").forEach(b => {
       b.classList.toggle("is-active", b.dataset.lang === state.lang);
     });
 
-    // texts
     el.subtitle.textContent = t("subtitle");
     el.q.placeholder = t("searchPlaceholder");
     el.countLabel.textContent = t("pluginsCount");
@@ -200,19 +201,10 @@
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
 
-    $("#modalTitle").textContent = t("modalTitle");
-    el.steps.innerHTML = (t("steps") || []).map(x => `<li>${x}</li>`).join("");
-    el.note.innerHTML = t("note");
+    el.modalTitle.textContent = t("modalTitle");
+    el.steps.innerHTML = t("stepsHtml");
 
     render();
-  }
-
-  function openModal() {
-    el.modal.classList.remove("is-hidden");
-  }
-
-  function closeModal() {
-    el.modal.classList.add("is-hidden");
   }
 
   function wire() {
@@ -230,12 +222,10 @@
       render();
     });
 
+    // Modal open/close
     el.howto.addEventListener("click", openModal);
-
-    el.modal.addEventListener("click", (e) => {
-      const t = e.target;
-      if (t && t.dataset && t.dataset.close === "1") closeModal();
-    });
+    el.backdrop.addEventListener("click", closeModal);
+    el.modalClose.addEventListener("click", closeModal);
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !el.modal.classList.contains("is-hidden")) closeModal();
@@ -244,16 +234,12 @@
     $$(".lang__btn").forEach(btn => {
       btn.addEventListener("click", () => setLang(btn.dataset.lang));
     });
-
-    // initial clear button state
-    el.clear.classList.add("is-hidden");
   }
 
   (async function init() {
     wire();
     await load();
-    setLang("uk");
-    render();
+    setLang("uk"); // Модалка НЕ відкривається автоматично
   })().catch((err) => {
     console.error(err);
     el.grid.innerHTML = "";
