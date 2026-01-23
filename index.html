@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LMP Plugins</title>
 
-  <link rel="stylesheet" href="assets/style.css" />
+  <!-- cache-bust: змінюй v=... коли оновлюєш стилі -->
+  <link rel="stylesheet" href="assets/style.css?v=3" />
 </head>
 <body>
   <div class="bg"></div>
@@ -43,9 +44,13 @@
           </svg>
         </div>
 
-        <input id="q" class="search__input" type="search"
+        <input
+          id="q"
+          class="search__input"
+          type="search"
           placeholder="Пошук плагіна за назвою або описом…"
-          autocomplete="off" />
+          autocomplete="off"
+        />
 
         <button id="clear" class="search__clear is-hidden" type="button" aria-label="Clear">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -64,6 +69,7 @@
 
     <section>
       <div id="grid" class="grid"></div>
+
       <div id="empty" class="empty is-hidden">
         <div class="empty__title" id="emptyTitle">Нічого не знайдено</div>
         <div class="empty__hint" id="emptyHint">Спробуй інший запит.</div>
@@ -86,20 +92,20 @@
         </button>
       </div>
 
-        <div class="modal__body">
-            <ol class="steps" id="steps">
-              <li>Скопіюй URL потрібного плагіна.</li>
-                  <li>
-                  В Lampa відкрий: <b>Налаштування → Розширення</b>
-                  та натисни <b>"Додати плагін"</b>.
-                  </li>
-              <li>Встав скопійоване посилання у поле та підтверди.</li>
-          </ol>
+      <div class="modal__body">
+        <ol class="steps" id="steps">
+          <li>Скопіюй URL потрібного плагіна.</li>
+          <li>
+            В Lampa відкрий: <b>Налаштування → Розширення</b>
+            та натисни <b>"Додати плагін"</b>.
+          </li>
+          <li>Встав скопійоване посилання у поле та підтверди.</li>
+        </ol>
       </div>
-
     </div>
   </div>
 
-  <script src="assets/app.js"></script>
+  <!-- cache-bust: змінюй v=... коли оновлюєш скрипт -->
+  <script src="assets/app.js?v=3"></script>
 </body>
 </html>
