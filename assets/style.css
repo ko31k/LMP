@@ -455,3 +455,164 @@ body.is-modal-open{overflow:hidden}
   .brand__subtitle{display:none}
   .gallery{grid-template-columns: 1fr}
 }
+
+/* =========================
+   Mobile-first improvements
+   Append to the end of style.css
+   ========================= */
+
+/* Better tap targets + less “stuck” spacing on small screens */
+@media (max-width: 720px){
+  .container{
+    width: calc(100% - 28px);
+  }
+
+  .header__inner{
+    padding:14px 0;
+    gap:12px;
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .brand{
+    gap:12px;
+  }
+
+  .brand__logo{
+    width:42px;
+    height:42px;
+    border-radius:14px;
+  }
+
+  .brand__title{
+    font-size:20px;
+  }
+
+  /* Header actions: button + lang in one row */
+  .header__actions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .btn{
+    padding:12px 14px;
+    border-radius:18px;
+    min-height:44px; /* touch target */
+    width:auto;
+    white-space:nowrap;
+  }
+
+  .lang__btn{
+    padding:10px 12px;
+    min-height:44px; /* touch target */
+  }
+
+  /* Toolbar: make it “sticky-ish” and vertical */
+  .toolbar{
+    padding:14px 0 12px 0;
+    flex-direction:column;
+    align-items:stretch;
+    gap:12px;
+  }
+
+  .search{
+    max-width:none;
+    padding:12px 12px;
+    border-radius:22px;
+  }
+
+  /* Larger search icon for mobile */
+  .search__icon{
+    width:42px;
+    height:42px;
+    border-radius:16px;
+  }
+  .search__icon svg{
+    width:24px;
+    height:24px;
+  }
+
+  .search__clear{
+    width:42px;
+    height:42px;
+    border-radius:16px;
+  }
+
+  .pill{
+    display:none;
+  }
+
+  /* Cards: single column */
+  .grid{
+    grid-template-columns: 1fr;
+    gap:12px;
+    padding-bottom:22px;
+  }
+
+  .card{
+    padding:14px;
+    min-height:unset;
+  }
+
+  .card__title{
+    font-size:16px;
+  }
+
+  .card__desc{
+    font-size:13px;
+  }
+
+  /* URL row becomes stacked for narrow screens */
+  .card__urlrow{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+  }
+
+  .url{
+    width:100%;
+    padding:12px 12px;
+    border-radius:16px;
+  }
+
+  .copy{
+    width:100%;
+    padding:12px 12px;
+    border-radius:16px;
+    min-height:44px;
+  }
+
+  /* Modal: near full-screen card */
+  .modal{
+    padding:12px;
+    align-items:flex-end; /* bottom-sheet vibe */
+  }
+
+  .modal__card{
+    width:100%;
+    border-radius:22px;
+    padding:14px;
+    margin-bottom:8px;
+  }
+
+  .modal__close{
+    width:44px;
+    height:44px;
+    border-radius:16px;
+  }
+
+  .steps{
+    padding-left:18px;
+  }
+}
+
+/* Ultra small phones */
+@media (max-width: 380px){
+  .brand__title{font-size:18px}
+  .btn{padding:11px 12px}
+  .lang__btn{padding:9px 10px}
+  .search__input{font-size:14px}
+}
+
