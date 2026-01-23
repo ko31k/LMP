@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LMP Plugins</title>
+
   <link rel="stylesheet" href="assets/style.css" />
 </head>
-
 <body>
   <div class="bg"></div>
 
@@ -23,9 +23,9 @@
       </div>
 
       <div class="header__actions">
-        <button id="howto" class="btn" type="button">Як встановити</button>
+        <button id="howtoBtn" class="btn" type="button">Як встановити</button>
 
-        <div class="lang">
+        <div class="lang" role="group" aria-label="Language">
           <button class="lang__btn is-active" data-lang="uk" type="button">UKR</button>
           <button class="lang__btn" data-lang="en" type="button">ENG</button>
         </div>
@@ -48,7 +48,7 @@
           autocomplete="off" />
 
         <button id="clear" class="search__clear is-hidden" type="button" aria-label="Clear">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
@@ -74,7 +74,7 @@
 
   <!-- HOWTO MODAL -->
   <div id="howtoModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
-    <div class="modal__backdrop"></div>
+    <div class="modal__backdrop" data-close="howto"></div>
 
     <div class="modal__card">
       <div class="modal__head">
@@ -90,7 +90,9 @@
       <div class="modal__body">
         <ol class="steps" id="howtoSteps">
           <li>Скопіюй URL потрібного плагіна.</li>
-          <li>В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.</li>
+          <li>
+            В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.
+          </li>
           <li>Встав скопійоване посилання у поле та підтверди.</li>
         </ol>
       </div>
@@ -99,7 +101,7 @@
 
   <!-- DETAILS MODAL -->
   <div id="detailsModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
-    <div class="modal__backdrop"></div>
+    <div class="modal__backdrop" data-close="details"></div>
 
     <div class="modal__card">
       <div class="modal__head">
@@ -113,30 +115,42 @@
       </div>
 
       <div class="modal__body">
-        <div class="details__desc" id="detailsDesc"></div>
+        <div id="detailsDesc" class="details__desc"></div>
 
         <div class="details__urlrow">
-          <div class="url" id="detailsUrl"></div>
-          <button class="copy" id="detailsCopy" type="button">Copy</button>
+          <div id="detailsUrl" class="url"></div>
+          <button id="detailsCopy" class="copy" type="button">Copy</button>
         </div>
 
-        <div class="gallery" id="detailsGallery"></div>
+        <div id="gallery" class="gallery is-hidden"></div>
       </div>
     </div>
   </div>
 
-  <!-- IMAGE (LIGHTBOX) MODAL -->
-  <div id="imageModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-label="Image preview">
-    <div class="modal__backdrop"></div>
+  <!-- IMAGE LIGHTBOX MODAL -->
+  <div id="imgModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="imgTitle">
+    <div class="modal__backdrop" data-close="img"></div>
 
-    <div class="imgmodal__card">
-      <button id="imageClose" class="modal__close imgmodal__close" type="button" aria-label="Close">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+    <div class="modal__card imgmodal__card">
+      <div class="modal__head" style="width:100%; position:absolute; top:8px; left:8px; right:8px;">
+        <div class="modal__title" id="imgTitle">Screenshot</div>
 
-      <img id="imageFull" class="imgmodal__img" alt="Preview" />
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div id="imgCounter" style="color:rgba(233,236,243,.72); font-weight:800;">—</div>
+
+          <a id="imgOpen" class="btn" href="#" target="_blank" rel="noopener" style="padding:10px 12px; border-radius:16px;">
+            Open
+          </a>
+
+          <button id="imgClose" class="modal__close" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <img id="imgEl" class="imgmodal__img" alt="Screenshot" />
     </div>
   </div>
 
