@@ -4,9 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LMP Plugins</title>
-
-  <!-- cache-bust: змінюй v=... коли оновлюєш стилі -->
-  <link rel="stylesheet" href="assets/style.css?v=3" />
+  <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
   <div class="bg"></div>
@@ -44,13 +42,9 @@
           </svg>
         </div>
 
-        <input
-          id="q"
-          class="search__input"
-          type="search"
+        <input id="q" class="search__input" type="search"
           placeholder="Пошук плагіна за назвою або описом…"
-          autocomplete="off"
-        />
+          autocomplete="off" />
 
         <button id="clear" class="search__clear is-hidden" type="button" aria-label="Clear">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -69,7 +63,6 @@
 
     <section>
       <div id="grid" class="grid"></div>
-
       <div id="empty" class="empty is-hidden">
         <div class="empty__title" id="emptyTitle">Нічого не знайдено</div>
         <div class="empty__hint" id="emptyHint">Спробуй інший запит.</div>
@@ -77,7 +70,7 @@
     </section>
   </main>
 
-  <!-- Modal -->
+  <!-- Modal: How to install -->
   <div id="modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal__backdrop"></div>
 
@@ -93,19 +86,42 @@
       </div>
 
       <div class="modal__body">
-        <ol class="steps" id="steps">
-          <li>Скопіюй URL потрібного плагіна.</li>
-          <li>
-            В Lampa відкрий: <b>Налаштування → Розширення</b>
-            та натисни <b>"Додати плагін"</b>.
-          </li>
-          <li>Встав скопійоване посилання у поле та підтверди.</li>
-        </ol>
+        <ol class="steps" id="steps"></ol>
       </div>
     </div>
   </div>
 
-  <!-- cache-bust: змінюй v=... коли оновлюєш скрипт -->
-  <script src="assets/app.js?v=3"></script>
+  <!-- Modal: Details -->
+  <div id="detailsModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+    <div class="modal__backdrop"></div>
+
+    <div class="modal__card modal__card--details">
+      <div class="modal__head">
+        <div class="modal__title" id="detailsTitle">Plugin</div>
+
+        <button id="detailsClose" class="modal__close" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal__body modal__body--details">
+        <div id="detailsDesc" class="details__desc"></div>
+
+        <div class="details__shots">
+          <div class="details__shotsTitle" id="detailsShotsTitle"></div>
+          <div id="detailsShots" class="shots"></div>
+        </div>
+
+        <div class="details__urlrow">
+          <div id="detailsUrl" class="url"></div>
+          <button id="detailsCopy" class="copy" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
 </body>
 </html>
