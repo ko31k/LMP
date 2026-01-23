@@ -631,3 +631,56 @@ body.is-modal-open{overflow:hidden}
   .lang__btn{padding:9px 10px}
   .search__input{font-size:14px}
 }
+
+/* ===== Fix: Details modal URL row layout ===== */
+
+/* Make details URL row behave like a proper flex row */
+.details__urlrow{
+  display:flex;
+  gap:10px;
+  align-items:stretch;
+}
+
+/* Critical: allow URL box to shrink correctly instead of collapsing weirdly */
+.details__urlrow .url{
+  flex: 1 1 auto;
+  min-width: 0; /* важливо для ellipsis у flex */
+}
+
+/* Keep Copy button stable size */
+.details__urlrow .copy{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-width: 96px;
+}
+
+/* On phones: stack URL and Copy vertically (no overlap) */
+@media (max-width: 720px){
+  .details__urlrow{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .details__urlrow .url{
+    width: 100%;
+  }
+
+  .details__urlrow .copy{
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+/* Optional: make modal content spacing nicer */
+.details__desc{
+  margin: 2px 0 14px 0;
+}
+
+/* Prevent gallery from creating horizontal scroll inside modal */
+.gallery{
+  width: 100%;
+}
+.shot{
+  display:block;
+}
+
