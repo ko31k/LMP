@@ -37,13 +37,15 @@
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       modalTitle: "Як встановити",
-      stepsHtml: `
-        <li>Скопіюй URL потрібного плагіна.</li>
-        <li>
-          В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.
-          <br/>Встав URL у поле та підтверди.
-        </li>
-      `,
+    stepsHtml: `
+      <li>Скопіюй URL потрібного плагіна.</li>
+      <li>
+        В Lampa відкрий: <b>Налаштування → Розширення</b>
+        та натисни <b>"Додати плагін"</b>.
+      </li>
+      <li>Встав скопійоване посилання у поле та підтверди.</li>
+    `,
+
       copy: "Copy",
       copied: "Copied"
     },
@@ -58,10 +60,11 @@
       stepsHtml: `
         <li>Copy the plugin URL.</li>
         <li>
-          In Lampa open: <b>Settings → Extensions</b> and press <b>"Add plugin"</b>.
-          <br/>Paste the URL into the field and confirm.
+          In Lampa open: <b>Settings → Extensions</b>
+          and press <b>"Add plugin"</b>.
         </li>
-      `,
+        <li>Paste the copied link into the field and confirm.</li>
+    `,
       copy: "Copy",
       copied: "Copied"
     }
