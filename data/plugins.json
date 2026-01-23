@@ -3,49 +3,63 @@
     {
       "id": "parsers",
       "title": "Parsers",
-      "tags": ["UI", "Парсер"],
+      "desc_short_uk": "Каталог готових парсерів з індикацією доступності та швидким вибором без ручного введення.",
+      "desc_short_en": "A catalog of ready parsers with availability indicators and quick selection without manual setup.",
       "desc_uk": "Плагін зі списком готових парсерів та індикацією їх доступності. Дозволяє швидко вибрати потрібний парсер з кількох варіантів без ручного введення адрес і ключів.",
       "desc_en": "A plugin with a list of ready-to-use parsers and availability indicators. Allows quick selection of a parser from multiple predefined options without manual URL or API key input.",
+      "screens": [
+        { "src": "wwwroot/screens/parsers-1.png", "alt_uk": "Список парсерів", "alt_en": "Parsers list" }
+      ],
       "file": "plugins/Parsers.js"
     },
     {
       "id": "quality",
       "title": "Quality+Mod",
-      "tags": ["UI"],
+      "desc_short_uk": "Мітки якості на постерах + гнучкі налаштування стилю та відображення.",
+      "desc_short_en": "Quality labels on posters with flexible style and display settings.",
       "desc_uk": "Додає мітки якості на постери та власний пункт налаштувань у меню «Інтерфейс». Дозволяє вибрати стиль міток (повний або скорочений), керувати відображенням мітки якості у повній картці та вмикати або вимикати мітки якості для серіалів.",
       "desc_en": "Adds quality labels to posters and includes its own settings section in the “Interface” menu. Allows choosing label style (full or compact), controlling quality labels in the full card view, and enabling or disabling quality labels for TV series.",
+      "screens": [],
       "file": "plugins/Quality+Mod.js"
     },
     {
       "id": "seasons",
       "title": "SeasonsInfo",
-      "tags": ["UI", "Аніме"],
+      "desc_short_uk": "Сезон/епізоди та прогрес виходу прямо на постерах. Потрібен TMDb API key.",
+      "desc_short_en": "Season/episode progress right on posters. Requires a TMDb API key.",
       "desc_uk": "Плагін для відображення інформації про серіали безпосередньо на картках у списку (постерах). Показує останній сезон, що вийшов або виходить, а також прогрес кількості вже доступних епізодів. Має власний пункт налаштувань у меню «Інтерфейс». Для роботи необхідно отримати та ввести API-ключ TMDb з сайту https://themoviedb.org/.",
       "desc_en": "A plugin that displays TV series information directly on poster cards. Shows the latest released or ongoing season and the progress of available episodes. Includes its own settings section in the “Interface” menu. Requires a TMDb API key from https://themoviedb.org/ to function.",
+      "screens": [],
       "file": "plugins/SeasonsInfo.js"
     },
     {
       "id": "ua-finder",
       "title": "UA-Finder+Mod",
-      "tags": ["Онлайн"],
+      "desc_short_uk": "Показує на постерах наявність української озвучки (Jacred) — текст/прапор.",
+      "desc_short_en": "Shows Ukrainian audio availability (Jacred) on posters — text/flag label.",
       "desc_uk": "Плагін для пошуку українських аудіодоріжок у релізах (Jacred). Аналізує назви торрентів і показує наявність української озвучки у вигляді мітки з текстом або прапором на картці (постері). Додає власний пункт налаштувань у меню «Інтерфейс».",
       "desc_en": "A plugin for detecting Ukrainian audio tracks in releases (Jacred). Analyzes torrent titles and displays Ukrainian audio availability as a text label or flag on the poster card. Adds its own settings section to the “Interface” menu.",
+      "screens": [],
       "file": "plugins/UA-Finder+Mod.js"
     },
     {
       "id": "interface",
       "title": "interface+",
-      "tags": ["UI"],
+      "desc_short_uk": "Комплексне покращення UI: інфо-панель, рейтинги, теми, кнопки та мітки.",
+      "desc_short_en": "A comprehensive UI upgrade: info panel, ratings, themes, buttons, and labels.",
       "desc_uk": "Комплексний плагін для зміни інтерфейсу Lampa. Додає нову інформаційну панель, кольорові рейтинги, статуси та вікові обмеження, розширене керування кнопками, підтримку кількох тем оформлення та покращену читабельність карток фільмів і серіалів. Дозволяє керувати відображенням різних міток: рік на картці, середній рейтинг, альтернативні мітки та найближчі епізоди. Реалізує керування кнопками — відображення всіх кнопок у картці або компактний варіант кнопок без тексту. Додає оригінальну назву у повній картці та змінює стиль блоку торрентів із кольоровими акцентами бітрейту, сідів та інших параметрів.",
       "desc_en": "A comprehensive interface customization plugin for Lampa. Adds a new information panel, colored ratings, statuses, and age restrictions, advanced button management, multiple theme support, and improved readability of movie and TV series cards. Allows managing various labels such as release year, average rating, alternative labels, and upcoming episode indicators. Provides button control options — display all buttons in the card or use a compact icon-only button style. Adds the original title to the full card view and redesigns the torrent block with colored bitrate, seed count, and other visual indicators.",
+      "screens": [],
       "file": "plugins/interface+.js"
     },
     {
       "id": "rtg",
       "title": "rtg",
-      "tags": ["Онлайн"],
+      "desc_short_uk": "Рейтинги та нагороди (IMDb/TMDb/RT/Metacritic/Оскар/Еммі) + гнучкі стилі.",
+      "desc_short_en": "Ratings & awards (IMDb/TMDb/RT/Metacritic/Oscar/Emmy) with flexible styling.",
       "desc_uk": "Плагін для відображення рейтингів і нагород у картці фільму або серіалу. Має власне меню налаштувань для керування стилем логотипів (розмір, прозорість фону, яскравість, чорно-білий режим) та можливість вимикати непотрібні рейтинги й нагороди. Показує середній рейтинг, нагороди (Оскар або Еммі), рейтинги IMDb, TMDb, Metacritic (або Metacritic User), Rotten Tomatoes та Popcornmeter. Додатково рейтинги можуть відображатися і на постері. Працює для фільмів і серіалів. Для роботи необхідно отримати API-ключі OMDb та MDBlist.",
       "desc_en": "Displays ratings and awards in movie and TV series cards. Includes its own settings menu to customize logo style (size, background transparency, brightness, black-and-white mode) and to disable unnecessary ratings or awards. Shows average rating, awards (Oscar or Emmy), IMDb, TMDb, Metacritic (or Metacritic User), Rotten Tomatoes, and Popcornmeter ratings. Ratings can also be displayed on posters. Works with both movies and TV series. Requires OMDb and MDBlist API keys.",
+      "screens": [],
       "file": "plugins/rtg.js"
     }
   ]
