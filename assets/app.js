@@ -21,7 +21,7 @@
     howto: $("#howto"),
     modal: $("#modal"),
     modalClose: $("#modalClose"),
-    backdrop: $(".modal__backdrop"),
+    backdrop: $("#modal .modal__backdrop"),
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
     steps: $("#steps"),
@@ -37,15 +37,14 @@
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       modalTitle: "Як встановити",
-    stepsHtml: `
-      <li>Скопіюй URL потрібного плагіна.</li>
-      <li>
-        В Lampa відкрий: <b>Налаштування → Розширення</b>
-        та натисни <b>"Додати плагін"</b>.
-      </li>
-      <li>Встав скопійоване посилання у поле та підтверди.</li>
-    `,
-
+      stepsHtml: `
+        <li>Скопіюй URL потрібного плагіна.</li>
+        <li>
+          В Lampa відкрий: <b>Налаштування → Розширення</b>
+          та натисни <b>"Додати плагін"</b>.
+        </li>
+        <li>Встав скопійоване посилання у поле та підтверди.</li>
+      `,
       copy: "Copy",
       copied: "Copied"
     },
@@ -64,7 +63,7 @@
           and press <b>"Add plugin"</b>.
         </li>
         <li>Paste the copied link into the field and confirm.</li>
-    `,
+      `,
       copy: "Copy",
       copied: "Copied"
     }
@@ -75,7 +74,9 @@
   }
 
   function getDesc(p) {
-    return state.lang === "en" ? (p.desc_en || p.desc_uk || "") : (p.desc_uk || p.desc_en || "");
+    return state.lang === "en"
+      ? (p.desc_en || p.desc_uk || "")
+      : (p.desc_uk || p.desc_en || "");
   }
 
   function absUrl(file) {
@@ -124,9 +125,11 @@
     const q = (state.q || "").trim().toLowerCase();
     const list = state.plugins.filter(p => matches(p, q));
 
-    el.countValue.textContent = String(state.plugins.length);
-    el.grid.innerHTML = "";
-    el.empty.classList.toggle("is-hidden", list.length !== 0);
+    if (el.countValue) el.countValue.textContent = String(state.plugins.length);
+    if (el.grid) el.grid.innerHTML = "";
+    if (el.empty) el.empty.classList.toggle("is-hidden", list.length !== 0);
+
+    if (!el.grid) return;
 
     for (const p of list) {
       const url = absUrl(p.file);
@@ -162,8 +165,10 @@
       btn.addEventListener("click", async () => {
         const ok = await copyText(url);
         if (!ok) return;
+
         btn.classList.add("is-done");
         btn.textContent = t("copied");
+
         window.setTimeout(() => {
           btn.classList.remove("is-done");
           btn.textContent = t("copy");
@@ -182,10 +187,12 @@
   }
 
   function openModal() {
+    if (!el.modal) return;
     el.modal.classList.remove("is-hidden");
   }
 
   function closeModal() {
+    if (!el.modal) return;
     el.modal.classList.add("is-hidden");
   }
 
@@ -196,41 +203,46 @@
       b.classList.toggle("is-active", b.dataset.lang === state.lang);
     });
 
-    el.subtitle.textContent = t("subtitle");
-    el.q.placeholder = t("searchPlaceholder");
-    el.countLabel.textContent = t("pluginsCount");
-    el.howto.textContent = t("howto");
+    if (el.subtitle) el.subtitle.textContent = t("subtitle");
+    if (el.q) el.q.placeholder = t("searchPlaceholder");
+    if (el.countLabel) el.countLabel.textContent = t("pluginsCount");
+    if (el.howto) el.howto.textContent = t("howto");
 
-    el.emptyTitle.textContent = t("emptyTitle");
-    el.emptyHint.textContent = t("emptyHint");
+    if (el.emptyTitle) el.emptyTitle.textContent = t("emptyTitle");
+    if (el.emptyHint) el.emptyHint.textContent = t("emptyHint");
 
-    el.modalTitle.textContent = t("modalTitle");
-    el.steps.innerHTML = t("stepsHtml");
+    if (el.modalTitle) el.modalTitle.textContent = t("modalTitle");
+    if (el.steps) el.steps.innerHTML = t("stepsHtml");
 
     render();
   }
 
   function wire() {
-    el.q.addEventListener("input", () => {
-      state.q = el.q.value;
-      el.clear.classList.toggle("is-hidden", !state.q);
-      render();
-    });
+    if (el.q) {
+      el.q.addEventListener("input", () => {
+        state.q = el.q.value;
+        if (el.clear) el.clear.classList.toggle("is-hidden", !state.q);
+        render();
+      });
+    }
 
-    el.clear.addEventListener("click", () => {
-      el.q.value = "";
-      state.q = "";
-      el.clear.classList.add("is-hidden");
-      el.q.focus();
-      render();
-    });
+    if (el.clear) {
+      el.clear.addEventListener("click", () => {
+        if (el.q) el.q.value = "";
+        state.q = "";
+        el.clear.classList.add("is-hidden");
+        if (el.q) el.q.focus();
+        render();
+      });
+    }
 
     // Modal open/close
-    el.howto.addEventListener("click", openModal);
-    el.backdrop.addEventListener("click", closeModal);
-    el.modalClose.addEventListener("click", closeModal);
+    if (el.howto) el.howto.addEventListener("click", openModal);
+    if (el.backdrop) el.backdrop.addEventListener("click", closeModal);
+    if (el.modalClose) el.modalClose.addEventListener("click", closeModal);
 
     document.addEventListener("keydown", (e) => {
+      if (!el.modal) return;
       if (e.key === "Escape" && !el.modal.classList.contains("is-hidden")) closeModal();
     });
 
@@ -241,13 +253,17 @@
 
   (async function init() {
     wire();
+
+    // Страховка: модалка завжди закрита при старті
+    if (el.modal) el.modal.classList.add("is-hidden");
+
     await load();
-    setLang("uk"); // Модалка НЕ відкривається автоматично
+    setLang("uk");
   })().catch((err) => {
     console.error(err);
-    el.grid.innerHTML = "";
-    el.empty.classList.remove("is-hidden");
-    el.emptyTitle.textContent = "Error";
-    el.emptyHint.textContent = "Failed to load data/plugins.json";
+    if (el.grid) el.grid.innerHTML = "";
+    if (el.empty) el.empty.classList.remove("is-hidden");
+    if (el.emptyTitle) el.emptyTitle.textContent = "Error";
+    if (el.emptyHint) el.emptyHint.textContent = "Failed to load data/plugins.json";
   });
 })();
