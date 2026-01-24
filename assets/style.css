@@ -20,6 +20,7 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
+
 body{
   margin:0;
   color:var(--text);
@@ -28,6 +29,10 @@ body{
               linear-gradient(180deg, var(--bg0), var(--bg1));
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
   overflow-x:hidden;
+
+  /* safe-area */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 body.is-modal-open{overflow:hidden}
@@ -52,6 +57,10 @@ body.is-modal-open{overflow:hidden}
   backdrop-filter: blur(14px);
   background: rgba(6,7,11,.55);
   border-bottom:1px solid rgba(255,255,255,.06);
+
+  /* safe-area */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .header__inner{
@@ -60,6 +69,7 @@ body.is-modal-open{overflow:hidden}
   justify-content:space-between;
   gap:16px;
   padding:18px 0;
+  min-width:0;
 }
 
 .header__actions{
@@ -67,6 +77,7 @@ body.is-modal-open{overflow:hidden}
   align-items:center;
   gap:12px;
   flex:0 0 auto;
+  min-width:0;
 }
 
 .brand{
@@ -84,6 +95,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.10);
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  flex:0 0 auto;
 }
 
 .brand__text{min-width:0}
@@ -105,7 +117,9 @@ body.is-modal-open{overflow:hidden}
 .lang{
   display:flex;
   gap:8px;
+  flex:0 0 auto;
 }
+
 .lang__btn{
   border:1px solid var(--stroke);
   background: rgba(255,255,255,.05);
@@ -115,6 +129,7 @@ body.is-modal-open{overflow:hidden}
   cursor:pointer;
   transition:.15s ease;
   font-weight:700;
+  min-height:44px;
 }
 .lang__btn:hover{border-color:var(--stroke2)}
 .lang__btn.is-active{
@@ -143,6 +158,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.05);
   border:1px solid var(--stroke);
   box-shadow: var(--shadow2);
+  min-width:0;
 }
 
 .search__icon{
@@ -155,6 +171,7 @@ body.is-modal-open{overflow:hidden}
   background: rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.08);
   color: rgba(233,236,243,.85);
+  flex:0 0 auto;
 }
 
 .search__input{
@@ -164,6 +181,7 @@ body.is-modal-open{overflow:hidden}
   background:transparent;
   color:var(--text);
   font-size:15px;
+  min-width:0;
 }
 .search__input::placeholder{color:rgba(233,236,243,.55)}
 
@@ -179,6 +197,7 @@ body.is-modal-open{overflow:hidden}
   align-items:center;
   justify-content:center;
   transition:.15s ease;
+  flex:0 0 auto;
 }
 .search__clear:hover{border-color:rgba(255,255,255,.18)}
 .search__clear.is-hidden{display:none}
@@ -217,10 +236,11 @@ body.is-modal-open{overflow:hidden}
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  min-height:44px;
 }
 .btn:hover{border-color: rgba(124,92,255,.65)}
 
-/* Donate “ghost” button */
+/* Donate “ghost” button (only once) */
 .btn--ghost{
   border:1px solid rgba(43,212,255,.30);
   background: rgba(255,255,255,.04);
@@ -248,6 +268,7 @@ body.is-modal-open{overflow:hidden}
   gap:12px;
   min-height:170px;
   transition: .15s ease;
+  min-width:0;
 }
 .card:hover{
   border-color: rgba(255,255,255,.16);
@@ -260,6 +281,7 @@ body.is-modal-open{overflow:hidden}
   align-items:flex-start;
   justify-content:space-between;
   gap:12px;
+  min-width:0;
 }
 
 .card__title{
@@ -267,6 +289,7 @@ body.is-modal-open{overflow:hidden}
   font-weight:900;
   letter-spacing:.2px;
   line-height:1.2;
+  min-width:0;
 }
 
 .details{
@@ -294,6 +317,7 @@ body.is-modal-open{overflow:hidden}
   display:flex;
   gap:10px;
   align-items:center;
+  min-width:0;
 }
 
 .url{
@@ -308,6 +332,7 @@ body.is-modal-open{overflow:hidden}
   overflow:hidden;
   white-space:nowrap;
   text-overflow:ellipsis;
+  min-width:0;
 }
 
 .copy{
@@ -320,6 +345,7 @@ body.is-modal-open{overflow:hidden}
   font-weight:900;
   cursor:pointer;
   transition:.15s ease;
+  min-height:44px;
   white-space:nowrap;
 }
 .copy:hover{border-color: rgba(43,212,255,.55)}
@@ -379,7 +405,7 @@ body.is-modal-open{overflow:hidden}
 .modal__title{font-size:16px;font-weight:900}
 
 .modal__close{
-  width:40px;height:40px;
+  width:44px;height:44px;
   border-radius:16px;
   border:1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.06);
@@ -405,15 +431,19 @@ body.is-modal-open{overflow:hidden}
 .details__urlrow{
   display:flex;
   gap:10px;
-  align-items:center;
+  align-items:stretch;
   margin: 12px 0 10px 0;
+  min-width:0;
 }
+.details__urlrow .url{flex:1 1 auto; min-width:0}
+.details__urlrow .copy{flex:0 0 auto; min-width:96px}
 
 .gallery{
   display:grid;
   grid-template-columns: repeat(2, 1fr);
   gap:10px;
   margin-top:12px;
+  width:100%;
 }
 .gallery.is-hidden{display:none}
 
@@ -426,6 +456,7 @@ body.is-modal-open{overflow:hidden}
   box-shadow: var(--shadow2);
   cursor: zoom-in;
   transition: .15s ease;
+  display:block;
 }
 .shot:hover{
   transform: translateY(-1px);
@@ -540,7 +571,6 @@ body.is-modal-open{overflow:hidden}
 .navbtn:hover{border-color: rgba(255,255,255,.18)}
 .navbtn--left{left:10px}
 .navbtn--right{right:10px}
-.navbtn.is-disabled{opacity:.45; cursor:default}
 
 /* ===== responsive ===== */
 @media (max-width: 980px){
@@ -558,20 +588,44 @@ body.is-modal-open{overflow:hidden}
     align-items:stretch;
   }
 
+  /* Stable 3-row header actions: donate / howto / lang */
   .header__actions{
-    justify-content:space-between;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "donate donate"
+      "howto howto"
+      "lang   lang";
+    gap:10px;
+    width:100%;
+    align-items:center;
+  }
+
+  #donate{
+    grid-area: donate;
+    width:100%;
+    text-align:center;
+    white-space:normal;
+    line-height:1.25;
+  }
+
+  #howto{
+    grid-area: howto;
     width:100%;
   }
 
-  /* donate link: keep it compact and avoid header overflow */
-  #donate{
-    max-width: 52vw;
-    overflow:hidden;
-    text-overflow:ellipsis;
+  .lang{
+    grid-area: lang;
+    width:100%;
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
   }
 
-  .btn{min-height:44px}
-  .lang__btn{min-height:44px}
+  .lang__btn{
+    flex:1 1 0;
+    text-align:center;
+  }
 
   .toolbar{
     padding:14px 0 12px 0;
@@ -580,7 +634,7 @@ body.is-modal-open{overflow:hidden}
     gap:12px;
   }
 
-  .search{max-width:none; padding:12px 12px;}
+  .search{max-width:none; padding:12px 12px; border-radius:22px;}
   .search__icon{width:42px;height:42px;border-radius:16px;}
   .search__clear{width:42px;height:42px;border-radius:16px;}
 
@@ -590,16 +644,23 @@ body.is-modal-open{overflow:hidden}
     padding-bottom:22px;
   }
 
+  .card{padding:14px; min-height:unset;}
+  .card__top{align-items:center;}
+
   .card__urlrow{
     flex-direction:column;
     align-items:stretch;
     gap:10px;
   }
-  .copy{width:100%; min-height:44px}
+  .copy{width:100%}
 
   .details__urlrow{
     flex-direction:column;
     align-items:stretch;
+  }
+  .details__urlrow .copy{
+    width:100%;
+    min-width:0;
   }
 
   .gallery{grid-template-columns: 1fr}
@@ -614,7 +675,6 @@ body.is-modal-open{overflow:hidden}
     padding:14px;
     margin-bottom:8px;
   }
-  .modal__close{width:44px;height:44px;border-radius:16px;}
 
   .imgbar__title{max-width: 46vw;}
   .imgmodal__img{max-height: calc(100vh - 200px);}
@@ -627,192 +687,4 @@ body.is-modal-open{overflow:hidden}
   .lang__btn{padding:9px 10px}
   .search__input{font-size:14px}
   .imgbar__title{max-width: 40vw;}
-  #donate{max-width: 44vw;}
-}
-
-/* =========================================================
-   FIXES: Donate button + Lightbox (imgModal) layout
-   Add this block at the very end of style.css
-   ========================================================= */
-
-/* 1) Missing ghost button style (used by donate link) */
-.btn--ghost{
-  border:1px solid var(--stroke);
-  background: rgba(255,255,255,.05);
-  color: var(--text);
-}
-.btn--ghost:hover{
-  border-color: var(--stroke2);
-}
-
-/* 2) Make header actions behave on narrow screens */
-#donate{
-  max-width: 100%;
-}
-
-/* On tablets/phones: donate becomes full-width and doesn't break layout */
-@media (max-width: 720px){
-  .header__actions{
-    display:grid;
-    grid-template-columns: 1fr auto; /* donate/howto take space, lang sticks right */
-    gap:10px;
-    align-items:center;
-  }
-
-  #donate{
-    grid-column: 1 / -1;  /* full width row */
-    width: 100%;
-    text-align:center;
-    white-space: normal;  /* allow wrap */
-    line-height: 1.25;
-  }
-
-  #howto{
-    width: 100%;
-  }
-
-  .lang{
-    justify-content:flex-end;
-  }
-}
-
-/* 3) Lightbox: layout for .imgbar and navigation */
-.imgmodal__card{
-  padding:0;              /* remove padding so bar + stage align */
-  overflow:hidden;        /* prevent weird scroll bleed */
-}
-
-/* Top bar in image modal */
-.imgbar{
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:12px 12px;
-  background: rgba(10,12,18,.88);
-  border-bottom:1px solid rgba(255,255,255,.10);
-  backdrop-filter: blur(10px);
-}
-
-.imgbar__left,
-.imgbar__right{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width:0;
-}
-
-.imgbar__title{
-  font-weight:900;
-  font-size:14px;
-  color: var(--text);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  max-width: 54vw; /* prevents collision with right controls */
-}
-
-.imgbar__count{
-  color: var(--muted);
-  font-weight:800;
-  font-variant-numeric: tabular-nums;
-  white-space:nowrap;
-}
-
-.imgbar__link{
-  color: var(--text);
-  text-decoration:none;
-  font-weight:900;
-  padding:10px 12px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  white-space:nowrap;
-}
-.imgbar__link:hover{border-color: rgba(255,255,255,.18)}
-
-/* Ensure the close button in bar is always clickable and aligned */
-.imgbar__close{
-  position: static; /* overrides any absolute expectations */
-}
-
-/* Stage centers the image and keeps it below bar */
-.imgstage{
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:12px;
-  min-height: 40vh;
-}
-
-/* Make image fit into remaining viewport height (minus bar) */
-.imgmodal__img{
-  max-height: calc(100vh - 40px - 64px); /* viewport - modal padding approx - bar height */
-}
-
-/* Prev/Next buttons */
-.navbtn{
-  position:absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width:44px;
-  height:44px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  color: rgba(233,236,243,.9);
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:28px;
-  line-height:1;
-  user-select:none;
-}
-.navbtn:hover{border-color: rgba(255,255,255,.18)}
-.navbtn:disabled{
-  opacity:.35;
-  cursor:default;
-}
-
-.navbtn--left{left:12px}
-.navbtn--right{right:12px}
-
-/* On phones: move nav buttons lower so they don't hit the bar */
-@media (max-width: 720px){
-  .imgbar{
-    padding:10px 10px;
-    gap:10px;
-  }
-
-  .imgbar__title{
-    max-width: 46vw;
-    font-size:13px;
-  }
-
-  .imgbar__link{
-    padding:9px 10px;
-    border-radius:14px;
-  }
-
-  .imgstage{
-    padding:10px;
-  }
-
-  .navbtn--left{left:8px}
-  .navbtn--right{right:8px}
-}
-
-/* 4) Background + safe-area tweaks for modern mobile browsers */
-body{
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-.header{
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 }
