@@ -7,7 +7,13 @@
   const state = {
     lang: "uk",
     plugins: [],
-    q: ""
+    q: "",
+    img: {
+      pluginId: null,
+      list: [],
+      index: 0,
+      title: ""
+    }
   };
 
   const el = {
@@ -18,34 +24,28 @@
     countValue: $("#countValue"),
     countLabel: $("#countLabel"),
     subtitle: $("#subtitle"),
-    howto: $("#howto"),
+    howtoBtn: $("#howto"),
+    donate: $("#donate"),
+    emptyTitle: $("#emptyTitle"),
+    emptyHint: $("#emptyHint"),
 
-    modal: $("#modal"),
-    steps: $("#steps"),
-    modalTitle: $("#modalTitle"),
+    howtoModal: $("#howtoModal"),
+    howtoSteps: $("#howtoSteps"),
 
     detailsModal: $("#detailsModal"),
     detailsTitle: $("#detailsTitle"),
     detailsDesc: $("#detailsDesc"),
     detailsUrl: $("#detailsUrl"),
     detailsCopy: $("#detailsCopy"),
-    gallery: $("#gallery"),
+    detailsGallery: $("#detailsGallery"),
 
     imgModal: $("#imgModal"),
-    imgModalImg: $("#imgModalImg"),
-
-    emptyTitle: $("#emptyTitle"),
-    emptyHint: $("#emptyHint")
-  };
-
-  // Скріни: файл -> масив зображень (відносно кореня сайту)
-  const screenshots = {
-    "parsers": ["wwwroot/screens/Parsers.png"],
-    "quality": ["wwwroot/screens/quality1.png", "wwwroot/screens/quality2.png"],
-    "seasons": ["wwwroot/screens/seasons.png"],
-    "ua-finder": ["wwwroot/screens/ukr1.png", "wwwroot/screens/ukr2.png"],
-    "rtg": ["wwwroot/screens/rtg-film.png", "wwwroot/screens/rtg-serial.png", "wwwroot/screens/rtg1.png", "wwwroot/screens/rtg2.png"],
-    "interface": ["wwwroot/screens/interface.png", "wwwroot/screens/interface1.png", "wwwroot/screens/interface2.png", "wwwroot/screens/interface3.png"]
+    imgTitle: $("#imgTitle"),
+    imgCount: $("#imgCount"),
+    imgOpen: $("#imgOpen"),
+    imgView: $("#imgView"),
+    imgPrev: $("#imgPrev"),
+    imgNext: $("#imgNext")
   };
 
   const i18n = {
@@ -57,17 +57,17 @@
       details: "Детальніше",
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
-      modalTitle: "Як встановити",
-      stepsHtml: `
+      howtoTitle: "Як встановити",
+      howtoStepsHtml: `
         <li>Скопіюй URL потрібного плагіна.</li>
-        <li>
-          В Lampa відкрий: <b>Налаштування → Розширення</b>
-          та натисни <b>"Додати плагін"</b>.
-        </li>
+        <li>В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.</li>
         <li>Встав скопійоване посилання у поле та підтверди.</li>
       `,
       copy: "Copy",
-      copied: "Copied"
+      copied: "Copied",
+      open: "Відкрити",
+      donate: "Добровільний донат на підтримку",
+      donateAria: "Добровільний донат на підтримку (відкриється у новій вкладці)"
     },
     en: {
       subtitle: "Lampa plugins catalog • quick search • easy copy",
@@ -77,17 +77,17 @@
       details: "Details",
       emptyTitle: "Nothing found",
       emptyHint: "Try another query.",
-      modalTitle: "How to install",
-      stepsHtml: `
+      howtoTitle: "How to install",
+      howtoStepsHtml: `
         <li>Copy the plugin URL.</li>
-        <li>
-          In Lampa open: <b>Settings → Extensions</b>
-          and press <b>"Add plugin"</b>.
-        </li>
+        <li>In Lampa open: <b>Settings → Extensions</b> and press <b>"Add plugin"</b>.</li>
         <li>Paste the copied link into the field and confirm.</li>
       `,
       copy: "Copy",
-      copied: "Copied"
+      copied: "Copied",
+      open: "Open",
+      donate: "Voluntary donation to support",
+      donateAria: "Voluntary donation to support (opens in a new tab)"
     }
   };
 
@@ -95,20 +95,26 @@
     return i18n[state.lang][key];
   }
 
-  function getDescShort(p) {
-    return state.lang === "en"
-      ? (p.desc_short_en || p.desc_short_uk || p.desc_en || p.desc_uk || "")
-      : (p.desc_short_uk || p.desc_short_en || p.desc_uk || p.desc_en || "");
+  function absUrl(file) {
+    return new URL(file, window.location.href).href;
   }
 
-  function getDescFull(p) {
+  function getShort(p) {
+    return state.lang === "en"
+      ? (p.short_en || p.short_uk || p.desc_en || p.desc_uk || "")
+      : (p.short_uk || p.short_en || p.desc_uk || p.desc_en || "");
+  }
+
+  function getFull(p) {
     return state.lang === "en"
       ? (p.desc_en || p.desc_uk || "")
       : (p.desc_uk || p.desc_en || "");
   }
 
-  function absUrl(file) {
-    return new URL(file, window.location.href).href;
+  function matches(p, q) {
+    if (!q) return true;
+    const text = [(p.title || ""), getShort(p), getFull(p)].join(" ").toLowerCase();
+    return text.includes(q);
   }
 
   async function load() {
@@ -117,12 +123,6 @@
     if (!res.ok) throw new Error("Failed to load plugins.json");
     const json = await res.json();
     state.plugins = Array.isArray(json.plugins) ? json.plugins : [];
-  }
-
-  function matches(p, q) {
-    if (!q) return true;
-    const text = [(p.title || ""), getDescShort(p), getDescFull(p)].join(" ").toLowerCase();
-    return text.includes(q);
   }
 
   async function copyText(text) {
@@ -149,28 +149,101 @@
     }
   }
 
-  function setBodyModal(open) {
-    document.body.classList.toggle("is-modal-open", !!open);
+  function setModalOpen(isOpen) {
+    document.body.classList.toggle("is-modal-open", !!isOpen);
   }
 
-  function openModal(which) {
-    if (which === "modal") el.modal.classList.remove("is-hidden");
-    if (which === "details") el.detailsModal.classList.remove("is-hidden");
-    if (which === "img") el.imgModal.classList.remove("is-hidden");
-    setBodyModal(true);
+  function openModal(modalEl) {
+    modalEl.classList.remove("is-hidden");
+    setModalOpen(true);
   }
 
-  function closeModal(which) {
-    if (which === "modal") el.modal.classList.add("is-hidden");
-    if (which === "details") el.detailsModal.classList.add("is-hidden");
-    if (which === "img") el.imgModal.classList.add("is-hidden");
-
-    // Якщо всі модалки закриті — повернути скрол
-    const anyOpen = !el.modal.classList.contains("is-hidden")
+  function closeModal(modalEl) {
+    modalEl.classList.add("is-hidden");
+    const anyOpen = !el.howtoModal.classList.contains("is-hidden")
       || !el.detailsModal.classList.contains("is-hidden")
       || !el.imgModal.classList.contains("is-hidden");
+    setModalOpen(anyOpen);
+  }
 
-    setBodyModal(anyOpen);
+  function closeAllModals() {
+    closeModal(el.howtoModal);
+    closeModal(el.detailsModal);
+    closeModal(el.imgModal);
+  }
+
+  function imgUpdate() {
+    const list = state.img.list || [];
+    const idx = state.img.index || 0;
+    if (!list.length) return;
+
+    const src = absUrl(list[idx]);
+    el.imgView.src = src;
+    el.imgView.alt = state.img.title || "Screenshot";
+    el.imgTitle.textContent = state.img.title || "—";
+    el.imgCount.textContent = `${idx + 1}/${list.length}`;
+    el.imgOpen.textContent = t("open");
+    el.imgOpen.href = src;
+
+    el.imgPrev.disabled = list.length <= 1;
+    el.imgNext.disabled = list.length <= 1;
+    el.imgPrev.classList.toggle("is-disabled", list.length <= 1);
+    el.imgNext.classList.toggle("is-disabled", list.length <= 1);
+  }
+
+  function imgOpen(pluginTitle, list, index) {
+    state.img.title = pluginTitle || "—";
+    state.img.list = Array.isArray(list) ? list : [];
+    state.img.index = Math.max(0, Math.min(Number(index) || 0, state.img.list.length - 1));
+    imgUpdate();
+    openModal(el.imgModal);
+  }
+
+  function imgStep(delta) {
+    const list = state.img.list || [];
+    if (list.length <= 1) return;
+    const n = list.length;
+    state.img.index = (state.img.index + delta + n) % n;
+    imgUpdate();
+  }
+
+  function detailsOpen(plugin) {
+    const url = absUrl(plugin.file);
+    const title = plugin.title || plugin.id || "Plugin";
+
+    el.detailsTitle.textContent = title;
+    el.detailsDesc.textContent = getFull(plugin);
+
+    el.detailsUrl.textContent = url;
+    el.detailsUrl.title = url;
+
+    el.detailsCopy.textContent = t("copy");
+    el.detailsCopy.onclick = async () => {
+      const ok = await copyText(url);
+      if (!ok) return;
+      el.detailsCopy.classList.add("is-done");
+      el.detailsCopy.textContent = t("copied");
+      window.setTimeout(() => {
+        el.detailsCopy.classList.remove("is-done");
+        el.detailsCopy.textContent = t("copy");
+      }, 900);
+    };
+
+    const shots = Array.isArray(plugin.screens) ? plugin.screens : [];
+    el.detailsGallery.innerHTML = "";
+    el.detailsGallery.classList.toggle("is-hidden", shots.length === 0);
+
+    shots.forEach((src, i) => {
+      const img = document.createElement("img");
+      img.className = "shot";
+      img.loading = "lazy";
+      img.alt = `${title} (${i + 1})`;
+      img.src = absUrl(src);
+      img.addEventListener("click", () => imgOpen(title, shots, i));
+      el.detailsGallery.appendChild(img);
+    });
+
+    openModal(el.detailsModal);
   }
 
   function render() {
@@ -198,15 +271,14 @@
       detailsBtn.className = "details";
       detailsBtn.type = "button";
       detailsBtn.textContent = t("details");
-
-      detailsBtn.addEventListener("click", () => openDetails(p));
+      detailsBtn.addEventListener("click", () => detailsOpen(p));
 
       top.appendChild(title);
       top.appendChild(detailsBtn);
 
       const desc = document.createElement("div");
       desc.className = "card__desc";
-      desc.textContent = getDescShort(p);
+      desc.textContent = getShort(p);
 
       const row = document.createElement("div");
       row.className = "card__urlrow";
@@ -243,69 +315,26 @@
     }
   }
 
-  function openDetails(p) {
-    const url = absUrl(p.file);
-
-    el.detailsTitle.textContent = p.title || p.id || "Plugin";
-    el.detailsDesc.textContent = getDescFull(p);
-
-    el.detailsUrl.textContent = url;
-    el.detailsUrl.title = url;
-
-    el.detailsCopy.textContent = t("copy");
-    el.detailsCopy.classList.remove("is-done");
-    el.detailsCopy.onclick = async () => {
-      const ok = await copyText(url);
-      if (!ok) return;
-      el.detailsCopy.classList.add("is-done");
-      el.detailsCopy.textContent = t("copied");
-      window.setTimeout(() => {
-        el.detailsCopy.classList.remove("is-done");
-        el.detailsCopy.textContent = t("copy");
-      }, 900);
-    };
-
-    // Gallery
-    const shots = screenshots[p.id] || [];
-    el.gallery.innerHTML = "";
-    el.gallery.classList.toggle("is-hidden", shots.length === 0);
-
-    for (const src of shots) {
-      const img = document.createElement("img");
-      img.className = "shot";
-      img.loading = "lazy";
-      img.alt = (p.title || p.id || "Plugin") + " screenshot";
-      img.src = src;
-      img.addEventListener("click", () => openImage(src, img.alt));
-      el.gallery.appendChild(img);
-    }
-
-    openModal("details");
-  }
-
-  function openImage(src, alt) {
-    el.imgModalImg.src = src;
-    el.imgModalImg.alt = alt || "";
-    openModal("img");
-  }
-
   function setLang(lang) {
     state.lang = (lang === "en") ? "en" : "uk";
 
-    $$(".lang__btn").forEach(b => {
-      b.classList.toggle("is-active", b.dataset.lang === state.lang);
-    });
+    $$(".lang__btn").forEach(b => b.classList.toggle("is-active", b.dataset.lang === state.lang));
 
     el.subtitle.textContent = t("subtitle");
     el.q.placeholder = t("searchPlaceholder");
     el.countLabel.textContent = t("pluginsCount");
-    el.howto.textContent = t("howto");
-
-    el.modalTitle.textContent = t("modalTitle");
-    el.steps.innerHTML = t("stepsHtml");
-
+    el.howtoBtn.textContent = t("howto");
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
+
+    // donate text
+    if (el.donate) {
+      el.donate.textContent = t("donate");
+      el.donate.setAttribute("aria-label", t("donateAria"));
+    }
+
+    $("#howtoTitle").textContent = t("howtoTitle");
+    el.howtoSteps.innerHTML = t("howtoStepsHtml");
 
     render();
   }
@@ -325,36 +354,43 @@
       render();
     });
 
-    el.howto.addEventListener("click", () => openModal("modal"));
+    el.howtoBtn.addEventListener("click", () => openModal(el.howtoModal));
 
-    // Делегований клік закриття (працює навіть по SVG/path)
     document.addEventListener("click", (e) => {
-      const closer = e.target.closest("[data-close]");
-      if (!closer) return;
-      const which = closer.getAttribute("data-close");
-      if (which === "modal") closeModal("modal");
-      if (which === "details") closeModal("details");
-      if (which === "img") closeModal("img");
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const closeKind = target.getAttribute("data-close");
+      if (!closeKind) return;
+
+      if (closeKind === "howto") closeModal(el.howtoModal);
+      if (closeKind === "details") closeModal(el.detailsModal);
+      if (closeKind === "img") closeModal(el.imgModal);
     });
 
-    // ESC
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-
-      if (!el.imgModal.classList.contains("is-hidden")) return closeModal("img");
-      if (!el.detailsModal.classList.contains("is-hidden")) return closeModal("details");
-      if (!el.modal.classList.contains("is-hidden")) return closeModal("modal");
+      if (!el.imgModal.classList.contains("is-hidden")) return closeModal(el.imgModal);
+      if (!el.detailsModal.classList.contains("is-hidden")) return closeModal(el.detailsModal);
+      if (!el.howtoModal.classList.contains("is-hidden")) return closeModal(el.howtoModal);
     });
 
-    $$(".lang__btn").forEach(btn => {
-      btn.addEventListener("click", () => setLang(btn.dataset.lang));
+    el.imgPrev.addEventListener("click", () => imgStep(-1));
+    el.imgNext.addEventListener("click", () => imgStep(1));
+
+    document.addEventListener("keydown", (e) => {
+      if (el.imgModal.classList.contains("is-hidden")) return;
+      if (e.key === "ArrowLeft") imgStep(-1);
+      if (e.key === "ArrowRight") imgStep(1);
     });
+
+    $$(".lang__btn").forEach(btn => btn.addEventListener("click", () => setLang(btn.dataset.lang)));
   }
 
   (async function init() {
     wire();
     await load();
-    setLang("uk"); // нічого не відкриваємо автоматично
+    setLang("uk");
+    closeAllModals();
   })().catch((err) => {
     console.error(err);
     el.grid.innerHTML = "";
