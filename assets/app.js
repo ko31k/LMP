@@ -4,6 +4,16 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // Icon-only download button
+  const ICON_DOWNLOAD = `
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+         stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M12 3v10"></path>
+      <path d="M8 11l4 4 4-4"></path>
+      <path d="M4 21h16"></path>
+    </svg>
+  `;
+
   const state = {
     lang: "uk",
     plugins: [],
@@ -24,10 +34,10 @@
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
 
-    donate: $("#donate"), // NEW: donate button/link
+    donate: $("#donate"),
 
     // howto
-    howtoBtn: $("#howto"),                 // FIX: було #howtoBtn
+    howtoBtn: $("#howto"),
     howtoModal: $("#howtoModal"),
     howtoSteps: $("#howtoSteps"),
     howtoTitle: $("#howtoTitle"),
@@ -38,13 +48,13 @@
     detailsDesc: $("#detailsDesc"),
     detailsUrl: $("#detailsUrl"),
     detailsCopy: $("#detailsCopy"),
-    gallery: $("#detailsGallery"),         // FIX: було #gallery
+    gallery: $("#detailsGallery"),
 
     // image modal
     imgModal: $("#imgModal"),
-    imgEl: $("#imgView"),                  // FIX: було #imgEl
+    imgEl: $("#imgView"),
     imgTitle: $("#imgTitle"),
-    imgCounter: $("#imgCount"),            // FIX: було #imgCounter
+    imgCounter: $("#imgCount"),
     imgOpen: $("#imgOpen"),
     imgPrev: $("#imgPrev"),
     imgNext: $("#imgNext")
@@ -56,7 +66,8 @@
       searchPlaceholder: "Пошук плагіна за назвою або описом…",
       pluginsCount: "Плагінів",
       howto: "Як встановити",
-      donate: "Добровільний донат на підтримку", // NEW
+      donate: "Добровільний донат на підтримку",
+      download: "Завантажити",
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       howtoTitle: "Як встановити",
@@ -75,7 +86,8 @@
       searchPlaceholder: "Search plugin by name or description…",
       pluginsCount: "Plugins",
       howto: "How to install",
-      donate: "Voluntary donation to support", // NEW
+      donate: "Voluntary donation to support",
+      download: "Download",
       emptyTitle: "Nothing found",
       emptyHint: "Try another query.",
       howtoTitle: "How to install",
@@ -177,7 +189,9 @@
     if (!modalEl) return;
     modalEl.classList.add("is-hidden");
 
-    const anyOpen = [el.howtoModal, el.detailsModal, el.imgModal].some(m => m && !m.classList.contains("is-hidden"));
+    const anyOpen = [el.howtoModal, el.detailsModal, el.imgModal].some(
+      m => m && !m.classList.contains("is-hidden")
+    );
     if (!anyOpen) document.body.classList.remove("is-modal-open");
   }
 
@@ -235,6 +249,9 @@
       urlBox.title = url;
       urlBox.textContent = url;
 
+      const actions = document.createElement("div");
+      actions.className = "card__actions";
+
       const copyBtn = document.createElement("button");
       copyBtn.className = "copy";
       copyBtn.type = "button";
@@ -250,8 +267,19 @@
         }, 900);
       });
 
+      const dlBtn = document.createElement("a");
+      dlBtn.className = "dl";
+      dlBtn.href = url;
+      dlBtn.setAttribute("download", "");
+      dlBtn.setAttribute("aria-label", t("download"));
+      dlBtn.title = t("download");
+      dlBtn.innerHTML = ICON_DOWNLOAD;
+
+      actions.appendChild(copyBtn);
+      actions.appendChild(dlBtn);
+
       row.appendChild(urlBox);
-      row.appendChild(copyBtn);
+      row.appendChild(actions);
 
       card.appendChild(top);
       card.appendChild(desc);
@@ -285,6 +313,22 @@
         el.detailsCopy.textContent = t("copy");
       }, 900);
     };
+
+    // NEW: icon-only download button next to Copy in Details modal
+    let dl = el.detailsModal ? el.detailsModal.querySelector("#detailsDownload") : null;
+    if (!dl && el.detailsCopy) {
+      dl = document.createElement("a");
+      dl.id = "detailsDownload";
+      dl.className = "dl";
+      dl.innerHTML = ICON_DOWNLOAD;
+      el.detailsCopy.insertAdjacentElement("afterend", dl);
+    }
+    if (dl) {
+      dl.href = url;
+      dl.setAttribute("download", "");
+      dl.setAttribute("aria-label", t("download"));
+      dl.title = t("download");
+    }
 
     const shots = getScreens(p);
     el.gallery.innerHTML = "";
@@ -353,7 +397,17 @@
     el.q.placeholder = t("searchPlaceholder");
     el.countLabel.textContent = t("pluginsCount");
     if (el.howtoBtn) el.howtoBtn.textContent = t("howto");
-    if (el.donate) el.donate.textContent = t("donate"); // NEW
+
+    // Donate text + (optionally) aria-label update
+    if (el.donate) {
+      el.donate.textContent = t("donate");
+      el.donate.setAttribute(
+        "aria-label",
+        state.lang === "en"
+          ? "Voluntary donation to support (opens in a new tab)"
+          : "Добровільний донат на підтримку (відкриється у новій вкладці)"
+      );
+    }
 
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
@@ -361,6 +415,7 @@
     el.howtoTitle.textContent = t("howtoTitle");
     el.howtoSteps.innerHTML = t("stepsHtml");
 
+    // if details open, refresh content (and download button title/aria)
     if (state.detailsPlugin && el.detailsModal && !el.detailsModal.classList.contains("is-hidden")) {
       openDetails(state.detailsPlugin);
     }
@@ -388,6 +443,7 @@
       el.howtoBtn.addEventListener("click", () => openModal(el.howtoModal));
     }
 
+    // universal close: backdrop + X (both use data-close)
     document.addEventListener("click", (e) => {
       const node = e.target.closest("[data-close]");
       if (!node) return;
@@ -396,11 +452,14 @@
       closeByKind(kind);
     });
 
+    // lightbox navigation
     if (el.imgPrev) el.imgPrev.addEventListener("click", () => stepImage(-1));
     if (el.imgNext) el.imgNext.addEventListener("click", () => stepImage(+1));
 
+    // click on image closes
     if (el.imgEl) el.imgEl.addEventListener("click", () => closeModal(el.imgModal));
 
+    // Esc + arrows
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (el.imgModal && !el.imgModal.classList.contains("is-hidden")) return closeModal(el.imgModal);
@@ -414,6 +473,7 @@
       }
     });
 
+    // language
     $$(".lang__btn").forEach(btn => {
       btn.addEventListener("click", () => setLang(btn.dataset.lang));
     });
