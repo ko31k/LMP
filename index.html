@@ -120,10 +120,25 @@
       <div class="modal__body">
         <div class="details__desc" id="detailsDesc"></div>
 
-        <div class="details__urlrow">
-          <div class="url" id="detailsUrl" title=""></div>
-          <button class="copy" id="detailsCopy" type="button">Copy</button>
-        </div>
+<div class="details__urlrow">
+  <div class="url" id="detailsUrl" title=""></div>
+
+  <div class="details__actions">
+    <button class="copy" id="detailsCopy" type="button">Copy</button>
+
+    <a class="dl dl--details" id="detailsDl"
+       href="#"
+       target="_blank"
+       rel="noopener"
+       aria-label="Завантажити">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 3v10" />
+        <path d="M8 11l4 4 4-4" />
+        <path d="M4 21h16" />
+      </svg>
+    </a>
+  </div>
+</div>
 
         <div class="gallery is-hidden" id="detailsGallery"></div>
       </div>
