@@ -741,3 +741,38 @@ body.is-modal-open{overflow:hidden}
   .search__input{font-size:14px}
   .imgbar__title{max-width: 40vw;}
 }
+
+/* ===== Icon-only Download button ===== */
+
+.card__actions{
+  display:flex;
+  gap:10px;
+}
+
+.dl{
+  width:44px;
+  height:44px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(233,236,243,.9);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  text-decoration:none;
+  transition:.15s ease;
+}
+.dl:hover{
+  border-color: rgba(255,255,255,.18);
+}
+
+/* Mobile: Copy + icon button in one row */
+@media (max-width: 720px){
+  .card__actions{
+    display:grid;
+    grid-template-columns: 1fr 44px;
+    gap:10px;
+    width:100%;
+  }
+}
