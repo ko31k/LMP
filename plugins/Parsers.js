@@ -162,12 +162,12 @@
       base: 'redapi_cfhttp_top',
       name: 'RedApi',
       settings: { url: 'redapi.cfhttp.top', key: '', parser_torrent_type: 'jackett' }
-    },
-    {
+    }
+    /*{
       base: 'spawnpp_ua',
       name: 'Spawnpp-UA',
       settings: { url: 'spawn.pp.ua:59117', key: '2', parser_torrent_type: 'jackett' }
-    }
+    }*/
   ];
 
   /* =========================
