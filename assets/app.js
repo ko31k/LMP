@@ -201,6 +201,39 @@
     if (kind === "img") closeModal(el.imgModal);
   }
 
+  // ---------- DETAILS: ensure download button + wrap for proper layout ----------
+  function ensureDetailsDownloadBtn() {
+    if (!el.detailsModal || !el.detailsCopy) return null;
+
+    // 1) Ensure wrapper .details__actions so CSS can align Copy + Download nicely
+    let actions = el.detailsModal.querySelector(".details__actions");
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "details__actions";
+
+      // Put wrapper where the Copy button currently lives
+      const parent = el.detailsCopy.parentElement;
+      // Move Copy into wrapper, then insert wrapper where Copy used to be
+      parent.insertBefore(actions, el.detailsCopy);
+      actions.appendChild(el.detailsCopy);
+    }
+
+    // 2) Ensure a single download button
+    let dl = el.detailsModal.querySelector("#detailsDownload");
+    if (!dl) {
+      dl = document.createElement("a");
+      dl.id = "detailsDownload";
+      dl.className = "dl dl--details";
+      dl.innerHTML = ICON_DOWNLOAD;
+      actions.appendChild(dl);
+    } else {
+      // if it exists but not inside wrapper, move it
+      if (dl.parentElement !== actions) actions.appendChild(dl);
+    }
+
+    return dl;
+  }
+
   // ---------- RENDER ----------
   function render() {
     const q = (state.q || "").trim().toLowerCase();
@@ -314,15 +347,8 @@
       }, 900);
     };
 
-    // NEW: icon-only download button next to Copy in Details modal
-    let dl = el.detailsModal ? el.detailsModal.querySelector("#detailsDownload") : null;
-    if (!dl && el.detailsCopy) {
-      dl = document.createElement("a");
-      dl.id = "detailsDownload";
-      dl.className = "dl";
-      dl.innerHTML = ICON_DOWNLOAD;
-      el.detailsCopy.insertAdjacentElement("afterend", dl);
-    }
+    // Download button (in Details modal): create once + keep aligned via wrapper
+    const dl = ensureDetailsDownloadBtn();
     if (dl) {
       dl.href = url;
       dl.setAttribute("download", "");
@@ -398,7 +424,7 @@
     el.countLabel.textContent = t("pluginsCount");
     if (el.howtoBtn) el.howtoBtn.textContent = t("howto");
 
-    // Donate text + (optionally) aria-label update
+    // Donate text + aria-label update
     if (el.donate) {
       el.donate.textContent = t("donate");
       el.donate.setAttribute(
@@ -415,9 +441,16 @@
     el.howtoTitle.textContent = t("howtoTitle");
     el.howtoSteps.innerHTML = t("stepsHtml");
 
-    // if details open, refresh content (and download button title/aria)
+    // If details open, refresh content (also updates download button title/aria)
     if (state.detailsPlugin && el.detailsModal && !el.detailsModal.classList.contains("is-hidden")) {
       openDetails(state.detailsPlugin);
+    } else {
+      // even if modal is closed, keep the injected button (if exists) translated
+      const dl = el.detailsModal ? el.detailsModal.querySelector("#detailsDownload") : null;
+      if (dl) {
+        dl.setAttribute("aria-label", t("download"));
+        dl.title = t("download");
+      }
     }
 
     render();
