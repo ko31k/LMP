@@ -134,14 +134,14 @@
    * ========================= */
   var parsersInfo = [
     {
-      base: 'spawnum_duckdns_org_59117',
-      name: 'SpawnUA',
-      settings: { url: 'spawnum.duckdns.org:59117', key: '2', parser_torrent_type: 'jackett' }
+      base: 'lampa_ua',
+      name: 'LampaUA (toloka, mazepa, utopia)',
+      settings: { url: 'jackettua.mooo.com', key: 'ua', parser_torrent_type: 'jackett' }
     },
     {
-      base: 'lampa_ua',
-      name: 'LampaUA',
-      settings: { url: 'jackettua.mooo.com', key: 'ua', parser_torrent_type: 'jackett' }
+      base: 'spawnum_duckdns_org_59117',
+      name: 'SpawnUA (toloka, mazepa)',
+      settings: { url: 'spawnum.duckdns.org:59117', key: '2', parser_torrent_type: 'jackett' }
     },
     {
       base: 'jacred_pro',
