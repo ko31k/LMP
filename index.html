@@ -2,11 +2,11 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>LMP Plugins</title>
-
   <link rel="stylesheet" href="assets/style.css" />
 </head>
+
 <body>
   <div class="bg"></div>
 
@@ -23,14 +23,18 @@
       </div>
 
       <div class="header__actions">
-        <a id="donate" class="btn btn--donate" href="https://k031k.donatik.ua" target="_blank" rel="noopener">
-          <span class="btn__full">Добровільний донат на підтримку</span>
-          <span class="btn__short">Донат</span>
-        </a>
+        <a
+          id="donate"
+          class="btn btn--ghost"
+          href="https://k031k.donatik.ua"
+          target="_blank"
+          rel="noopener"
+          aria-label="Добровільний донат на підтримку (відкриється у новій вкладці)"
+        >Добровільний донат на підтримку</a>
 
         <button id="howto" class="btn" type="button">Як встановити</button>
 
-        <div class="lang" aria-label="Language">
+        <div class="lang" role="group" aria-label="Language">
           <button class="lang__btn is-active" data-lang="uk" type="button">UKR</button>
           <button class="lang__btn" data-lang="en" type="button">ENG</button>
         </div>
@@ -42,7 +46,7 @@
     <section class="toolbar">
       <div class="search">
         <div class="search__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 21l-4.3-4.3" />
             <circle cx="11" cy="11" r="7" />
           </svg>
@@ -69,6 +73,7 @@
 
     <section>
       <div id="grid" class="grid"></div>
+
       <div id="empty" class="empty is-hidden">
         <div class="empty__title" id="emptyTitle">Нічого не знайдено</div>
         <div class="empty__hint" id="emptyHint">Спробуй інший запит.</div>
@@ -77,14 +82,14 @@
   </main>
 
   <!-- How-to modal -->
-  <div id="modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal__backdrop" data-close="modal"></div>
+  <div id="howtoModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
+    <div class="modal__backdrop" data-close="howto"></div>
 
-    <div class="modal__card" role="document">
+    <div class="modal__card">
       <div class="modal__head">
-        <div class="modal__title" id="modalTitle">Як встановити</div>
+        <div class="modal__title" id="howtoTitle">Як встановити</div>
 
-        <button class="modal__close" type="button" aria-label="Close" data-close="modal">
+        <button class="modal__close" type="button" aria-label="Close" data-close="howto">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
@@ -92,14 +97,7 @@
       </div>
 
       <div class="modal__body">
-        <ol class="steps" id="steps">
-          <li>Скопіюй URL потрібного плагіна.</li>
-          <li>
-            В Lampa відкрий: <b>Налаштування → Розширення</b>
-            та натисни <b>"Додати плагін"</b>.
-          </li>
-          <li>Встав скопійоване посилання у поле та підтверди.</li>
-        </ol>
+        <ol class="steps" id="howtoSteps"></ol>
       </div>
     </div>
   </div>
@@ -108,7 +106,7 @@
   <div id="detailsModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
     <div class="modal__backdrop" data-close="details"></div>
 
-    <div class="modal__card" role="document">
+    <div class="modal__card">
       <div class="modal__head">
         <div class="modal__title" id="detailsTitle">—</div>
 
@@ -127,23 +125,39 @@
           <button class="copy" id="detailsCopy" type="button">Copy</button>
         </div>
 
-        <div class="gallery is-hidden" id="gallery"></div>
+        <div class="gallery is-hidden" id="detailsGallery"></div>
       </div>
     </div>
   </div>
 
-  <!-- Image modal -->
-  <div id="imgModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-label="Image preview">
+  <!-- Image lightbox modal -->
+  <div id="imgModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-label="Image viewer">
     <div class="modal__backdrop" data-close="img"></div>
 
     <div class="modal__card imgmodal__card" role="document">
-      <button class="modal__close imgmodal__close" type="button" aria-label="Close" data-close="img">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="imgbar">
+        <div class="imgbar__left">
+          <div class="imgbar__title" id="imgTitle">—</div>
+        </div>
 
-      <img id="imgModalImg" class="imgmodal__img" src="" alt="" />
+        <div class="imgbar__right">
+          <div class="imgbar__count" id="imgCount">1/1</div>
+
+          <a class="imgbar__link" id="imgOpen" href="#" target="_blank" rel="noopener">Відкрити</a>
+
+          <button class="modal__close imgbar__close" type="button" aria-label="Close" data-close="img">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="imgstage">
+        <button class="navbtn navbtn--left" type="button" aria-label="Previous" id="imgPrev">‹</button>
+        <img id="imgView" class="imgmodal__img" alt="" />
+        <button class="navbtn navbtn--right" type="button" aria-label="Next" id="imgNext">›</button>
+      </div>
     </div>
   </div>
 
