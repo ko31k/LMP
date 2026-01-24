@@ -629,3 +629,190 @@ body.is-modal-open{overflow:hidden}
   .imgbar__title{max-width: 40vw;}
   #donate{max-width: 44vw;}
 }
+
+/* =========================================================
+   FIXES: Donate button + Lightbox (imgModal) layout
+   Add this block at the very end of style.css
+   ========================================================= */
+
+/* 1) Missing ghost button style (used by donate link) */
+.btn--ghost{
+  border:1px solid var(--stroke);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+}
+.btn--ghost:hover{
+  border-color: var(--stroke2);
+}
+
+/* 2) Make header actions behave on narrow screens */
+#donate{
+  max-width: 100%;
+}
+
+/* On tablets/phones: donate becomes full-width and doesn't break layout */
+@media (max-width: 720px){
+  .header__actions{
+    display:grid;
+    grid-template-columns: 1fr auto; /* donate/howto take space, lang sticks right */
+    gap:10px;
+    align-items:center;
+  }
+
+  #donate{
+    grid-column: 1 / -1;  /* full width row */
+    width: 100%;
+    text-align:center;
+    white-space: normal;  /* allow wrap */
+    line-height: 1.25;
+  }
+
+  #howto{
+    width: 100%;
+  }
+
+  .lang{
+    justify-content:flex-end;
+  }
+}
+
+/* 3) Lightbox: layout for .imgbar and navigation */
+.imgmodal__card{
+  padding:0;              /* remove padding so bar + stage align */
+  overflow:hidden;        /* prevent weird scroll bleed */
+}
+
+/* Top bar in image modal */
+.imgbar{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 12px;
+  background: rgba(10,12,18,.88);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(10px);
+}
+
+.imgbar__left,
+.imgbar__right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.imgbar__title{
+  font-weight:900;
+  font-size:14px;
+  color: var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width: 54vw; /* prevents collision with right controls */
+}
+
+.imgbar__count{
+  color: var(--muted);
+  font-weight:800;
+  font-variant-numeric: tabular-nums;
+  white-space:nowrap;
+}
+
+.imgbar__link{
+  color: var(--text);
+  text-decoration:none;
+  font-weight:900;
+  padding:10px 12px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  white-space:nowrap;
+}
+.imgbar__link:hover{border-color: rgba(255,255,255,.18)}
+
+/* Ensure the close button in bar is always clickable and aligned */
+.imgbar__close{
+  position: static; /* overrides any absolute expectations */
+}
+
+/* Stage centers the image and keeps it below bar */
+.imgstage{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:12px;
+  min-height: 40vh;
+}
+
+/* Make image fit into remaining viewport height (minus bar) */
+.imgmodal__img{
+  max-height: calc(100vh - 40px - 64px); /* viewport - modal padding approx - bar height */
+}
+
+/* Prev/Next buttons */
+.navbtn{
+  position:absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width:44px;
+  height:44px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(233,236,243,.9);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  line-height:1;
+  user-select:none;
+}
+.navbtn:hover{border-color: rgba(255,255,255,.18)}
+.navbtn:disabled{
+  opacity:.35;
+  cursor:default;
+}
+
+.navbtn--left{left:12px}
+.navbtn--right{right:12px}
+
+/* On phones: move nav buttons lower so they don't hit the bar */
+@media (max-width: 720px){
+  .imgbar{
+    padding:10px 10px;
+    gap:10px;
+  }
+
+  .imgbar__title{
+    max-width: 46vw;
+    font-size:13px;
+  }
+
+  .imgbar__link{
+    padding:9px 10px;
+    border-radius:14px;
+  }
+
+  .imgstage{
+    padding:10px;
+  }
+
+  .navbtn--left{left:8px}
+  .navbtn--right{right:8px}
+}
+
+/* 4) Background + safe-area tweaks for modern mobile browsers */
+body{
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.header{
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
