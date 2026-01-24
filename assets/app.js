@@ -24,6 +24,8 @@
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
 
+    donate: $("#donate"), // NEW: donate button/link
+
     // howto
     howtoBtn: $("#howto"),                 // FIX: було #howtoBtn
     howtoModal: $("#howtoModal"),
@@ -54,6 +56,7 @@
       searchPlaceholder: "Пошук плагіна за назвою або описом…",
       pluginsCount: "Плагінів",
       howto: "Як встановити",
+      donate: "Добровільний донат на підтримку", // NEW
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       howtoTitle: "Як встановити",
@@ -72,6 +75,7 @@
       searchPlaceholder: "Search plugin by name or description…",
       pluginsCount: "Plugins",
       howto: "How to install",
+      donate: "Voluntary donation to support", // NEW
       emptyTitle: "Nothing found",
       emptyHint: "Try another query.",
       howtoTitle: "How to install",
@@ -319,7 +323,6 @@
     el.imgOpen.textContent = t("openOriginal");
     el.imgOpen.href = src;
 
-    // показ/приховати навігацію якщо скрін 1
     if (el.imgPrev) el.imgPrev.disabled = (state.imgIndex === 0);
     if (el.imgNext) el.imgNext.disabled = (state.imgIndex === shots.length - 1);
 
@@ -350,6 +353,7 @@
     el.q.placeholder = t("searchPlaceholder");
     el.countLabel.textContent = t("pluginsCount");
     if (el.howtoBtn) el.howtoBtn.textContent = t("howto");
+    if (el.donate) el.donate.textContent = t("donate"); // NEW
 
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
@@ -366,7 +370,6 @@
 
   // ---------- EVENTS ----------
   function wire() {
-    // пошук
     el.q.addEventListener("input", () => {
       state.q = el.q.value;
       el.clear.classList.toggle("is-hidden", !state.q);
@@ -381,12 +384,10 @@
       render();
     });
 
-    // howto open
     if (el.howtoBtn) {
       el.howtoBtn.addEventListener("click", () => openModal(el.howtoModal));
     }
 
-    // універсальне закриття: і backdrop, і X (бо обидва мають data-close)
     document.addEventListener("click", (e) => {
       const node = e.target.closest("[data-close]");
       if (!node) return;
@@ -395,14 +396,11 @@
       closeByKind(kind);
     });
 
-    // lightbox navigation
     if (el.imgPrev) el.imgPrev.addEventListener("click", () => stepImage(-1));
     if (el.imgNext) el.imgNext.addEventListener("click", () => stepImage(+1));
 
-    // (опційно) клік по фото — закрити. Якщо не треба, скажи — прибираю.
     if (el.imgEl) el.imgEl.addEventListener("click", () => closeModal(el.imgModal));
 
-    // Esc + стрілки
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (el.imgModal && !el.imgModal.classList.contains("is-hidden")) return closeModal(el.imgModal);
@@ -416,7 +414,6 @@
       }
     });
 
-    // мова
     $$(".lang__btn").forEach(btn => {
       btn.addEventListener("click", () => setLang(btn.dataset.lang));
     });
