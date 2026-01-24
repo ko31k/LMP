@@ -8,9 +8,12 @@
     lang: "uk",
     plugins: [],
     q: "",
-    activeId: null,          // який плагін “вибраний” (підсвітка)
-    detailsPlugin: null,     // відкритий в details
-    imgIndex: 0              // індекс скріну в lightbox
+    img: {
+      pluginId: null,
+      list: [],
+      index: 0,
+      title: ""
+    }
   };
 
   const el = {
@@ -21,32 +24,28 @@
     countValue: $("#countValue"),
     countLabel: $("#countLabel"),
     subtitle: $("#subtitle"),
+    howtoBtn: $("#howto"),
+    donate: $("#donate"),
     emptyTitle: $("#emptyTitle"),
     emptyHint: $("#emptyHint"),
 
-    // howto
-    howtoBtn: $("#howtoBtn"),
     howtoModal: $("#howtoModal"),
-    howtoClose: $("#howtoClose"),
     howtoSteps: $("#howtoSteps"),
-    howtoTitle: $("#howtoTitle"),
 
-    // details
     detailsModal: $("#detailsModal"),
-    detailsClose: $("#detailsClose"),
     detailsTitle: $("#detailsTitle"),
     detailsDesc: $("#detailsDesc"),
     detailsUrl: $("#detailsUrl"),
     detailsCopy: $("#detailsCopy"),
-    gallery: $("#gallery"),
+    detailsGallery: $("#detailsGallery"),
 
-    // image modal
     imgModal: $("#imgModal"),
-    imgClose: $("#imgClose"),
-    imgEl: $("#imgEl"),
     imgTitle: $("#imgTitle"),
-    imgCounter: $("#imgCounter"),
-    imgOpen: $("#imgOpen")
+    imgCount: $("#imgCount"),
+    imgOpen: $("#imgOpen"),
+    imgView: $("#imgView"),
+    imgPrev: $("#imgPrev"),
+    imgNext: $("#imgNext")
   };
 
   const i18n = {
@@ -55,36 +54,40 @@
       searchPlaceholder: "Пошук плагіна за назвою або описом…",
       pluginsCount: "Плагінів",
       howto: "Як встановити",
+      details: "Детальніше",
       emptyTitle: "Нічого не знайдено",
       emptyHint: "Спробуй інший запит.",
       howtoTitle: "Як встановити",
-      stepsHtml: `
+      howtoStepsHtml: `
         <li>Скопіюй URL потрібного плагіна.</li>
         <li>В Lampa відкрий: <b>Налаштування → Розширення</b> та натисни <b>"Додати плагін"</b>.</li>
         <li>Встав скопійоване посилання у поле та підтверди.</li>
       `,
-      details: "Детальніше",
       copy: "Copy",
       copied: "Copied",
-      openOriginal: "Відкрити"
+      open: "Відкрити",
+      donate: "Добровільний донат на підтримку",
+      donateAria: "Добровільний донат на підтримку (відкриється у новій вкладці)"
     },
     en: {
       subtitle: "Lampa plugins catalog • quick search • easy copy",
       searchPlaceholder: "Search plugin by name or description…",
       pluginsCount: "Plugins",
       howto: "How to install",
+      details: "Details",
       emptyTitle: "Nothing found",
       emptyHint: "Try another query.",
       howtoTitle: "How to install",
-      stepsHtml: `
+      howtoStepsHtml: `
         <li>Copy the plugin URL.</li>
         <li>In Lampa open: <b>Settings → Extensions</b> and press <b>"Add plugin"</b>.</li>
         <li>Paste the copied link into the field and confirm.</li>
       `,
-      details: "Details",
       copy: "Copy",
       copied: "Copied",
-      openOriginal: "Open"
+      open: "Open",
+      donate: "Voluntary donation to support",
+      donateAria: "Voluntary donation to support (opens in a new tab)"
     }
   };
 
@@ -96,28 +99,21 @@
     return new URL(file, window.location.href).href;
   }
 
-  function getShortDesc(p) {
-    // підтримуємо як нові поля, так і старі desc_*
-    const uk = p.short_uk || p.desc_short_uk || p.desc_uk || "";
-    const en = p.short_en || p.desc_short_en || p.desc_en || p.desc_uk || "";
-    return state.lang === "en" ? en : uk;
+  function getShort(p) {
+    return state.lang === "en"
+      ? (p.short_en || p.short_uk || p.desc_en || p.desc_uk || "")
+      : (p.short_uk || p.short_en || p.desc_uk || p.desc_en || "");
   }
 
-  function getFullDesc(p) {
-    const uk = p.full_uk || p.desc_full_uk || p.desc_uk || "";
-    const en = p.full_en || p.desc_full_en || p.desc_en || p.desc_uk || "";
-    return state.lang === "en" ? en : uk;
-  }
-
-  function getScreens(p) {
-    // очікуємо масив рядків, напр: ["wwwroot/screens/ukr1.png", ...]
-    if (Array.isArray(p.screens)) return p.screens.filter(Boolean);
-    return [];
+  function getFull(p) {
+    return state.lang === "en"
+      ? (p.desc_en || p.desc_uk || "")
+      : (p.desc_uk || p.desc_en || "");
   }
 
   function matches(p, q) {
     if (!q) return true;
-    const text = [(p.title || ""), getShortDesc(p), getFullDesc(p)].join(" ").toLowerCase();
+    const text = [(p.title || ""), getShort(p), getFull(p)].join(" ").toLowerCase();
     return text.includes(q);
   }
 
@@ -153,35 +149,103 @@
     }
   }
 
-  function setActiveCard(id) {
-    state.activeId = id || null;
-    $$(".card").forEach(card => {
-      card.classList.toggle("is-active", card.dataset.id === state.activeId);
-    });
-  }
-
-  // ---------- MODAL HELPERS ----------
-  function forceCloseAllModals() {
-    [el.howtoModal, el.detailsModal, el.imgModal].forEach(m => m && m.classList.add("is-hidden"));
-    document.body.classList.remove("is-modal-open");
+  function setModalOpen(isOpen) {
+    document.body.classList.toggle("is-modal-open", !!isOpen);
   }
 
   function openModal(modalEl) {
-    if (!modalEl) return;
     modalEl.classList.remove("is-hidden");
-    document.body.classList.add("is-modal-open");
+    setModalOpen(true);
   }
 
   function closeModal(modalEl) {
-    if (!modalEl) return;
     modalEl.classList.add("is-hidden");
-
-    // якщо всі модалки закриті — повертаємо скрол
-    const anyOpen = [el.howtoModal, el.detailsModal, el.imgModal].some(m => m && !m.classList.contains("is-hidden"));
-    if (!anyOpen) document.body.classList.remove("is-modal-open");
+    const anyOpen = !el.howtoModal.classList.contains("is-hidden")
+      || !el.detailsModal.classList.contains("is-hidden")
+      || !el.imgModal.classList.contains("is-hidden");
+    setModalOpen(anyOpen);
   }
 
-  // ---------- RENDER ----------
+  function closeAllModals() {
+    closeModal(el.howtoModal);
+    closeModal(el.detailsModal);
+    closeModal(el.imgModal);
+  }
+
+  function imgUpdate() {
+    const list = state.img.list || [];
+    const idx = state.img.index || 0;
+    if (!list.length) return;
+
+    const src = absUrl(list[idx]);
+    el.imgView.src = src;
+    el.imgView.alt = state.img.title || "Screenshot";
+    el.imgTitle.textContent = state.img.title || "—";
+    el.imgCount.textContent = `${idx + 1}/${list.length}`;
+    el.imgOpen.textContent = t("open");
+    el.imgOpen.href = src;
+
+    el.imgPrev.disabled = list.length <= 1;
+    el.imgNext.disabled = list.length <= 1;
+    el.imgPrev.classList.toggle("is-disabled", list.length <= 1);
+    el.imgNext.classList.toggle("is-disabled", list.length <= 1);
+  }
+
+  function imgOpen(pluginTitle, list, index) {
+    state.img.title = pluginTitle || "—";
+    state.img.list = Array.isArray(list) ? list : [];
+    state.img.index = Math.max(0, Math.min(Number(index) || 0, state.img.list.length - 1));
+    imgUpdate();
+    openModal(el.imgModal);
+  }
+
+  function imgStep(delta) {
+    const list = state.img.list || [];
+    if (list.length <= 1) return;
+    const n = list.length;
+    state.img.index = (state.img.index + delta + n) % n;
+    imgUpdate();
+  }
+
+  function detailsOpen(plugin) {
+    const url = absUrl(plugin.file);
+    const title = plugin.title || plugin.id || "Plugin";
+
+    el.detailsTitle.textContent = title;
+    el.detailsDesc.textContent = getFull(plugin);
+
+    el.detailsUrl.textContent = url;
+    el.detailsUrl.title = url;
+
+    el.detailsCopy.textContent = t("copy");
+    el.detailsCopy.onclick = async () => {
+      const ok = await copyText(url);
+      if (!ok) return;
+      el.detailsCopy.classList.add("is-done");
+      el.detailsCopy.textContent = t("copied");
+      window.setTimeout(() => {
+        el.detailsCopy.classList.remove("is-done");
+        el.detailsCopy.textContent = t("copy");
+      }, 900);
+    };
+
+    const shots = Array.isArray(plugin.screens) ? plugin.screens : [];
+    el.detailsGallery.innerHTML = "";
+    el.detailsGallery.classList.toggle("is-hidden", shots.length === 0);
+
+    shots.forEach((src, i) => {
+      const img = document.createElement("img");
+      img.className = "shot";
+      img.loading = "lazy";
+      img.alt = `${title} (${i + 1})`;
+      img.src = absUrl(src);
+      img.addEventListener("click", () => imgOpen(title, shots, i));
+      el.detailsGallery.appendChild(img);
+    });
+
+    openModal(el.detailsModal);
+  }
+
   function render() {
     const q = (state.q || "").trim().toLowerCase();
     const list = state.plugins.filter(p => matches(p, q));
@@ -195,8 +259,6 @@
 
       const card = document.createElement("article");
       card.className = "card";
-      card.dataset.id = p.id || p.title || url;
-      if (state.activeId && card.dataset.id === state.activeId) card.classList.add("is-active");
 
       const top = document.createElement("div");
       top.className = "card__top";
@@ -209,18 +271,14 @@
       detailsBtn.className = "details";
       detailsBtn.type = "button";
       detailsBtn.textContent = t("details");
-
-      detailsBtn.addEventListener("click", () => {
-        setActiveCard(card.dataset.id);
-        openDetails(p);
-      });
+      detailsBtn.addEventListener("click", () => detailsOpen(p));
 
       top.appendChild(title);
       top.appendChild(detailsBtn);
 
       const desc = document.createElement("div");
       desc.className = "card__desc";
-      desc.textContent = getShortDesc(p);
+      desc.textContent = getShort(p);
 
       const row = document.createElement("div");
       row.className = "card__urlrow";
@@ -230,24 +288,24 @@
       urlBox.title = url;
       urlBox.textContent = url;
 
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "copy";
-      copyBtn.type = "button";
-      copyBtn.textContent = t("copy");
+      const btn = document.createElement("button");
+      btn.className = "copy";
+      btn.type = "button";
+      btn.textContent = t("copy");
 
-      copyBtn.addEventListener("click", async () => {
+      btn.addEventListener("click", async () => {
         const ok = await copyText(url);
         if (!ok) return;
-        copyBtn.classList.add("is-done");
-        copyBtn.textContent = t("copied");
+        btn.classList.add("is-done");
+        btn.textContent = t("copied");
         window.setTimeout(() => {
-          copyBtn.classList.remove("is-done");
-          copyBtn.textContent = t("copy");
+          btn.classList.remove("is-done");
+          btn.textContent = t("copy");
         }, 900);
       });
 
       row.appendChild(urlBox);
-      row.appendChild(copyBtn);
+      row.appendChild(btn);
 
       card.appendChild(top);
       card.appendChild(desc);
@@ -257,113 +315,31 @@
     }
   }
 
-  // ---------- DETAILS ----------
-  function openDetails(p) {
-    state.detailsPlugin = p;
-
-    const url = absUrl(p.file);
-
-    el.detailsTitle.textContent = p.title || p.id || "Plugin";
-    el.detailsDesc.textContent = getFullDesc(p);
-
-    el.detailsUrl.textContent = url;
-    el.detailsUrl.title = url;
-
-    el.detailsCopy.textContent = t("copy");
-    el.detailsCopy.classList.remove("is-done");
-    el.detailsCopy.onclick = async () => {
-      const ok = await copyText(url);
-      if (!ok) return;
-      el.detailsCopy.classList.add("is-done");
-      el.detailsCopy.textContent = t("copied");
-      window.setTimeout(() => {
-        el.detailsCopy.classList.remove("is-done");
-        el.detailsCopy.textContent = t("copy");
-      }, 900);
-    };
-
-    const shots = getScreens(p);
-    el.gallery.innerHTML = "";
-    el.gallery.classList.toggle("is-hidden", shots.length === 0);
-
-    shots.forEach((src, idx) => {
-      const img = document.createElement("img");
-      img.className = "shot";
-      img.loading = "lazy";
-      img.alt = `${p.title || "Plugin"} screenshot ${idx + 1}`;
-      img.src = src; // шлях як у plugins.json
-      img.addEventListener("click", () => openImage(idx));
-      el.gallery.appendChild(img);
-    });
-
-    openModal(el.detailsModal);
-  }
-
-  // ---------- IMAGE LIGHTBOX ----------
-  function openImage(index) {
-    const p = state.detailsPlugin;
-    if (!p) return;
-
-    const shots = getScreens(p);
-    if (!shots.length) return;
-
-    state.imgIndex = Math.max(0, Math.min(index, shots.length - 1));
-
-    const src = shots[state.imgIndex];
-    el.imgEl.src = src;
-    el.imgEl.alt = `${p.title || "Plugin"} screenshot ${state.imgIndex + 1}`;
-
-    el.imgTitle.textContent = p.title || p.id || "Screenshot";
-    el.imgCounter.textContent = `${state.imgIndex + 1}/${shots.length}`;
-
-    el.imgOpen.textContent = t("openOriginal");
-    el.imgOpen.href = src;
-
-    openModal(el.imgModal);
-  }
-
-  function stepImage(dir) {
-    const p = state.detailsPlugin;
-    if (!p) return;
-    const shots = getScreens(p);
-    if (!shots.length) return;
-
-    const next = state.imgIndex + dir;
-    if (next < 0 || next >= shots.length) return;
-
-    openImage(next);
-  }
-
-  // ---------- I18N ----------
   function setLang(lang) {
     state.lang = (lang === "en") ? "en" : "uk";
 
-    $$(".lang__btn").forEach(b => {
-      b.classList.toggle("is-active", b.dataset.lang === state.lang);
-    });
+    $$(".lang__btn").forEach(b => b.classList.toggle("is-active", b.dataset.lang === state.lang));
 
     el.subtitle.textContent = t("subtitle");
     el.q.placeholder = t("searchPlaceholder");
     el.countLabel.textContent = t("pluginsCount");
     el.howtoBtn.textContent = t("howto");
-
     el.emptyTitle.textContent = t("emptyTitle");
     el.emptyHint.textContent = t("emptyHint");
 
-    el.howtoTitle.textContent = t("howtoTitle");
-    el.howtoSteps.innerHTML = t("stepsHtml");
-
-    // якщо details відкритий — перерендеримо тексти
-    if (state.detailsPlugin && !el.detailsModal.classList.contains("is-hidden")) {
-      openDetails(state.detailsPlugin);
+    // donate text
+    if (el.donate) {
+      el.donate.textContent = t("donate");
+      el.donate.setAttribute("aria-label", t("donateAria"));
     }
+
+    $("#howtoTitle").textContent = t("howtoTitle");
+    el.howtoSteps.innerHTML = t("howtoStepsHtml");
 
     render();
   }
 
-  // ---------- EVENTS ----------
   function wire() {
-    // пошук
     el.q.addEventListener("input", () => {
       state.q = el.q.value;
       el.clear.classList.toggle("is-hidden", !state.q);
@@ -378,56 +354,43 @@
       render();
     });
 
-    // howto open/close
     el.howtoBtn.addEventListener("click", () => openModal(el.howtoModal));
-    el.howtoClose.addEventListener("click", () => closeModal(el.howtoModal));
 
-    // details close
-    el.detailsClose.addEventListener("click", () => closeModal(el.detailsModal));
-
-    // img close
-    el.imgClose.addEventListener("click", () => closeModal(el.imgModal));
-    el.imgEl.addEventListener("click", () => closeModal(el.imgModal)); // клік по фото — закрити (зручно)
-
-    // backdrop close (через data-close)
     document.addEventListener("click", (e) => {
-      const bd = e.target.closest(".modal__backdrop");
-      if (!bd) return;
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const closeKind = target.getAttribute("data-close");
+      if (!closeKind) return;
 
-      const kind = bd.getAttribute("data-close");
-      if (kind === "howto") closeModal(el.howtoModal);
-      if (kind === "details") closeModal(el.detailsModal);
-      if (kind === "img") closeModal(el.imgModal);
+      if (closeKind === "howto") closeModal(el.howtoModal);
+      if (closeKind === "details") closeModal(el.detailsModal);
+      if (closeKind === "img") closeModal(el.imgModal);
     });
 
-    // Esc + стрілки
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        if (!el.imgModal.classList.contains("is-hidden")) return closeModal(el.imgModal);
-        if (!el.detailsModal.classList.contains("is-hidden")) return closeModal(el.detailsModal);
-        if (!el.howtoModal.classList.contains("is-hidden")) return closeModal(el.howtoModal);
-      }
-
-      // навігація по скрінах, тільки коли lightbox відкритий
-      if (!el.imgModal.classList.contains("is-hidden")) {
-        if (e.key === "ArrowLeft") stepImage(-1);
-        if (e.key === "ArrowRight") stepImage(+1);
-      }
+      if (e.key !== "Escape") return;
+      if (!el.imgModal.classList.contains("is-hidden")) return closeModal(el.imgModal);
+      if (!el.detailsModal.classList.contains("is-hidden")) return closeModal(el.detailsModal);
+      if (!el.howtoModal.classList.contains("is-hidden")) return closeModal(el.howtoModal);
     });
 
-    // мова
-    $$(".lang__btn").forEach(btn => {
-      btn.addEventListener("click", () => setLang(btn.dataset.lang));
+    el.imgPrev.addEventListener("click", () => imgStep(-1));
+    el.imgNext.addEventListener("click", () => imgStep(1));
+
+    document.addEventListener("keydown", (e) => {
+      if (el.imgModal.classList.contains("is-hidden")) return;
+      if (e.key === "ArrowLeft") imgStep(-1);
+      if (e.key === "ArrowRight") imgStep(1);
     });
+
+    $$(".lang__btn").forEach(btn => btn.addEventListener("click", () => setLang(btn.dataset.lang)));
   }
 
   (async function init() {
-    // критично: прибираємо будь-які “залиплі” модалки з HTML/кеша
-    forceCloseAllModals();
-
     wire();
     await load();
     setLang("uk");
+    closeAllModals();
   })().catch((err) => {
     console.error(err);
     el.grid.innerHTML = "";
