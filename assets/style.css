@@ -776,3 +776,64 @@ body.is-modal-open{overflow:hidden}
     width:100%;
   }
 }
+
+/* =========================================================
+   FIX: Download button inside Details modal (align with URL+Copy)
+   Add this at the END of style.css
+   ========================================================= */
+
+/* If download button is placed near details row - align it */
+.details__urlrow{
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* URL | Copy | Download */
+  gap: 10px;
+  align-items: stretch;
+}
+
+.details__urlrow .url{
+  min-width: 0;
+}
+
+/* Keep Copy stable */
+.details__urlrow .copy{
+  min-width: 96px;
+}
+
+/* Reuse icon-button style for download in modal */
+#detailsDownload,
+.details__urlrow .dl{
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(233,236,243,.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: .15s ease;
+  flex: 0 0 auto;
+}
+
+#detailsDownload:hover,
+.details__urlrow .dl:hover{
+  border-color: rgba(255,255,255,.18);
+}
+
+/* Mobile: URL full width, then Copy + Download in one row */
+@media (max-width: 720px){
+  .details__urlrow{
+    grid-template-columns: 1fr 44px;     /* Copy | Download */
+    grid-template-areas:
+      "url url"
+      "copy dl";
+    align-items: stretch;
+  }
+
+  .details__urlrow .url{ grid-area: url; width: 100%; }
+  .details__urlrow .copy{ grid-area: copy; width: 100%; min-width: 0; }
+  #detailsDownload,
+  .details__urlrow .dl{ grid-area: dl; }
+}
