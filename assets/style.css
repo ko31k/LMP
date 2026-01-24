@@ -33,12 +33,15 @@ body{
   /* safe-area */
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  position:relative;
 }
 
 body.is-modal-open{overflow:hidden}
 
+/* Desktop/PC decorative background layer */
 .bg{
-  position:fixed; inset:-2px;
+  position:fixed;
+  inset:-2px;
   background:
     radial-gradient(900px 420px at 45% 0%, rgba(255,255,255,.06), transparent 60%),
     radial-gradient(800px 520px at 60% 90%, rgba(255,255,255,.04), transparent 60%);
@@ -240,7 +243,7 @@ body.is-modal-open{overflow:hidden}
 }
 .btn:hover{border-color: rgba(124,92,255,.65)}
 
-/* Donate “ghost” button (only once) */
+/* Donate “ghost” button */
 .btn--ghost{
   border:1px solid rgba(43,212,255,.30);
   background: rgba(255,255,255,.04);
@@ -679,6 +682,56 @@ body.is-modal-open{overflow:hidden}
   .imgbar__title{max-width: 46vw;}
   .imgmodal__img{max-height: calc(100vh - 200px);}
   .navbtn{width:42px;height:42px;border-radius:16px}
+
+  /* ===== Mobile-only anti-banding background (noisy dithering) ===== */
+  html{
+    background: linear-gradient(180deg, var(--bg0), var(--bg1));
+  }
+
+  /* disable fixed bg layer on mobile to reduce artifacts */
+  .bg{ display:none; }
+
+  body::before{
+    content:"";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    background:
+      radial-gradient(1200px 700px at 18% -10%, rgba(124,92,255,.22), transparent 60%),
+      radial-gradient(900px 700px at 85% 10%, rgba(43,212,255,.18), transparent 55%),
+      radial-gradient(900px 420px at 45% 0%, rgba(255,255,255,.06), transparent 60%),
+      radial-gradient(800px 520px at 60% 90%, rgba(255,255,255,.04), transparent 60%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+
+    filter: saturate(1.02);
+  }
+
+  body::after{
+    content:"";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events:none;
+
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,.010),
+        rgba(255,255,255,.010) 1px,
+        rgba(0,0,0,.010) 2px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,.008),
+        rgba(255,255,255,.008) 1px,
+        rgba(0,0,0,.008) 2px
+      );
+
+    opacity: .18;
+    mix-blend-mode: overlay;
+  }
 }
 
 @media (max-width: 380px){
@@ -687,22 +740,4 @@ body.is-modal-open{overflow:hidden}
   .lang__btn{padding:9px 10px}
   .search__input{font-size:14px}
   .imgbar__title{max-width: 40vw;}
-}
-
-/* ===== Fix: background banding/stripes on mobile ===== */
-
-/* 1) Base background on html too (prevents seams) */
-html{
-  background: linear-gradient(180deg, var(--bg0), var(--bg1));
-}
-
-/* 2) Keep fixed bg strictly behind everything */
-.bg{
-  z-index: -1;
-  inset: 0; /* замість -2px, щоб не ловити субпіксельні артефакти */
-}
-
-/* 3) Ensure stacking context is stable */
-body{
-  position: relative;
 }
