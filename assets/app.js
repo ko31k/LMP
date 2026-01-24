@@ -4,7 +4,7 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  // Icon-only download button
+  // Icon-only download button (used in cards list)
   const ICON_DOWNLOAD = `
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
          stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -48,6 +48,7 @@
     detailsDesc: $("#detailsDesc"),
     detailsUrl: $("#detailsUrl"),
     detailsCopy: $("#detailsCopy"),
+    detailsDl: $("#detailsDl"), // NOTE: exists in index.html
     gallery: $("#detailsGallery"),
 
     // image modal
@@ -201,39 +202,6 @@
     if (kind === "img") closeModal(el.imgModal);
   }
 
-  // ---------- DETAILS: ensure download button + wrap for proper layout ----------
-  function ensureDetailsDownloadBtn() {
-    if (!el.detailsModal || !el.detailsCopy) return null;
-
-    // 1) Ensure wrapper .details__actions so CSS can align Copy + Download nicely
-    let actions = el.detailsModal.querySelector(".details__actions");
-    if (!actions) {
-      actions = document.createElement("div");
-      actions.className = "details__actions";
-
-      // Put wrapper where the Copy button currently lives
-      const parent = el.detailsCopy.parentElement;
-      // Move Copy into wrapper, then insert wrapper where Copy used to be
-      parent.insertBefore(actions, el.detailsCopy);
-      actions.appendChild(el.detailsCopy);
-    }
-
-    // 2) Ensure a single download button
-    let dl = el.detailsModal.querySelector("#detailsDownload");
-    if (!dl) {
-      dl = document.createElement("a");
-      dl.id = "detailsDownload";
-      dl.className = "dl dl--details";
-      dl.innerHTML = ICON_DOWNLOAD;
-      actions.appendChild(dl);
-    } else {
-      // if it exists but not inside wrapper, move it
-      if (dl.parentElement !== actions) actions.appendChild(dl);
-    }
-
-    return dl;
-  }
-
   // ---------- RENDER ----------
   function render() {
     const q = (state.q || "").trim().toLowerCase();
@@ -347,13 +315,17 @@
       }, 900);
     };
 
-    // Download button (in Details modal): create once + keep aligned via wrapper
-    const dl = ensureDetailsDownloadBtn();
-    if (dl) {
-      dl.href = url;
-      dl.setAttribute("download", "");
-      dl.setAttribute("aria-label", t("download"));
-      dl.title = t("download");
+    // Update existing download button in Details modal (from index.html)
+    if (el.detailsDl) {
+      el.detailsDl.href = url;
+
+      // For best compatibility, keep it as a download link (no new tab needed)
+      el.detailsDl.removeAttribute("target");
+      el.detailsDl.removeAttribute("rel");
+
+      el.detailsDl.setAttribute("download", "");
+      el.detailsDl.setAttribute("aria-label", t("download"));
+      el.detailsDl.title = t("download");
     }
 
     const shots = getScreens(p);
@@ -424,7 +396,7 @@
     el.countLabel.textContent = t("pluginsCount");
     if (el.howtoBtn) el.howtoBtn.textContent = t("howto");
 
-    // Donate text + aria-label update
+    // Donate text + aria-label
     if (el.donate) {
       el.donate.textContent = t("donate");
       el.donate.setAttribute(
@@ -441,16 +413,9 @@
     el.howtoTitle.textContent = t("howtoTitle");
     el.howtoSteps.innerHTML = t("stepsHtml");
 
-    // If details open, refresh content (also updates download button title/aria)
+    // If details open, refresh content (also updates detailsDl aria/title)
     if (state.detailsPlugin && el.detailsModal && !el.detailsModal.classList.contains("is-hidden")) {
       openDetails(state.detailsPlugin);
-    } else {
-      // even if modal is closed, keep the injected button (if exists) translated
-      const dl = el.detailsModal ? el.detailsModal.querySelector("#detailsDownload") : null;
-      if (dl) {
-        dl.setAttribute("aria-label", t("download"));
-        dl.title = t("download");
-      }
     }
 
     render();
