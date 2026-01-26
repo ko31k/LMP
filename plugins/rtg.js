@@ -532,6 +532,17 @@
     "  }" +
     "  .lmp-award-icon{height:12px;}" +
     "}" +
+
+    /* --- Рамка навколо КОЖНОЇ плитки рейтингу (value + icon) --- */
+    "body.lmp-enh--rate-border .full-start__rate{" +
+    "  border: 1px solid rgba(255, 255, 255, 0.45);" +
+    "  border-radius: 0.3em;" +
+    "  box-sizing: border-box;" +
+    "}" +
+    /* щоб рамка не “липла” до контенту і не ламала верстку */
+    "body.lmp-enh--rate-border .full-start-new__rate-line, " +
+    "body.lmp-enh--rate-border .full-start__rate-line{" +
+    "}"
     "</style>";
 
   /**
@@ -581,6 +592,7 @@
     ratings_enable_rt: true, // Вкл/Викл Rotten Tomatoes
     ratings_enable_popcorn: true, // Вкл/Викл PopcornMeter (Audience)
     ratings_poster_badges: false, // Вкл/Викл наклейки-рейтинги на постері
+    ratings_rate_border: false, // Рамка навколо плиток рейтингів
   };
 
   /*
@@ -2041,7 +2053,8 @@
     var enRT = !!Lampa.Storage.field('ratings_enable_rt', RCFG_DEFAULT.ratings_enable_rt);
     var enPopcorn = !!Lampa.Storage.field('ratings_enable_popcorn', RCFG_DEFAULT.ratings_enable_popcorn);
     var posterBadges = !!Lampa.Storage.field('ratings_poster_badges', RCFG_DEFAULT.ratings_poster_badges);
-
+    var rateBorder = !!Lampa.Storage.field('ratings_rate_border', RCFG_DEFAULT.ratings_rate_border);
+    
     return {
       omdbKey: omdbKey || '',
       mdblistKey: mdblistKey || '',
@@ -2059,7 +2072,8 @@
       enableMc: enMC,
       enableRt: enRT,
       enablePop: enPopcorn,
-      enablePosterBadges: posterBadges
+      enablePosterBadges: posterBadges,
+      rateBorder: rateBorder
     };
   }
 
@@ -2221,6 +2235,10 @@
     } else {
       $('body').removeClass('lmp-enh--mono');
     }
+    // Рамка навколо плиток рейтингів
+    if (cfg.rateBorder) $('body').addClass('lmp-enh--rate-border');
+    else $('body').removeClass('lmp-enh--rate-border');
+    
     toggleAwards(cfg.showAwards);
     toggleAverage(cfg.showAverage);
     tuneRatingFont(cfg.fontOffset);
@@ -2466,6 +2484,21 @@
       },
       onRender: function(item) {}
     });
+
+    Lampa.SettingsApi.addParam({
+      component: 'lmp_ratings',
+      param: {
+        name: 'ratings_rate_border',
+        type: 'trigger',
+        "default": RCFG_DEFAULT.ratings_rate_border
+      },
+      field: {
+        name: 'Рамка плиток рейтингів',
+        description: 'Додає рамку навколо кожної плитки (IMDb, Metacritic, Rotten, Popcorn, TMDB, AVG, Awards).'
+      },
+      onRender: function() {}
+    });
+    
 
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
@@ -2735,6 +2768,5 @@
   if (!window.combined_ratings_plugin) {
     startPlugin();
   }
-
   
 })();
