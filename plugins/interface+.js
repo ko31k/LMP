@@ -45,20 +45,16 @@
   }
 
 
-  /**
-   * Чи увімкнений монохромний режим (наш тумблер або клас від іншого плагіна)
-   */
-  function isMonoEnabled() {
-    try {
-      // 1) Наш тумблер
-      if (getBool('interface_mod_new_mono_mode', false)) return true;
-
-      // 2) Якщо інший плагін ставить глобальний клас моно — теж підтримуємо
-      return !!(document.body && document.body.classList.contains('lmp-enh--mono'));
-    } catch (e) {
-      return false;
-    }
+/**
+ * Чи увімкнений монохромний режим
+ */
+function isMonoEnabled() {
+  try {
+    return getBool('interface_mod_new_mono_mode', false);
+  } catch (e) {
+    return false;
   }
+}
 
   /**
    * Монохром застосовується ТІЛЬКИ якщо:
