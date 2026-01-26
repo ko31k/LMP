@@ -195,7 +195,7 @@ function isMonoEnabled() {
     },
     interface_mod_new_mono_mode: {
       en: 'Monochrome override',
-      uk: 'Монохромний режим'
+      uk: 'Монохромний режим (Ч/Б)'
     },
     interface_mod_new_mono_mode_desc: {
       en: 'Overrides colors for statuses, age rating and the new info panel (only when those options are enabled)',
