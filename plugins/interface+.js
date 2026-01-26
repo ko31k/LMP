@@ -44,6 +44,53 @@
     return v === true || v === 'true' || v === 1 || v === '1';
   }
 
+
+  /**
+   * Чи увімкнений монохромний режим (наш тумблер або клас від іншого плагіна)
+   */
+  function isMonoEnabled() {
+    try {
+      // 1) Наш тумблер
+      if (getBool('interface_mod_new_mono_mode', false)) return true;
+
+      // 2) Якщо інший плагін ставить глобальний клас моно — теж підтримуємо
+      return !!(document.body && document.body.classList.contains('lmp-enh--mono'));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Монохром застосовується ТІЛЬКИ якщо:
+   * - моно увімкнено
+   * - і конкретна опція теж увімкнена (кольорові статуси / PG / інфо-панель)
+   */
+  function isMonoFor(settingKey) {
+    return isMonoEnabled() && getBool(settingKey, false);
+  }
+
+  /**
+   * Єдиний монохромний стиль для бейджів/плашок
+   */
+  function applyMonoBadgeStyle(el) {
+    if (!el || !el.style) return;
+
+    // прибираємо попередні інлайн-кольори/ефекти
+    [
+      'background-color','color','border','border-color','border-width','border-style',
+      'box-shadow','text-shadow'
+    ].forEach(function (p) {
+      try { el.style.removeProperty(p); } catch (e) {}
+    });
+
+    el.style.setProperty('border-width', '1px', 'important');
+    el.style.setProperty('border-style', 'solid', 'important');
+    el.style.setProperty('border-color', 'rgba(255,255,255,.45)', 'important');
+    el.style.setProperty('background-color', 'rgba(255,255,255,.08)', 'important');
+    el.style.setProperty('color', '#fff', 'important');
+  }
+
+  
   /**
    * Розраховує середню тривалість епізоду (в хвилинах)
    * @param {object} movie - Об'єкт movie з Lampa
@@ -150,7 +197,15 @@
       en: 'Colorize age rating',
       uk: 'Підсвічувати віковий рейтинг в повній картці'
     },
-
+    interface_mod_new_mono_mode: {
+      en: 'Monochrome override',
+      uk: 'Монохромний режим'
+    },
+    interface_mod_new_mono_mode_desc: {
+      en: 'Overrides colors for statuses, age rating and the new info panel (only when those options are enabled)',
+      uk: 'Перекриває кольори для статусів, PG та нової інфо-панелі (якщо відповідні опції увімкнені)'
+    },
+   
     interface_mod_new_theme_select_title: {
       en: 'Interface theme',
       uk: 'Тема інтерфейсу'
@@ -178,7 +233,7 @@
       uk: 'Оригінальна назва'
     },
     interface_mod_new_en_data_desc: {
-      en: 'Show original (EN) title under the card header',
+      en: 'Show original title under the card header',
       uk: 'Показувати оригінальну назву в заголовку картки'
     },
 
@@ -188,7 +243,7 @@
       uk: 'Всі кнопки в картці'
     },
     interface_mod_new_all_buttons_desc: {
-      en: 'Show all buttons in the card. Order: Online → Torrents → Trailers',
+      en: 'Show all buttons in the card.',
       uk: 'Показує всі кнопки у картці (Потрібне перезавантаження)'
     },
 
@@ -213,7 +268,7 @@
     // ТОРЕНТИ (з torrents+mod)
     torr_mod_frame: {
       uk: 'Кольорова рамка блоку торентів',
-      en: 'Torrent frame by seeders'
+      en: 'Colored torrent frame by seeders'
     },
     torr_mod_frame_desc: {
       uk: 'Підсвічувати блоки торентів кольоровою рамкою залежно від кількості сідерів',
@@ -240,7 +295,6 @@
   /* ============================================================
    * НАЛАШТУВАННЯ
    * ============================================================ */
-
   /**
    * Отримує налаштування оригінальної назви (зі зворотною сумісністю)
    */
@@ -259,6 +313,7 @@
     colored_ratings: getBool('interface_mod_new_colored_ratings', false),
     colored_status: getBool('interface_mod_new_colored_status', false),
     colored_age: getBool('interface_mod_new_colored_age', false),
+    mono_mode: getBool('interface_mod_new_mono_mode', false),
     theme: (Lampa.Storage.get('interface_mod_new_theme_select', 'default') || 'default'),
 
     en_data: getOriginalTitleEnabled(),
@@ -290,7 +345,6 @@
   /* ============================================================
    * ФОЛБЕК-CSS + ПРІОРИТЕТ СТИЛІВ
    * ============================================================ */
-
   /**
    * Додає CSS для "відкату" стилів (якщо кольорові статуси/рейтинги вимкнені)
    */
@@ -449,7 +503,6 @@
   /* ============================================================
    * НАЛАШТУВАННЯ UI
    * ============================================================ */
-
   /**
    * Ініціалізує компонент налаштувань "Інтерфейс +"
    */
@@ -521,6 +574,22 @@
       }
     });
 
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_mono_mode',
+        type: 'trigger',
+        values: true,
+        default: false
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_mono_mode'),
+        description: Lampa.Lang.translate('interface_mod_new_mono_mode_desc')
+      }
+    });
+
+
+    
     add({
       component: 'interface_mod_new',
       param: {
@@ -671,7 +740,7 @@
 
     /**
      * Закриває випадаючі списки і оновлює налаштування
-     * ВИКЛИКАЄ Lampa.Settings.update() - ПРИЧИНА "СТРИБКІВ"
+     * ВИКЛИКАЄ Lampa.Settings.update()
      */
     function closeOpenSelects() {
       setTimeout(function () {
@@ -692,7 +761,7 @@
         // Реагуємо тільки на зміни *наших* налаштувань
         if (typeof key === 'string' && key.indexOf('interface_mod_new_') === 0) {
           
-          // [!!!] OPTIMIZATION: Update only the changed setting in the local 'settings' object
+          // [!!!] Update only the changed setting in the local 'settings' object
           // and call the specific function for that setting.
           // This avoids re-reading all 13 settings from storage on every change.
 
@@ -720,6 +789,15 @@
               setAgeBaseCssEnabled(settings.colored_age);
               if (settings.colored_age) enableAgeColoring();
               else disableAgeColoring(true);
+              break;
+
+            case 'interface_mod_new_mono_mode':
+              settings.mono_mode = getBool(key, false);
+              // Перебудувати інфо-панель (бо кольори там інлайном)
+              rebuildInfoPanelActive();
+              // Перемалювати статуси/PG на відкритій картці, якщо вони увімкнені
+              if (settings.colored_status) applyStatusOnceIn(document);
+              if (settings.colored_age) applyAgeOnceIn(document);
               break;
               
             case 'interface_mod_new_theme_select':
@@ -773,188 +851,216 @@
   /* ============================================================
    * ІНФО-ПАНЕЛЬ (4 ряди + кольорові жанри)
    * ============================================================ */
-
   /**
    * Створює і наповнює нову інфо-панель
    */
-  function buildInfoPanel(details, movie, isTvShow, originalDetails) {
-    var container = $('<div>').css({
-      display: 'flex',
-      'flex-direction': 'column',
-      width: '100%',
-      gap: '0em', // '0em'.replace('ем','em') - дивний хак, замінив на '0em'
-      margin: '-1.0em 0 0.2em 0.45em'
-    });
+/**
+ * Створює і наповнює нову інфо-панель
+ * + Монохромний оверрайд (перекриває всі кольори бейджів і жанрів),
+ *   але тільки коли:
+ *   - увімкнено "Монохромний режим"
+ *   - і увімкнено "Нова інфо-панель"
+ */
+function buildInfoPanel(details, movie, isTvShow, originalDetails) {
+  var mono = isMonoFor('interface_mod_new_info_panel');
 
-    var row1 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
-    var row2 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
-    var row3 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
-    var row4 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'flex-start', margin: '0 0 0.2em 0' });
+  var container = $('<div>').css({
+    display: 'flex',
+    'flex-direction': 'column',
+    width: '100%',
+    gap: '0em',
+    margin: '-1.0em 0 0.2em 0.45em'
+  });
 
-    var colors = {
-      seasons: { bg: 'rgba(52,152,219,0.8)', text: 'white' },
-      episodes: { bg: 'rgba(46,204,113,0.8)', text: 'white' },
-      duration: { bg: 'rgba(52,152,219,0.8)', text: 'white' },
-      next: { bg: 'rgba(230,126,34,0.9)', text: 'white' },
-      genres: {
-        'Бойовик': { bg: 'rgba(231,76,60,.85)', text: 'white' }, 'Пригоди': { bg: 'rgba(39,174,96,.85)', text: 'white' },
-        'Мультфільм': { bg: 'rgba(155,89,182,.85)', text: 'white' }, 'Комедія': { bg: 'rgba(241,196,15,.9)', text: 'black' },
-        'Кримінал': { bg: 'rgba(88,24,69,.85)', text: 'white' }, 'Документальний': { bg: 'rgba(22,160,133,.85)', text: 'white' },
-        'Драма': { bg: 'rgba(102,51,153,.85)', text: 'white' }, 'Сімейний': { bg: 'rgba(139,195,74,.90)', text: 'white' },
-        'Фентезі': { bg: 'rgba(22,110,116,.85)', text: 'white' }, 'Історія': { bg: 'rgba(121,85,72,.85)', text: 'white' },
-        'Жахи': { bg: 'rgba(155,27,48,.85)', text: 'white' }, 'Музика': { bg: 'rgba(63,81,181,.85)', text: 'white' },
-        'Детектив': { bg: 'rgba(52,73,94,.85)', text: 'white' }, 'Мелодрама': { bg: 'rgba(233,30,99,.85)', text: 'white' },
-        'Фантастика': { bg: 'rgba(41,128,185,.85)', text: 'white' }, 'Трилер': { bg: 'rgba(165,27,11,.90)', text: 'white' },
-        'Військовий': { bg: 'rgba(85,107,47,.85)', text: 'white' }, 'Вестерн': { bg: 'rgba(211,84,0,.85)', text: 'white' },
-        'Бойовик і Пригоди': { bg: 'rgba(231,76,60,.85)', text: 'white' }, 'Дитячий': { bg: 'rgba(0,188,212,.85)', text: 'white' },
-        'Новини': { bg: 'rgba(70,130,180,.85)', text: 'white' }, 'Реаліті-шоу': { bg: 'rgba(230,126,34,.9)', text: 'white' },
-        'НФ і Фентезі': { bg: 'rgba(41,128,185,.85)', text: 'white' }, 'Мильна опера': { bg: 'rgba(233,30,99,.85)', text: 'white' },
-        'Ток-шоу': { bg: 'rgba(241,196,15,.9)', text: 'black' }, 'Війна і Політика': { bg: 'rgba(96,125,139,.85)', text: 'white' },
-        'Екшн і Пригоди': { bg: 'rgba(231,76,60,.85)', text: 'white' },
-        'Екшн': { bg: 'rgba(231,76,60,.85)', text: 'white' },
-        'Науково фантастичний': { bg: 'rgba(40,53,147,.90)', text: 'white' },
-        'Науково-фантастичний': { bg: 'rgba(40,53,147,.90)', text: 'white' },
-        'Наукова фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' },
-        'Наукова-фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' },
-        'Науково-фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' }
-      }
-    };
+  var row1 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
+  var row2 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
+  var row3 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'center', margin: '0 0 0.2em 0' });
+  var row4 = $('<div>').css({ display: 'flex', 'flex-wrap': 'wrap', gap: '0.2em', 'align-items': 'flex-start', margin: '0 0 0.2em 0' });
 
-    var baseBadge = {
-      'border-radius': '0.3em',
-      border: '0',
-      'font-size': '1.0em',
-      padding: '0.2em 0.6em',
-      display: 'inline-block',
-      'white-space': 'nowrap',
-      'line-height': '1.2em',
-      'margin-right': '0.4em',
-      'margin-bottom': '0.2em'
-    };
-
-    // 1 — Серії (для серіалів)
-    if (isTvShow && Array.isArray(movie.seasons)) {
-      var totalEps = 0,
-        airedEps = 0,
-        now = new Date(),
-        hasEpisodes = false;
-      movie.seasons.forEach(function (s) {
-        if (s.season_number === 0) return;
-        if (s.episode_count) totalEps += s.episode_count;
-        if (Array.isArray(s.episodes) && s.episodes.length) {
-          hasEpisodes = true;
-          s.episodes.forEach(function (e) {
-            if (e.air_date && new Date(e.air_date) <= now) airedEps++;
-          });
-        } else if (s.air_date && new Date(s.air_date) <= now && s.episode_count) {
-          airedEps += s.episode_count;
-        }
-      });
-
-      if (!hasEpisodes && movie.next_episode_to_air && movie.next_episode_to_air.season_number && movie.next_episode_to_air.episode_number) {
-        var nextS = movie.next_episode_to_air.season_number,
-          nextE = movie.next_episode_to_air.episode_number,
-          rem = 0;
-        movie.seasons.forEach(function (s) {
-          if (s.season_number === nextS) rem += (s.episode_count || 0) - nextE + 1;
-          else if (s.season_number > nextS) rem += s.episode_count || 0;
-        });
-        if (rem > 0 && totalEps > 0) airedEps = Math.max(0, totalEps - rem);
-      }
-
-      var epsText = '';
-      if (totalEps > 0 && airedEps > 0 && airedEps < totalEps) epsText = airedEps + ' ' + plural(airedEps, 'Серія', 'Серії', 'Серій') + ' з ' + totalEps;
-      else if (totalEps > 0) epsText = totalEps + ' ' + plural(totalEps, 'Серія', 'Серії', 'Серій');
-
-      if (epsText) row1.append($('<span>').text(epsText).css($.extend({}, baseBadge, {
-        'background-color': colors.episodes.bg,
-        color: colors.episodes.text
-      })));
+  var colors = {
+    seasons: { bg: 'rgba(52,152,219,0.8)', text: 'white' },
+    episodes:{ bg: 'rgba(46,204,113,0.8)', text: 'white' },
+    duration:{ bg: 'rgba(52,152,219,0.8)', text: 'white' },
+    next:    { bg: 'rgba(230,126,34,0.9)', text: 'white' },
+    genres: {
+      'Бойовик': { bg: 'rgba(231,76,60,.85)', text: 'white' }, 'Пригоди': { bg: 'rgba(39,174,96,.85)', text: 'white' },
+      'Мультфільм': { bg: 'rgba(155,89,182,.85)', text: 'white' }, 'Комедія': { bg: 'rgba(241,196,15,.9)', text: 'black' },
+      'Кримінал': { bg: 'rgba(88,24,69,.85)', text: 'white' }, 'Документальний': { bg: 'rgba(22,160,133,.85)', text: 'white' },
+      'Драма': { bg: 'rgba(102,51,153,.85)', text: 'white' }, 'Сімейний': { bg: 'rgba(139,195,74,.90)', text: 'white' },
+      'Фентезі': { bg: 'rgba(22,110,116,.85)', text: 'white' }, 'Історія': { bg: 'rgba(121,85,72,.85)', text: 'white' },
+      'Жахи': { bg: 'rgba(155,27,48,.85)', text: 'white' }, 'Музика': { bg: 'rgba(63,81,181,.85)', text: 'white' },
+      'Детектив': { bg: 'rgba(52,73,94,.85)', text: 'white' }, 'Мелодрама': { bg: 'rgba(233,30,99,.85)', text: 'white' },
+      'Фантастика': { bg: 'rgba(41,128,185,.85)', text: 'white' }, 'Трилер': { bg: 'rgba(165,27,11,.90)', text: 'white' },
+      'Військовий': { bg: 'rgba(85,107,47,.85)', text: 'white' }, 'Вестерн': { bg: 'rgba(211,84,0,.85)', text: 'white' },
+      'Бойовик і Пригоди': { bg: 'rgba(231,76,60,.85)', text: 'white' }, 'Дитячий': { bg: 'rgba(0,188,212,.85)', text: 'white' },
+      'Новини': { bg: 'rgba(70,130,180,.85)', text: 'white' }, 'Реаліті-шоу': { bg: 'rgba(230,126,34,.9)', text: 'white' },
+      'НФ і Фентезі': { bg: 'rgba(41,128,185,.85)', text: 'white' }, 'Мильна опера': { bg: 'rgba(233,30,99,.85)', text: 'white' },
+      'Ток-шоу': { bg: 'rgba(241,196,15,.9)', text: 'black' }, 'Війна і Політика': { bg: 'rgba(96,125,139,.85)', text: 'white' },
+      'Екшн і Пригоди': { bg: 'rgba(231,76,60,.85)', text: 'white' },
+      'Екшн': { bg: 'rgba(231,76,60,.85)', text: 'white' },
+      'Науково фантастичний': { bg: 'rgba(40,53,147,.90)', text: 'white' },
+      'Науково-фантастичний': { bg: 'rgba(40,53,147,.90)', text: 'white' },
+      'Наукова фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' },
+      'Наукова-фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' },
+      'Науково-фантастика': { bg: 'rgba(40,53,147,.90)', text: 'white' }
     }
+  };
 
-    // 2 — Наступна серія
-    if (isTvShow && movie.next_episode_to_air && movie.next_episode_to_air.air_date) {
-      var nextDate = new Date(movie.next_episode_to_air.air_date),
-        today = new Date();
-      nextDate.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-      var diff = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
-      var txt = diff === 0 ? 'Наступна серія вже сьогодні' : diff === 1 ? 'Наступна серія вже завтра' : diff > 1 ? ('Наступна серія через ' + diff + ' ' + plural(diff, 'день', 'дні', 'днів')) : '';
-      if (txt) row2.append($('<span>').text(txt).css($.extend({}, baseBadge, {
-        'background-color': colors.next.bg,
-        color: colors.next.text
-      })));
-    }
+  var baseBadge = {
+    'border-radius': '0.3em',
+    border: '0',
+    'font-size': '1.0em',
+    padding: '0.2em 0.6em',
+    display: 'inline-block',
+    'white-space': 'nowrap',
+    'line-height': '1.2em',
+    'margin-right': '0.4em',
+    'margin-bottom': '0.2em'
+  };
 
-    // 3 — Тривалість
-    if (!isTvShow && movie.runtime > 0) {
-      var mins = movie.runtime,
-        h = Math.floor(mins / 60),
-        m = mins % 60;
-      var t = 'Тривалість фільму: ';
-      if (h > 0) t += h + ' ' + plural(h, 'година', 'години', 'годин');
-      if (m > 0) t += (h > 0 ? ' ' : '') + m + ' хв.';
-      row3.append($('<span>').text(t).css($.extend({}, baseBadge, {
-        'background-color': colors.duration.bg,
-        color: colors.duration.text
-      })));
-    } else if (isTvShow) {
-      var avg = calculateAverageEpisodeDuration(movie);
-      if (avg > 0) row3.append($('<span>').text('Тривалість серії ≈ ' + formatDurationMinutes(avg)).css($.extend({}, baseBadge, {
-        'background-color': colors.duration.bg,
-        color: colors.duration.text
-      })));
-    }
-
-    // 4 — Сезони + Жанри
-    var seasonsCount = (movie.season_count || movie.number_of_seasons || (movie.seasons ? movie.seasons.filter(function (s) {
-      return s.season_number !== 0;
-    }).length : 0)) || 0;
-    if (isTvShow && seasonsCount > 0) {
-      row4.append($('<span>').text('Сезони: ' + seasonsCount).css($.extend({}, baseBadge, {
-        'background-color': colors.seasons.bg,
-        color: colors.seasons.text
-      })));
-    }
-
-    var genreList = [];
-    if (Array.isArray(movie.genres) && movie.genres.length) {
-      genreList = movie.genres.map(function (g) {
-        return g.name;
+  // Хелпери стилів: або кольорово, або моно
+  function badgeCss(bg, text) {
+    if (mono) {
+      return $.extend({}, baseBadge, {
+        'background-color': 'rgba(255,255,255,.08)',
+        color: '#fff',
+        border: '1px solid rgba(255,255,255,.45)'
       });
     }
-    genreList = genreList.filter(Boolean).filter(function (v, i, a) {
-      return a.indexOf(v) === i;
+    return $.extend({}, baseBadge, {
+      'background-color': bg,
+      color: text
     });
-
-    var baseGenre = {
-      'border-radius': '0.3em',
-      border: '0',
-      'font-size': '1.0em',
-      padding: '0.2em 0.6em',
-      display: 'inline-block',
-      'white-space': 'nowrap',
-      'line-height': '1.2em',
-      'margin-right': '0.4em',
-      'margin-bottom': '0.2em'
-    };
-    genreList.forEach(function (gn) {
-      var c = colors.genres[gn] || {
-        bg: 'rgba(255,255,255,.12)',
-        text: 'white'
-      };
-      row4.append($('<span>').text(gn).css($.extend({}, baseGenre, {
-        'background-color': c.bg,
-        color: c.text
-      })));
-    });
-
-    container.append(row1);
-    if (row2.children().length) container.append(row2);
-    if (row3.children().length) container.append(row3);
-    if (row4.children().length) container.append(row4);
-    details.append(container);
   }
+
+  var baseGenre = {
+    'border-radius': '0.3em',
+    border: '0',
+    'font-size': '1.0em',
+    padding: '0.2em 0.6em',
+    display: 'inline-block',
+    'white-space': 'nowrap',
+    'line-height': '1.2em',
+    'margin-right': '0.4em',
+    'margin-bottom': '0.2em'
+  };
+
+  function genreCss(bg, text) {
+    if (mono) {
+      return $.extend({}, baseGenre, {
+        'background-color': 'rgba(255,255,255,.08)',
+        color: '#fff',
+        border: '1px solid rgba(255,255,255,.45)'
+      });
+    }
+    return $.extend({}, baseGenre, {
+      'background-color': bg,
+      color: text
+    });
+  }
+
+  // 1 — Серії (для серіалів)
+  if (isTvShow && Array.isArray(movie.seasons)) {
+    var totalEps = 0, airedEps = 0, now = new Date(), hasEpisodes = false;
+
+    movie.seasons.forEach(function (s) {
+      if (s.season_number === 0) return;
+      if (s.episode_count) totalEps += s.episode_count;
+
+      if (Array.isArray(s.episodes) && s.episodes.length) {
+        hasEpisodes = true;
+        s.episodes.forEach(function (e) {
+          if (e.air_date && new Date(e.air_date) <= now) airedEps++;
+        });
+      } else if (s.air_date && new Date(s.air_date) <= now && s.episode_count) {
+        airedEps += s.episode_count;
+      }
+    });
+
+    if (!hasEpisodes && movie.next_episode_to_air && movie.next_episode_to_air.season_number && movie.next_episode_to_air.episode_number) {
+      var nextS = movie.next_episode_to_air.season_number, nextE = movie.next_episode_to_air.episode_number, rem = 0;
+      movie.seasons.forEach(function (s) {
+        if (s.season_number === nextS) rem += (s.episode_count || 0) - nextE + 1;
+        else if (s.season_number > nextS) rem += s.episode_count || 0;
+      });
+      if (rem > 0 && totalEps > 0) airedEps = Math.max(0, totalEps - rem);
+    }
+
+    var epsText = '';
+    if (totalEps > 0 && airedEps > 0 && airedEps < totalEps) epsText = airedEps + ' ' + plural(airedEps, 'Серія', 'Серії', 'Серій') + ' з ' + totalEps;
+    else if (totalEps > 0) epsText = totalEps + ' ' + plural(totalEps, 'Серія', 'Серії', 'Серій');
+
+    if (epsText) row1.append(
+      $('<span>').text(epsText).css(badgeCss(colors.episodes.bg, colors.episodes.text))
+    );
+  }
+
+  // 2 — Наступна серія
+  if (isTvShow && movie.next_episode_to_air && movie.next_episode_to_air.air_date) {
+    var nextDate = new Date(movie.next_episode_to_air.air_date), today = new Date();
+    nextDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    var diff = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
+    var txt = diff === 0 ? 'Наступна серія вже сьогодні'
+      : diff === 1 ? 'Наступна серія вже завтра'
+      : diff > 1 ? ('Наступна серія через ' + diff + ' ' + plural(diff, 'день', 'дні', 'днів'))
+      : '';
+
+    if (txt) row2.append(
+      $('<span>').text(txt).css(badgeCss(colors.next.bg, colors.next.text))
+    );
+  }
+
+  // 3 — Тривалість
+  if (!isTvShow && movie.runtime > 0) {
+    var mins = movie.runtime, h = Math.floor(mins / 60), m = mins % 60;
+    var tt = 'Тривалість фільму: ';
+    if (h > 0) tt += h + ' ' + plural(h, 'година', 'години', 'годин');
+    if (m > 0) tt += (h > 0 ? ' ' : '') + m + ' хв.';
+
+    row3.append(
+      $('<span>').text(tt).css(badgeCss(colors.duration.bg, colors.duration.text))
+    );
+  } else if (isTvShow) {
+    var avg = calculateAverageEpisodeDuration(movie);
+    if (avg > 0) row3.append(
+      $('<span>').text('Тривалість серії ≈ ' + formatDurationMinutes(avg))
+        .css(badgeCss(colors.duration.bg, colors.duration.text))
+    );
+  }
+
+  // 4 — Сезони + Жанри
+  var seasonsCount = (movie.season_count || movie.number_of_seasons || (movie.seasons ? movie.seasons.filter(function (s) {
+    return s.season_number !== 0;
+  }).length : 0)) || 0;
+
+  if (isTvShow && seasonsCount > 0) {
+    row4.append(
+      $('<span>').text('Сезони: ' + seasonsCount).css(badgeCss(colors.seasons.bg, colors.seasons.text))
+    );
+  }
+
+  var genreList = [];
+  if (Array.isArray(movie.genres) && movie.genres.length) {
+    genreList = movie.genres.map(function (g) { return g.name; });
+  }
+  genreList = genreList.filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; });
+
+  genreList.forEach(function (gn) {
+    var c = colors.genres[gn] || { bg: 'rgba(255,255,255,.12)', text: 'white' };
+    row4.append(
+      $('<span>').text(gn).css(genreCss(c.bg, c.text))
+    );
+  });
+
+  container.append(row1);
+  if (row2.children().length) container.append(row2);
+  if (row3.children().length) container.append(row3);
+  if (row4.children().length) container.append(row4);
+
+  details.append(container);
+}
 
   /**
    * Перебудовує інфо-панель на відкритій картці (або повертає оригінальну)
@@ -1010,7 +1116,6 @@
   /* ============================================================
    * КОЛЬОРОВІ РЕЙТИНГИ
    * ============================================================ */
-
   /**
    * Застосовує кольори до всіх видимих рейтингів
    */
@@ -1082,7 +1187,6 @@
   /* ============================================================
    * БАЗА СТИЛІВ ДЛЯ СТАТУСІВ/PG
    * ============================================================ */
-
   /**
    * Вмикає/вимикає базові стилі для плашок СТАТУСУ
    */
@@ -1165,92 +1269,79 @@
   var __statusObserver = null;
   var __statusFollowReady = false;
 
-  /**
-   * Застосовує кольори до плашок статусів
-   */
-  function applyStatusOnceIn(elRoot) {
-    if (!getBool('interface_mod_new_colored_status', false)) return;
+/**
+ * Застосовує кольори до плашок статусів
+ * + Монохромний оверрайд (перекриває палітру, але тільки коли:
+ *   - увімкнено "Монохромний режим"
+ *   - і увімкнено "Кольорові статуси"
+ */
+function applyStatusOnceIn(elRoot) {
+  if (!getBool('interface_mod_new_colored_status', false)) return;
 
-    var palette = {
-      completed: {
-        bg: 'rgba(46,204,113,.85)',
-        text: 'white'
-      },
-      canceled: {
-        bg: 'rgba(231,76,60,.9)',
-        text: 'white'
-      },
-      ongoing: {
-        bg: 'rgba(243,156,18,.95)',
-        text: 'black'
-      },
-      production: {
-        bg: 'rgba(52,152,219,.9)',
-        text: 'white'
-      },
-      planned: {
-        bg: 'rgba(155,89,182,.9)',
-        text: 'white'
-      },
-      pilot: {
-        bg: 'rgba(230,126,34,.95)',
-        text: 'white'
-      },
-      released: {
-        bg: 'rgba(26,188,156,.9)',
-        text: 'white'
-      },
-      rumored: {
-        bg: 'rgba(149,165,166,.9)',
-        text: 'white'
-      },
-      post: {
-        bg: 'rgba(0,188,212,.9)',
-        text: 'white'
-      },
-      soon: {
-        bg: 'rgba(142,68,173,.95)',
-        text: 'white'
-      }
-    };
+  var mono = isMonoFor('interface_mod_new_colored_status');
 
-    var $root = $(elRoot || document);
-    $root.find(STATUS_BASE_SEL).each(function () {
-      var el = this;
-      var t = ($(el).text() || '').trim();
-      var key = '';
-      if (/заверш/i.test(t) || /ended/i.test(t)) key = 'completed';
-      else if (/скасов/i.test(t) || /cancel(l)?ed/i.test(t)) key = 'canceled';
-      else if (/онгоїн|виходить|триває/i.test(t) || /returning/i.test(t)) key = 'ongoing';
-      else if (/виробництв/i.test(t) || /in\s*production/i.test(t)) key = 'production';
-      else if (/заплан/i.test(t) || /planned/i.test(t)) key = 'planned';
-      else if (/пілот/i.test(t) || /pilot/i.test(t)) key = 'pilot';
-      else if (/випущ/i.test(t) || /released/i.test(t)) key = 'released';
-      else if (/чутк/i.test(t) || /rumored/i.test(t)) key = 'rumored';
-      else if (/пост/i.test(t) || /post/i.test(t)) key = 'post';
-      else if (/незабаром|скоро|soon/i.test(t)) key = 'soon';
+  var palette = {
+    completed: { bg: 'rgba(46,204,113,.85)', text: 'white' },
+    canceled:  { bg: 'rgba(231,76,60,.9)',  text: 'white' },
+    ongoing:   { bg: 'rgba(243,156,18,.95)', text: 'black' },
+    production:{ bg: 'rgba(52,152,219,.9)',  text: 'white' },
+    planned:   { bg: 'rgba(155,89,182,.9)',  text: 'white' },
+    pilot:     { bg: 'rgba(230,126,34,.95)', text: 'white' },
+    released:  { bg: 'rgba(26,188,156,.9)',  text: 'white' },
+    rumored:   { bg: 'rgba(149,165,166,.9)', text: 'white' },
+    post:      { bg: 'rgba(0,188,212,.9)',    text: 'white' },
+    soon:      { bg: 'rgba(142,68,173,.95)',  text: 'white' }
+  };
 
-      el.classList.remove('ifx-status-fallback');
+  var $root = $(elRoot || document);
 
-      if (!key) {
-        // Якщо статус не розпізнано, повертаємо білу рамку
-        el.classList.add('ifx-status-fallback');
-        el.style.setProperty('border-width', '1px', 'important');
-        el.style.setProperty('border-style', 'solid', 'important');
-        el.style.setProperty('border-color', '#fff', 'important');
-        el.style.setProperty('background-color', 'transparent', 'important');
-        el.style.setProperty('color', 'inherit', 'important');
-        return;
-      }
-      var c = palette[key];
-      $(el).css({
-        'background-color': c.bg,
-        color: c.text,
-        'border-color': 'transparent',
-        'display': 'inline-block'
-      });
+  $root.find(STATUS_BASE_SEL).each(function () {
+    var el = this;
+    var t = ($(el).text() || '').trim();
+    var key = '';
+
+    if (/заверш/i.test(t) || /ended/i.test(t)) key = 'completed';
+    else if (/скасов/i.test(t) || /cancel(l)?ed/i.test(t)) key = 'canceled';
+    else if (/онгоїн|виходить|триває/i.test(t) || /returning/i.test(t)) key = 'ongoing';
+    else if (/виробництв/i.test(t) || /in\s*production/i.test(t)) key = 'production';
+    else if (/заплан/i.test(t) || /planned/i.test(t)) key = 'planned';
+    else if (/пілот/i.test(t) || /pilot/i.test(t)) key = 'pilot';
+    else if (/випущ/i.test(t) || /released/i.test(t)) key = 'released';
+    else if (/чутк/i.test(t) || /rumored/i.test(t)) key = 'rumored';
+    else if (/пост/i.test(t) || /post/i.test(t)) key = 'post';
+    else if (/незабаром|скоро|soon/i.test(t)) key = 'soon';
+
+    el.classList.remove('ifx-status-fallback');
+
+    if (!key) {
+      // Якщо статус не розпізнано, повертаємо білу рамку
+      el.classList.add('ifx-status-fallback');
+      el.style.setProperty('border-width', '1px', 'important');
+      el.style.setProperty('border-style', 'solid', 'important');
+      el.style.setProperty('border-color', '#fff', 'important');
+      el.style.setProperty('background-color', 'transparent', 'important');
+      el.style.setProperty('color', 'inherit', 'important');
+      return;
+    }
+
+    // === МОНОХРОМНИЙ ОВЕРРАЙД ===
+    if (mono) {
+      // ВАЖЛИВО: перекриваємо value-based кольори
+      applyMonoBadgeStyle(el);
+      el.style.setProperty('display', 'inline-block', 'important');
+      return;
+    }
+
+    // === КОЛЬОРОВИЙ РЕЖИМ (як було) ===
+    var c = palette[key];
+    $(el).css({
+      'background-color': c.bg,
+      color: c.text,
+      'border-color': 'transparent',
+      'display': 'inline-block'
     });
-  }
+  });
+}
 
   function enableStatusColoring() {
     applyStatusOnceIn(document);
@@ -1368,61 +1459,75 @@
     return '';
    }
   
-  /**
-   * Застосовує кольори до вікових рейтингів (PG)
-   */
-  function applyAgeOnceIn(elRoot) {
-    if (!getBool('interface_mod_new_colored_age', false)) return;
+/**
+ * Застосовує кольори до вікових рейтингів (PG)
+ * + Монохромний оверрайд (перекриває __ageColors, але тільки коли:
+ *   - увімкнено "Монохромний режим"
+ *   - і увімкнено "Кольоровий віковий рейтинг"
+ */
+function applyAgeOnceIn(elRoot) {
+  if (!getBool('interface_mod_new_colored_age', false)) return;
 
-    var $root = $(elRoot || document);
-    $root.find(AGE_BASE_SEL).each(function () {
-      var el = this;
+  var mono = isMonoFor('interface_mod_new_colored_age');
 
-      // беремо текст або значення з атрибутів
-      var t = (el.textContent || '').trim();
-      if (!t) {
-        var attr = ((el.getAttribute('data-age') || el.getAttribute('data-pg') || '') + '').trim();
-        if (attr) t = attr;
-      }
+  var $root = $(elRoot || document);
+  $root.find(AGE_BASE_SEL).each(function () {
+    var el = this;
 
-      // якщо ПУСТО — ховаємо елемент і зчищаємо все
-      if (!t) {
-        el.classList.add('hide');
-        el.classList.remove('ifx-age-fallback');
-        ['border-width', 'border-style', 'border-color', 'background-color', 'color', 'display'].forEach(function (p) {
-          el.style.removeProperty(p);
-        });
+    // беремо текст або значення з атрибутів
+    var t = (el.textContent || '').trim();
+    if (!t) {
+      var attr = ((el.getAttribute('data-age') || el.getAttribute('data-pg') || '') + '').trim();
+      if (attr) t = attr;
+    }
+
+    // якщо ПУСТО — ховаємо елемент і зчищаємо все
+    if (!t) {
+      el.classList.add('hide');
+      el.classList.remove('ifx-age-fallback');
+      ['border-width', 'border-style', 'border-color', 'background-color', 'color', 'display'].forEach(function (p) {
+        el.style.removeProperty(p);
+      });
+      return;
+    }
+
+    // є значення — показуємо
+    el.classList.remove('hide');
+    el.classList.remove('ifx-age-fallback');
+    ['border-width', 'border-style', 'border-color', 'background-color', 'color'].forEach(function (p) {
+      el.style.removeProperty(p);
+    });
+
+    var g = ageCategoryFor(t);
+
+    if (g) {
+      // === МОНОХРОМНИЙ ОВЕРРАЙD ===
+      if (mono) {
+        applyMonoBadgeStyle(el);
+        el.style.display = 'inline-block'; // без !important — .hide завжди переможе
         return;
       }
 
-      // є значення — показуємо та фарбуємо
-      el.classList.remove('hide');
-      el.classList.remove('ifx-age-fallback');
-      ['border-width', 'border-style', 'border-color', 'background-color', 'color'].forEach(function (p) {
-        el.style.removeProperty(p);
+      // === КОЛЬОРОВИЙ РЕЖИМ (як було) ===
+      var c = __ageColors[g];
+      $(el).css({
+        'background-color': c.bg,
+        color: c.text,
+        'border-color': 'transparent'
       });
-
-      var g = ageCategoryFor(t);
-      if (g) {
-        var c = __ageColors[g];
-        $(el).css({
-          'background-color': c.bg,
-          color: c.text,
-          'border-color': 'transparent'
-        });
-        el.style.display = 'inline-block'; // без !important — .hide завжди переможе
-      } else {
-        // невідома категорія — «fallback», але тільки коли є текст
-        el.classList.add('ifx-age-fallback');
-        el.style.setProperty('border-width', '1px', 'important');
-        el.style.setProperty('border-style', 'solid', 'important');
-        el.style.setProperty('border-color', '#fff', 'important');
-        el.style.setProperty('background-color', 'transparent', 'important');
-        el.style.setProperty('color', 'inherit', 'important');
-        el.style.display = 'inline-block';
-      }
-    });
-  }
+      el.style.display = 'inline-block';
+    } else {
+      // невідома категорія — «fallback», але тільки коли є текст
+      el.classList.add('ifx-age-fallback');
+      el.style.setProperty('border-width', '1px', 'important');
+      el.style.setProperty('border-style', 'solid', 'important');
+      el.style.setProperty('border-color', '#fff', 'important');
+      el.style.setProperty('background-color', 'transparent', 'important');
+      el.style.setProperty('color', 'inherit', 'important');
+      el.style.display = 'inline-block';
+    }
+  });
+}
 
   function enableAgeColoring() {
     applyAgeOnceIn(document);
@@ -1506,7 +1611,6 @@
   /* ============================================================
    * ОРИГІНАЛЬНА НАЗВА (EN)
    * ============================================================ */
-
   /**
    * Додає оригінальну назву в заголовок картки
    */
@@ -1538,7 +1642,6 @@
   /* ============================================================
    * КНОПКИ (Всі / Іконки без тексту)
    * ============================================================ */
-
   /**
    * Перевіряє, чи є кнопка кнопкою "Play" (щоб уникнути дублювання)
    */
@@ -1917,7 +2020,7 @@
     });
   }
 
-  /* BEGIN torrents+mod (Verbatim) */
+  /* BEGIN my torrents mod (Verbatim) */
   (function () {
     try {
       (function () {
@@ -1926,7 +2029,7 @@
 
         // ===================== СИСТЕМА ТЕКСТОВИХ ЗАМІН =====================
         const REPLACEMENTS = [
-          ['Uaflix', 'UaFlix'],
+          ['Uaflix', 'UAFlix'],
           ['Zetvideo', 'UaFlix'],
           ['Нет истории просмотра', 'Історія перегляду відсутня'],
           ['Дублированный', 'Дубльований'],
@@ -2017,68 +2120,81 @@
       `;
 
         // ===================== СИСТЕМА КОЛЬОРОВИХ ІНДИКАТОРІВ =====================
-        const STYLES = {
-          '.torrent-item__seeds span.low-seeds': {
-            color: '#e74c3c',
-            'font-weight': 'bold'
+const STYLES = {
+          /* СІДИ: Текст яскравий, фон ледь помітний (0.15) */
+          '.torrent-item__seeds span.low-seeds': { 
+            'color': '#ff9696', 
+            'background': 'rgba(255, 150, 150, 0.10)', 
+            'border': '1.4px solid rgba(255, 150, 150, 0.5)',
+            'text-shadow': '0 0 5px rgba(255, 150, 150, 0.4)',
+            'box-shadow': '0 0 8px rgba(255, 150, 150, 0.2)'
           },
-          '.torrent-item__seeds span.medium-seeds': {
-            color: '#ffff00',
-            'font-weight': 'bold'
+          '.torrent-item__seeds span.medium-seeds': { 
+            'color': '#fbcb79', 
+            'background': 'rgba(251, 203, 121, 0.10)', 
+            'border': '1.4px solid rgba(251, 203, 121, 0.5)',
+            'text-shadow': '0 0 5px rgba(251, 203, 121, 0.4)',
+            'box-shadow': '0 0 8px rgba(251, 203, 121, 0.2)'
           },
-          '.torrent-item__seeds span.high-seeds': {
-            color: '#2ecc71',
-            'font-weight': 'bold'
+          '.torrent-item__seeds span.high-seeds': { 
+            'color': '#77cdb2', 
+            'background': 'rgba(119, 205, 178, 0.10)', 
+            'border': '1.4px solid rgba(119, 205, 178, 0.5)',
+            'text-shadow': '0 0 5px rgba(119, 205, 178, 0.4)',
+            'box-shadow': '0 0 8px rgba(119, 205, 178, 0.2)'
           },
-          '.torrent-item.low-seeds': {
-            'border': '2px solid rgba(231, 76, 60, 0.6)',
+          /* БІТРЕЙТ: Кольорова диференціація */
+          '.torrent-item__bitrate span.low-bitrate': { 
+            'color': '#fbcb79', 
+            'background': 'rgba(251, 203, 121, 0.10)', 
+            'border': '1.4px solid rgba(251, 203, 121, 0.5)',
+            'text-shadow': '0 0 5px rgba(251, 203, 121, 0.4)',
+            'box-shadow': '0 0 8px rgba(251, 203, 121, 0.2)'
+          },
+          '.torrent-item__bitrate span.medium-bitrate': { 
+            'color': '#77cdb2', 
+            'background': 'rgba(119, 205, 178, 0.10)', 
+            'border': '1.4px solid rgba(119, 205, 178, 0.5)',
+            'text-shadow': '0 0 5px rgba(119, 205, 178, 0.4)',
+            'box-shadow': '0 0 8px rgba(119, 205, 178, 0.2)'
+          },
+          '.torrent-item__bitrate span.high-bitrate': { 
+            'color': '#ff9696', 
+            'background': 'rgba(255, 150, 150, 0.10)', 
+            'border': '1.4px solid rgba(255, 150, 150, 0.5)',
+            'text-shadow': '0 0 5px rgba(255, 150, 150, 0.4)',
+            'box-shadow': '0 0 8px rgba(255, 150, 150, 0.2)'
+          },
+          /* РАМКИ КАРТОК (interface_mod_new_tor_frame) */
+          '.torrent-item.low-seeds': { 
+            'border': '2px solid rgba(255, 150, 150, 0.45)', 
             'border-radius': '6px',
             'box-sizing': 'border-box'
           },
-          '.torrent-item.medium-seeds': {
-            'border': '2px solid rgba(255, 255, 0, 0.6)',
+          '.torrent-item.medium-seeds': { 
+            'border': '2px solid rgba(251, 203, 121, 0.45)', 
             'border-radius': '6px',
             'box-sizing': 'border-box'
           },
-          '.torrent-item.high-seeds': {
-            'border': '2px solid rgba(46, 204, 113, 0.6)',
+          '.torrent-item.high-seeds': { 
+            'border': '2px solid rgba(119, 205, 178, 0.45)', 
             'border-radius': '6px',
             'box-sizing': 'border-box'
           },
-          '.torrent-item__bitrate span.low-bitrate': {
-            color: '#ffff00',
-            'font-weight': 'bold'
-          },
-          '.torrent-item__bitrate span.medium-bitrate': {
-            color: '#2ecc71',
-            'font-weight': 'bold'
-          },
-          '.torrent-item__bitrate span.high-bitrate': {
-            color: '#e74c3c',
-            'font-weight': 'bold'
-          },
-          '.torrent-item__tracker.utopia': {
-            color: '#9b59b6',
-            'font-weight': 'bold'
-          },
-          '.torrent-item__tracker.toloka': {
-            color: '#3498db',
-            'font-weight': 'bold'
-          },
-          '.torrent-item__tracker.mazepa': {
-            color: '#C9A0DC',
-            'font-weight': 'bold'
-          }
+          /* ТРЕКЕРИ */
+          '.torrent-item__tracker.utopia': { 'color': '#9b59b6', 'font-weight': 'bold' },
+          '.torrent-item__tracker.toloka': { 'color': '#3498db', 'font-weight': 'bold' },
+          '.torrent-item__tracker.mazepa': { 'color': '#C9A0DC', 'font-weight': 'bold' }
         };
 
-        // ===================== ІНІЦІАЛІЗАЦІЯ СТИЛІВ =====================
+        // ===================== ІНІЦІАЛІЗАЦІЯ СТИЛІВ ====================
         let style = document.createElement('style');
         style.innerHTML = FLAG_STYLES + '\n' + Object.entries(STYLES).map(([selector, props]) => {
           return `${selector} { ${Object.entries(props).map(([prop, val]) => `${prop}: ${val} !important`).join('; ')} }`;
         }).join('\n');
         document.head.appendChild(style);
 
-        // ===================== СИСТЕМА ЗАМІНИ ТЕКСТУ ДЛЯ ФІЛЬТРІВ =====================
+        // ============= СИСТЕМА ЗАМІНИ ТЕКСТУ ДЛЯ ФІЛЬТРІВ =============
         const UKRAINIAN_STUDIOS = [
           'DniproFilm', 'Дніпрофільм', 'Цікава Ідея', 'Колодій Трейлерів',
           'UaFlix', 'BaibaKo', 'В одне рило', 'Так Треба Продакшн',
@@ -2144,7 +2260,7 @@
           });
         }
 
-        // ===================== ОПТИМІЗОВАНА СИСТЕМА ЗАМІНИ ТЕКСТУ =====================
+        // =============== ОПТИМІЗОВАНА СИСТЕМА ЗАМІНИ ТЕКСТУ ===============
         function replaceTexts() {
           const safeContainers = [
             '.online-prestige-watched__body',
@@ -2218,7 +2334,7 @@
           }
         }
 
-        // ===================== СИСТЕМА ОНОВЛЕННЯ СТИЛІВ ТОРЕНТІВ =====================
+        // ================= СИСТЕМА ОНОВЛЕННЯ СТИЛІВ ТОРЕНТІВ =================
         function updateTorrentStyles() {
           const visibleElements = {
             seeds: document.querySelectorAll('.torrent-item__seeds span:not([style*="display: none"])'),
@@ -2286,7 +2402,7 @@
           }
         }
 
-        // ===================== ОПТИМІЗОВАНА СИСТЕМА СПОСТЕРЕЖЕННЯ =====================
+        // ================= ОПТИМІЗОВАНА СИСТЕМА СПОСТЕРЕЖЕННЯ =================
         let updateTimeout = null;
         const observer = new MutationObserver(mutations => {
           const hasImportantChanges = mutations.some(mutation => {
@@ -2317,10 +2433,10 @@
       } catch (_e) {}
     }
   })();
-  /* END torrents+mod ==== */
+  /* END my torrents mod */
 
-  /* Torrent toggles overrides */
-  // Цей блок динамічно вмикає/вимикає стилі з torrents+mod
+  /* torrent toggles overrides */
+  // Цей блок динамічно вмикає/вимикає стилі з torrents mod
   // на основі налаштувань з "Інтерфейс +"
   (function () {
     // Власна реалізація getBool, щоб бути незалежним
@@ -2333,7 +2449,10 @@
       return !!v;
     }
 
-    function apply() {
+
+    
+
+function apply() {
       var s = document.getElementById('torr_mod_overrides');
       if (!s) {
         s = document.createElement('style');
@@ -2348,10 +2467,20 @@
           
       var css = '';
       
-      // Якщо налаштування вимкнені, додаємо CSS, який "скидає" стилі
-      if (!eb) css += '.torrent-item__bitrate span.low-bitrate, .torrent-item__bitrate span.medium-bitrate, .torrent-item__bitrate span.high-bitrate{ color: inherit !important; font-weight: inherit !important; }\n';
-      if (!es) css += '.torrent-item__seeds span.low-seeds, .torrent-item__seeds span.medium-seeds, .torrent-item__seeds span.high-seeds{ color: inherit !important; font-weight: inherit !important; }\n';
-      if (!ef) css += '.torrent-item.low-seeds, .torrent-item.medium-seeds, .torrent-item.high-seeds{ border: none !important; }\n';
+      // Якщо вимкнено БІТРЕЙТ: скидаємо колір, фон та внутрішню рамку цифр
+      if (!eb) {
+        css += '.torrent-item__bitrate span.low-bitrate, .torrent-item__bitrate span.medium-bitrate, .torrent-item__bitrate span.high-bitrate { color: inherit !important; background: none !important; border: none !important; font-weight: inherit !important; }\n';
+      }
+      
+      // Якщо вимкнено СІДИ: скидаємо колір, фон та внутрішню рамку цифр
+      if (!es) {
+        css += '.torrent-item__seeds span.low-seeds, .torrent-item__seeds span.medium-seeds, .torrent-item__seeds span.high-seeds { color: inherit !important; background: none !important; border: none !important; font-weight: inherit !important; }\n';
+      }
+      
+      // Якщо вимкнено ЗАГАЛЬНІ РАМКИ: прибираємо бордер з усього рядка торента
+      if (!ef) {
+        css += '.torrent-item.low-seeds, .torrent-item.medium-seeds, .torrent-item.high-seeds { border: none !important; box-shadow: none !important; }\n';
+      }
       
       s.textContent = css;
     }
@@ -2361,9 +2490,8 @@
     setTimeout(apply, 0); // Перший запуск
   })();
 
-
 /* ============================================================
- * YEAR PILL + ALT EPISODE CARDS — STABLE FINAL v2 (NO MENU REORDER)
+ * YEAR PILL + ALT EPISODE CARDS (NO MENU REORDER)
  * - year pill styles intact
  * - hide year ONLY on processed list/episode cards (not in full view)
  * - strip year from titles only on processed cards
@@ -2372,7 +2500,7 @@
   // ---------- i18n ----------
   Lampa.Lang.add({
     ifx_year_on_cards:         { uk:'Показувати рік на картці', en:'Show year on card' },
-    ifx_year_on_cards_desc:    { uk:'Увімкнути/Вimкнути відображення року на постері', en:'Year displayed on the poster only' },
+    ifx_year_on_cards_desc:    { uk:'Увімкнути/Вимкнути відображення року на постері', en:'Year displayed on the poster only' },
 
     ifx_show_rating_on_cards:      { uk:'Показувати рейтинг на картці', en:'Show rating on card' },
     ifx_show_rating_on_cards_desc: { uk:'Увімкнути/Вимкнути стандартний рейтинг на постері',
@@ -2380,8 +2508,6 @@
       
     ifx_alt_badges:      { uk:'Альтернативні мітки', en:'Alternative badges' },
     ifx_alt_badges_desc: { uk:'Мітки "рік" і "рейтинг" у іншому стилі', en:'Year & Rating  alternative style' },
-      
-
     
     ifx_episode_alt_cards:     { uk:'Альтернативні "Найближчі епізоди"', en:'Alternative "Upcoming Episodes"' },
     ifx_episode_alt_cards_desc:{ uk:'Компактний вигляд блоку "Найближчі епізоди"', en:'Compact view for the "Upcoming Episodes" block' },
@@ -2392,16 +2518,11 @@
   
   });
 
-
-
-  
-
-  // ---------- keys (усі дефолт: false) ----------
+  // keys (усі дефолт: false) 
   var KEY_YEAR = 'interface_mod_new_year_on_cards';
   var KEY_ALT  = 'interface_mod_new_episode_alt_cards';
   var KEY_NUM  = 'interface_mod_new_episode_numbers_only';
   var KEY_RATING = 'interface_mod_new_rating_on_cards';
-
   
   var S = {
     year_on:  (Lampa.Storage.get(KEY_YEAR, false)===true || Lampa.Storage.get(KEY_YEAR,'false')==='true'),
@@ -2411,7 +2532,7 @@
   
   };
 
-  // ---------- settings UI (без перестановок) ----------
+  // settings UI (без перестановок)
   (function addSettings(){
     var add = Lampa.SettingsApi.addParam;
     add({ component:'interface_mod_new',
@@ -2430,7 +2551,6 @@
                description: Lampa.Lang.translate('ifx_alt_badges_desc') }
     });
     
-    
     add({ component:'interface_mod_new',
       param:{ name: KEY_ALT, type:'trigger', values:true, default:false },
       field:{ name:Lampa.Lang.translate('ifx_episode_alt_cards'),
@@ -2441,17 +2561,18 @@
       field:{ name:Lampa.Lang.translate('ifx_episode_num_only'),
               description:Lampa.Lang.translate('ifx_episode_num_only_desc') }
     });
-
     
   })();
 
-  // ---------- CSS ----------
-  function ensureCss(){
+  //  CSS 
+function ensureCss(){
     var id = 'ifx_css_stable_final_v2';
     if (document.getElementById(id)) return;
     var st = document.createElement('style');
     st.id = id;
     st.textContent = `
+      /* --- 1. БАЗОВІ СТИЛІ КАРТОК (Оригінальна логіка) --- */
+      
       /* Пігулка (як .card_vote) — наш власний бейдж року */
       .ifx-pill{
         background: rgba(0,0,0,.5);
@@ -2492,9 +2613,7 @@
       /* NUM-ONLY: ховаємо велику цифру завжди (і для ALT, і для стандарту) */
       body.ifx-num-only .card-episode .full-episode__num{ display:none !important; }
 
-      /* ЛОКАЛЬНЕ ховання текстових років тільки для оброблених карток.
-         Додаємо клас .ifx-hide-age саме на картки списків та епізодів.
-         Повні картки НЕ мають цього класу — там нічого не ховаємо. */
+      /* ЛОКАЛЬНЕ ховання текстових років тільки для оброблених карток */
       .ifx-hide-age .card__age{ display:none !important; }
 
       /* Ховаємо штатний рейтинг повністю, коли вимкнено */
@@ -2502,16 +2621,36 @@
       body.ifx-no-rate .card__view > .card_vote,
       body.ifx-no-rate .ifx-corner-stack > .card__vote,
       body.ifx-no-rate .ifx-corner-stack > .card_vote {
-      display: none !important;}
+        display: none !important;
+      }
 
+      /* --- 2. ГЕОМЕТРІЯ ТОРРЕНТІВ ТА ФОКУС --- */
+      
+      /* Уніфікація розміру під стандартний блок ваги (.torrent-item__size) */
+      .torrent-item__bitrate span, .torrent-item__seeds span {
+        border-radius: 0.3em !important;
+        padding: 0.3em 0.5em !important;
+        font-weight: bold !important;
+        display: inline-block !important;
+        line-height: 1.2 !important;
+        transition: all 0.2s ease !important;
+      }
+
+      /* Фокусна рамка торрента (біла) */
+      .torrent-item.focus {
+        outline: none !important;
+        border: 3px solid #ffffff !important;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4) !important;
+        transform: scale(1.01) !important;
+        z-index: 10 !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+      }
     `;
     document.head.appendChild(st);
-  }
-
-
+}
 
 // Синхронізуємо ТІЛЬКИ кольори з якості (фон/текст).
-// Якщо нічого не знайдено — дефолт.
+// Якщо нічого не знайдено — дефолт як у твоєму прикладі.
 function ifxSyncAltBadgeThemeFromQuality(){
   try{
     // Спершу сезонні мітки Quality, потім card__quality
@@ -2545,13 +2684,13 @@ function ensureAltBadgesCss(){
 
   /* ====== КОНСТАНТИ ДЛЯ ШВИДКОГО ТЮНІНГУ ====== */
   var RIGHT_OFFSET  = '.3em';   // правий відступ (як у стандартного рейтингу/року)
-  var BOTTOM_OFFSET = '.50em';  // нижній відступ (залишаємо як у твоєму прикладі)
-  var RADIUS        = '0.3em';  // радіус заокруглення як у Quality+
+  var BOTTOM_OFFSET = '.50em';  // нижній відступ
+  var RADIUS        = '0.3em';  // радіус заокруглення
   var FONT_FAMILY   = "'Roboto Condensed','Arial Narrow',Arial,sans-serif";
   var FONT_WEIGHT   = '700';
-  var FONT_SIZE     = '1.0em';  // РОЗМІР ШРИФТУ (твій приклад)
-  var PAD_Y         = '.19em';  // ВНУТРІШНІ ВІДСТУПИ (твій приклад)
-  var PAD_X         = '.39em';  // ВНУТРІШНІ ВІДСТУПИ (твій приклад)
+  var FONT_SIZE     = '1.0em';  // РОЗМІР ШРИФТУ
+  var PAD_Y         = '.19em';  // ВНУТРІШНІ ВІДСТУПИ
+  var PAD_X         = '.39em';  // ВНУТРІШНІ ВІДСТУПИ
   var UPPERCASE     = true;     // true => uppercase, false => як є
   /* ============================================ */
 
@@ -2614,7 +2753,7 @@ function ensureAltBadgesCss(){
   if (st){ st.textContent = css; }
   else { st = document.createElement('style'); st.id = 'ifx_alt_badges_css'; st.textContent = css; document.head.appendChild(st); }
 }
-  // ---------- ALT episode template ----------
+  // ALT episode template
   var tplEpisodeOriginal = null;
   var tplEpisodeAlt =
     '<div class="card-episode selector layer--visible layer--render">\
@@ -2648,7 +2787,7 @@ function ensureAltBadgesCss(){
     Lampa.Template.add('card_episode', on ? tplEpisodeAlt : (tplEpisodeOriginal || tplEpisodeAlt));
     document.body.classList.toggle('ifx-ep-alt', !!on);
     
-    // [!!!] ВИПРАВЛЕНО (з минулого разу):
+    // [!!!] ВИПРАВЛЕНО:
     // 'ifx-num-only' керується незалежно, базуючись лише на S.num_only
     document.body.classList.toggle('ifx-num-only', S.num_only);
     
@@ -2662,7 +2801,7 @@ function ensureAltBadgesCss(){
   }
 
   // ВАЖЛИВО: спершу з даних, потім — з DOM (щоб не залежати від прихованих .card__age)
-  /* --- ОПТИМІЗАЦІЯ: Кешування року (WeakMap) + ПРАВИЛЬНИЙ рік серіалу --- */
+  /* ОПТИМІЗАЦІЯ: Кешування року (WeakMap) + ПРАВИЛЬНИЙ рік серіалу */
   var __ifx_yearCache = window.__ifx_yearCache || new WeakMap();
   window.__ifx_yearCache = __ifx_yearCache;
 
@@ -2674,7 +2813,7 @@ function ensureAltBadgesCss(){
     var d = $root.data() || {};
     
     // 1) Дані Lampa: Пріоритет - рік виходу СЕРІАЛУ або ФІЛЬМУ
-    
+    // (Ми свідомо ігноруємо d.air_date та d.next_episode_date, бо це дати епізодів)
     var y = (d.first_air_date || '').slice(0,4) // << Пріоритет #1: Рік виходу серіалу
          || (d.release_date || '').slice(0,4) // << Пріоритет #2: Рік виходу фільму
          || d.release_year // << Резерв
@@ -2682,7 +2821,7 @@ function ensureAltBadgesCss(){
     if (/^(19|20)\d{2}$/.test(String(y))) return String(y);
 
     // 2) Текстовий рік з .card__age
-    //    (Lampa зазвичай ставить сюди рік СЕРІАЛУ, навіть на картках епізодів)
+    //    (зазвичай ставиться сюди рік СЕРІАЛУ, навіть на картках епізодів)
     var ageTxt = ($root.find('.card__age').first().text() || '').trim();
     var mAge = ageTxt.match(/(19|20)\d{2}/);
     if (mAge) return mAge[0];
@@ -2695,7 +2834,7 @@ function ensureAltBadgesCss(){
       title.match(/(?:[–—·\/-]\s*)((?:19|20)\d{2})\s*$/);
     if (mTitle) return mTitle[1];
     
-    
+    // ПРИБРАЛИ ПОШУК .full-episode__date, оскільки він дає рік ЕПІЗОДУ.
 
     return '';
   }
@@ -2719,7 +2858,6 @@ function ensureAltBadgesCss(){
     }
   }
   /* --- Кінець блоку getYear --- */
-
 
   function ensureStack($anchor){
     var $stack = $anchor.children('.ifx-corner-stack');
@@ -2805,17 +2943,15 @@ if ($vote.length){
   }
 }
 
-  
+    function applyEpisodeCard($ep){
+      var $full = $ep.find('.full-episode').first();
+        if (!$full.length) return;
 
-  function applyEpisodeCard($ep){
-    var $full = $ep.find('.full-episode').first();
-    if (!$full.length) return;
+      var $stack = ensureStack($full);
 
-    var $stack = ensureStack($full);
-
-    if (!$stack.children('.ifx-year-pill').length){
-      var y = getYear($ep);
-      if (y) $('<div class="ifx-pill ifx-year-pill"></div>').text(y).appendTo($stack);
+      if (!$stack.children('.ifx-year-pill').length){
+        var y = getYear($ep);
+          if (y) $('<div class="ifx-pill ifx-year-pill"></div>').text(y).appendTo($stack);
     }
 
     // ЛОКАЛЬНО ховаємо текстові роки й підчищаємо назву лише для цієї картки епізоду
@@ -2915,10 +3051,16 @@ function injectAll($scope){
           
           // [!!!] ВИПРАВЛЕНО:
           // Умовне ввімкнення/вимкнення обсервера видалено.
+          // if (S.year_on) enableObserver(); else disableObserver(); // <--- ВИДАЛЕНО
         }
         if (k===KEY_ALT){
           S.alt_ep = (v===true || v==='true' || Lampa.Storage.get(KEY_ALT,'false')==='true');
           setEpisodeAlt(S.alt_ep);
+          
+          // [!!!] ВИПРАВЛЕНО:
+          // Рядок document.body.classList.toggle('ifx-num-only', S.alt_ep || S.num_only);
+          // ВИДАЛЕНО, оскільки setEpisodeAlt() тепер робить це коректно.
+          
           setTimeout(function(){ injectAll($(document.body)); }, 50);
         }
         if (k===KEY_NUM){
@@ -2979,7 +3121,6 @@ function injectAll($scope){
   }
   if (window.appready) boot();
   else Lampa.Listener.follow('app', function(e){ if (e.type==='ready') boot(); });
-})(); 
+})();
   
-
 })();
