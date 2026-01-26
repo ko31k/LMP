@@ -2479,7 +2479,7 @@
         "default": RCFG_DEFAULT.ratings_bw_logos
       },
       field: {
-        name: 'Ч/Б логотипи',
+        name: 'Монохромний режим (Ч/Б логотипи)',
         description: 'Чорно-білі логотипи рейтингів'
       },
       onRender: function(item) {}
