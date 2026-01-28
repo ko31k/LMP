@@ -210,7 +210,7 @@
         JACRED_URL: 'redapi.cfhttp.top', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         JACRED_API_KEY: '', // Ключ API (не використовується в даній версії)
         PROXY_LIST: [ // Список проксі серверів для обходу CORS обмежень
-            'https://my-finder.kozak-bohdan.workers.dev/?url=',
+            //'https://my-finder.kozak-bohdan.workers.dev/?url=',
             'https://cors.bwa.workers.dev/',
             'https://api.allorigins.win/raw?url='
         ],
