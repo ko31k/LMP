@@ -210,9 +210,9 @@
         JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         JACRED_API_KEY: '', // Ключ API (не використовується в даній версії)
         PROXY_LIST: [ // Список проксі серверів для обходу CORS обмежень
-            'https://my-finder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
-            'https://cors.bwa.workers.dev/',
-            'https://api.allorigins.win/raw?url='
+            //'https://my-finder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
+            //'https://cors.bwa.workers.dev/',
+            //'https://api.allorigins.win/raw?url='
         ],
         PROXY_TIMEOUT_MS: 4000, // Таймаут для проксі запитів (4 секунди)
         SHOW_QUALITY_FOR_TV_SERIES: false, // ✅ Показувати якість для серіалів
