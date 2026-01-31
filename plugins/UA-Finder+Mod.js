@@ -248,7 +248,113 @@
      * @param {string} cardId - ID картки для логування.
      * @param {function} callback - Функція, яка викликається з результатом `(error, data)`.
      */
-    function fetchWithProxy(url, cardId, callback) {
+    // ===== safeFetchText (fetch -> XHR) =====
+function LTF_safeFetchText(url) {
+    return new Promise(function (resolve, reject) {
+        // fetch
+        if (typeof fetch === 'function') {
+            try {
+                fetch(url).then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.text();
+                }).then(resolve).catch(reject);
+                return;
+            } catch (e) {}
+        }
+
+        // XHR fallback
+        try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
+                    else reject(new Error('XHR ' + xhr.status));
+                }
+            };
+            xhr.onerror = function () { reject(new Error('Network error')); };
+            xhr.send(null);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+/**
+ * Smart fetch:
+ * 1) пробує напряму
+ * 2) якщо є проксі — пробує через проксі
+ */
+function fetchSmart(url, cardId, callback) {
+    var callbackCalled = false;
+
+    function finish(err, data) {
+        if (callbackCalled) return;
+        callbackCalled = true;
+        callback(err, data);
+    }
+
+    // 1) DIRECT
+    var directTimeout = setTimeout(function () {
+        tryProxy();
+    }, LTF_CONFIG.PROXY_TIMEOUT_MS);
+
+    LTF_safeFetchText(url)
+        .then(function (txt) {
+            clearTimeout(directTimeout);
+            if (txt) finish(null, txt);
+            else tryProxy();
+        })
+        .catch(function () {
+            clearTimeout(directTimeout);
+            tryProxy();
+        });
+
+    // 2) PROXY (optional)
+    function tryProxy() {
+        if (!LTF_CONFIG.PROXY_LIST || !LTF_CONFIG.PROXY_LIST.length) {
+            updateNetworkHealth(false);
+            return finish(new Error('Direct fetch failed (proxy disabled): ' + url));
+        }
+
+        var idx = 0;
+
+        function next() {
+            if (idx >= LTF_CONFIG.PROXY_LIST.length) {
+                updateNetworkHealth(false);
+                return finish(new Error('All proxies failed for ' + url));
+            }
+
+            var proxyUrl = LTF_CONFIG.PROXY_LIST[idx] + encodeURIComponent(url);
+
+            var t = setTimeout(function () {
+                idx++;
+                next();
+            }, LTF_CONFIG.PROXY_TIMEOUT_MS);
+
+            LTF_safeFetchText(proxyUrl)
+                .then(function (txt) {
+                    clearTimeout(t);
+                    if (txt) {
+                        updateNetworkHealth(true);
+                        finish(null, txt);
+                    } else {
+                        idx++;
+                        next();
+                    }
+                })
+                .catch(function () {
+                    clearTimeout(t);
+                    idx++;
+                    next();
+                });
+        }
+
+        next();
+    }
+}
+ 
+    /*function fetchWithProxy(url, cardId, callback) {
         var currentProxyIndex = 0; // Починаємо з першого проксі.
         var callbackCalled = false; // Прапорець, щоб уникнути подвійного виклику callback.
 
@@ -297,7 +403,7 @@
                 });
         }
         tryNextProxy(); // Починаємо спроби.
-    }
+    }*/
 
     // ===================== ДОПОМІЖНІ ФУНКЦІЇ =====================
     /**
@@ -438,7 +544,11 @@
             /**
              * Внутрішня функція для виконання одного запиту до API JacRed.
              */
-            function searchJacredApi(searchTitle, searchYear, apiCallback) {
+            //function searchJacredApi(searchTitle, searchYear, apiCallback) {
+            // Smart: direct -> proxy(optional)
+            function fetchSmart(apiUrl, cardId, function (error, responseText) {
+
+         
                 var userId = Lampa.Storage.get('lampac_unic_id', '');
                 var apiUrl = LTF_CONFIG.JACRED_PROTOCOL + LTF_CONFIG.JACRED_URL + '/api/v1.0/torrents?search=' +
                     encodeURIComponent(searchTitle) +
