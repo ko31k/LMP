@@ -1,4 +1,4 @@
- /**
+/**
  * Lampa Track Finder v3
  * --------------------------------------------------------------------------------
  * Цей плагін призначений для пошуку та відображення інформації про наявність
@@ -37,8 +37,8 @@
         // Налаштування кешу
         CACHE_VERSION: 4, // ❗ Змініть це число (напр. 5), якщо хочете примусово скинути весь кеш у користувачів.
         CACHE_KEY: 'lampa_ukr_tracks_cache', // Унікальний ключ для зберігання кешу в LocalStorage.
-        CACHE_VALID_TIME_MS: 24 * 60 * 60 * 1000, // Час життя кешу (24 години). Після цього він вважається недійсним.
-        CACHE_REFRESH_THRESHOLD_MS: 12 * 60 * 60 * 1000, // Через скільки часу кеш потребує фонового оновлення (12 годин).
+        CACHE_VALID_TIME_MS: 48 * 60 * 60 * 1000, // Час життя кешу (48 години). Після цього він вважається недійсним.
+        CACHE_REFRESH_THRESHOLD_MS: 24 * 60 * 60 * 1000, // Через скільки часу кеш потребує фонового оновлення (24 години).
         // --- Налаштування логування для налагодження ---
         LOGGING_GENERAL: true, // Загальні логи (старт плагіна, оновлення мережі).
         LOGGING_TRACKS: false, // Логи пошуку (що шукаємо, що знайшли, фільтрація).
@@ -48,13 +48,13 @@
         JACRED_PROTOCOL: 'https://', // Протокол для API JacRed.
         JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
-            //'https://my-finder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
+            //'https://myfinder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
             //'https://api.allorigins.win/raw?url=',
             //'https://cors.bwa.workers.dev/'
             
         ],
-        PROXY_TIMEOUT_MS: 3500, // Максимальний час очікування відповіді від одного проксі (3.5 секунди).
-        MAX_PARALLEL_REQUESTS: 10, // Максимальна кількість одночасних запитів до API.
+        PROXY_TIMEOUT_MS: 3000, // Максимальний час очікування відповіді від одного проксі (3 секунди).
+        MAX_PARALLEL_REQUESTS: 12, // Максимальна кількість одночасних запитів до API.
         MAX_RETRY_ATTEMPTS: 2, // (Зараз не використовується, але зарезервовано).
 
         // Налаштування функціоналу
@@ -248,112 +248,53 @@
      * @param {string} cardId - ID картки для логування.
      * @param {function} callback - Функція, яка викликається з результатом `(error, data)`.
      */
-    // ===== safeFetchText (fetch -> XHR) =====
-function LTF_safeFetchText(url) {
-    return new Promise(function (resolve, reject) {
-        // fetch
-        if (typeof fetch === 'function') {
-            try {
-                fetch(url).then(function (res) {
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return res.text();
-                }).then(resolve).catch(reject);
-                return;
-            } catch (e) {}
+    function fetchSmart(url, cardId, callback) {
+    var called = false;
+
+    function done(err, data) {
+        if (called) return;
+        called = true;
+        if (typeof updateNetworkHealth === 'function') {
+            updateNetworkHealth(!err);
         }
-
-        // XHR fallback
-        try {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
-                    else reject(new Error('XHR ' + xhr.status));
-                }
-            };
-            xhr.onerror = function () { reject(new Error('Network error')); };
-            xhr.send(null);
-        } catch (err) {
-            reject(err);
-        }
-    });
-}
-
-/**
- * Smart fetch:
- * 1) пробує напряму
- * 2) якщо є проксі — пробує через проксі
- */
-function fetchSmart(url, cardId, callback) {
-    var callbackCalled = false;
-
-    function finish(err, data) {
-        if (callbackCalled) return;
-        callbackCalled = true;
         callback(err, data);
     }
 
-    // 1) DIRECT
-    var directTimeout = setTimeout(function () {
-        tryProxy();
-    }, LTF_CONFIG.PROXY_TIMEOUT_MS);
-
-    LTF_safeFetchText(url)
-        .then(function (txt) {
-            clearTimeout(directTimeout);
-            if (txt) finish(null, txt);
-            else tryProxy();
+    // 1️⃣ СПОЧАТКУ — прямий запит (Jacred працює напряму!)
+    LTF_safeFetchText(url, 5000)
+        .then(function (text) {
+            done(null, text);
         })
         .catch(function () {
-            clearTimeout(directTimeout);
-            tryProxy();
-        });
 
-    // 2) PROXY (optional)
-    function tryProxy() {
-        if (!LTF_CONFIG.PROXY_LIST || !LTF_CONFIG.PROXY_LIST.length) {
-            updateNetworkHealth(false);
-            return finish(new Error('Direct fetch failed (proxy disabled): ' + url));
-        }
-
-        var idx = 0;
-
-        function next() {
-            if (idx >= LTF_CONFIG.PROXY_LIST.length) {
-                updateNetworkHealth(false);
-                return finish(new Error('All proxies failed for ' + url));
+            // 2️⃣ ПРОКСІ — ТІЛЬКИ ЯК FALLBACK
+            if (!LTF_CONFIG.PROXY_LIST || !LTF_CONFIG.PROXY_LIST.length) {
+                done(new Error('Direct fetch failed'));
+                return;
             }
 
-            var proxyUrl = LTF_CONFIG.PROXY_LIST[idx] + encodeURIComponent(url);
+            var index = 0;
 
-            var t = setTimeout(function () {
-                idx++;
-                next();
-            }, LTF_CONFIG.PROXY_TIMEOUT_MS);
+            function tryProxy() {
+                if (index >= LTF_CONFIG.PROXY_LIST.length) {
+                    done(new Error('All proxies failed'));
+                    return;
+                }
 
-            LTF_safeFetchText(proxyUrl)
-                .then(function (txt) {
-                    clearTimeout(t);
-                    if (txt) {
-                        updateNetworkHealth(true);
-                        finish(null, txt);
-                    } else {
-                        idx++;
-                        next();
-                    }
-                })
-                .catch(function () {
-                    clearTimeout(t);
-                    idx++;
-                    next();
-                });
-        }
+                var proxyUrl = LTF_CONFIG.PROXY_LIST[index] + encodeURIComponent(url);
+                index++;
 
-        next();
-    }
+                LTF_safeFetchText(proxyUrl, LTF_CONFIG.PROXY_TIMEOUT_MS)
+                    .then(function (text) {
+                        done(null, text);
+                    })
+                    .catch(tryProxy);
+            }
+
+            tryProxy();
+        });
 }
- 
+   
     /*function fetchWithProxy(url, cardId, callback) {
         var currentProxyIndex = 0; // Починаємо з першого проксі.
         var callbackCalled = false; // Прапорець, щоб уникнути подвійного виклику callback.
@@ -544,11 +485,7 @@ function fetchSmart(url, cardId, callback) {
             /**
              * Внутрішня функція для виконання одного запиту до API JacRed.
              */
-            //function searchJacredApi(searchTitle, searchYear, apiCallback) {
-            // Smart: direct -> proxy(optional)
-            function fetchSmart(apiUrl, cardId, function (error, responseText) {
-
-         
+            function searchJacredApi(searchTitle, searchYear, apiCallback) {
                 var userId = Lampa.Storage.get('lampac_unic_id', '');
                 var apiUrl = LTF_CONFIG.JACRED_PROTOCOL + LTF_CONFIG.JACRED_URL + '/api/v1.0/torrents?search=' +
                     encodeURIComponent(searchTitle) +
@@ -556,7 +493,8 @@ function fetchSmart(url, cardId, callback) {
                     '&uid=' + userId;
 
                 // Робимо запит через проксі
-                fetchWithProxy(apiUrl, cardId, function (error, responseText) {
+                fetchSmart(apiUrl, cardId, function (error, responseText) {
+                //fetchWithProxy(apiUrl, cardId, function (error, responseText) {
                     if (error || !responseText) {
                         apiCallback(null); // Помилка, повертаємо "не знайдено"
                         return;
@@ -1109,5 +1047,4 @@ function fetchSmart(url, cardId, callback) {
         else if (Lampa?.Listener) Lampa.Listener.follow('app', e => { if (e.type === 'ready') start(); });
     })();
 
-    
 })();
