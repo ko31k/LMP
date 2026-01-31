@@ -241,6 +241,50 @@
     }
 
     // ===================== МЕРЕЖЕВІ ФУНКЦІЇ =====================
+    function LTF_safeFetchText(url, timeoutMs) {
+    timeoutMs = timeoutMs || 5000;
+
+    // fetch + AbortController (нові WebView)
+    if (window.fetch && window.AbortController) {
+        return new Promise(function (resolve, reject) {
+            var controller = new AbortController();
+            var timer = setTimeout(function () {
+                controller.abort();
+                reject(new Error('fetch timeout'));
+            }, timeoutMs);
+
+            fetch(url, { signal: controller.signal })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.text();
+                })
+                .then(function (txt) {
+                    clearTimeout(timer);
+                    resolve(txt);
+                })
+                .catch(function (err) {
+                    clearTimeout(timer);
+                    reject(err);
+                });
+        });
+    }
+
+    // XHR fallback (старі TV)
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.timeout = timeoutMs;
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
+            else reject(new Error('XHR ' + xhr.status));
+        };
+        xhr.onerror = xhr.ontimeout = function () {
+            reject(new Error('XHR failed'));
+        };
+        xhr.send();
+    });
+}
+ 
     /**
      * Виконує мережевий запит через список проксі-серверів, щоб обійти CORS.
      * Має логіку "відмови" (fallback) - якщо один проксі не працює, пробує інший.
@@ -261,7 +305,7 @@
     }
 
     // 1️⃣ СПОЧАТКУ — прямий запит (Jacred працює напряму!)
-    LTF_safeFetchText(url, 5000)
+    LTF_safeFetchText(url, Math.max(1500, LTF_CONFIG.PROXY_TIMEOUT_MS || 3000))
         .then(function (text) {
             done(null, text);
         })
@@ -275,22 +319,29 @@
 
             var index = 0;
 
-            function tryProxy() {
-                if (index >= LTF_CONFIG.PROXY_LIST.length) {
-                    done(new Error('All proxies failed'));
-                    return;
-                }
+function tryProxy() {
+    if (index >= LTF_CONFIG.PROXY_LIST.length) {
+        done(new Error('All proxies failed'));
+        return;
+    }
 
-                var proxyUrl = LTF_CONFIG.PROXY_LIST[index] + encodeURIComponent(url);
-                index++;
+    var proxy = LTF_CONFIG.PROXY_LIST[index];
+    index++;
 
-                LTF_safeFetchText(proxyUrl, LTF_CONFIG.PROXY_TIMEOUT_MS)
-                    .then(function (text) {
-                        done(null, text);
-                    })
-                    .catch(tryProxy);
-            }
+    var proxyUrl;
+    if (proxy.indexOf('url=') !== -1) {
+        proxyUrl = proxy + encodeURIComponent(url);
+    } else {
+        // для проксі типу Host/{URL}
+        proxyUrl = proxy + url;
+    }
 
+    LTF_safeFetchText(proxyUrl, LTF_CONFIG.PROXY_TIMEOUT_MS)
+        .then(function (text) {
+            done(null, text);
+        })
+        .catch(tryProxy);
+}
             tryProxy();
         });
 }
@@ -1047,4 +1098,5 @@
         else if (Lampa?.Listener) Lampa.Listener.follow('app', e => { if (e.type === 'ready') start(); });
     })();
 
+    
 })();
