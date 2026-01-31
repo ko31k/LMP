@@ -6,7 +6,7 @@
  *  - Спрощені (4K/FHD/HD/SD, TS/TC/CAM) або повні підписи — перемикається
  *  - Ручні оверрайди для окремих ID
  *  - Кеш 48h + тихе фонове оновлення
- *  - Черга запитів (до 12 парал.), проксі (HTTPS), поліфіли для старих WebView
+ *  - Черга запитів (до 10 парал.), проксі (HTTPS), поліфіли для старих WebView
  *
  * Налаштування: Інтерфейс → «Мітки якості»
  */
@@ -190,10 +190,6 @@
     window.LQE_safeFetchText = safeFetchText;
 })();
 
-
-
-
-
 (function () {
     'use strict'; // Використання суворого режиму для запобігання помилок
 
@@ -204,17 +200,18 @@
         LOGGING_QUALITY: false, // Логування процесу визначення якості
         LOGGING_CARDLIST: true, // Логування для спискових карток
         CACHE_VALID_TIME_MS: 48 * 60 * 60 * 1000, // Час життя кешу (48 години)
-        CACHE_REFRESH_THRESHOLD_MS: 36 * 60 * 60 * 1000, // Час для фонового оновлення кешу (24 годин)
+        CACHE_REFRESH_THRESHOLD_MS: 36 * 60 * 60 * 1000, // Час для фонового оновлення кешу (36 годин)
         CACHE_KEY: 'lampa_quality_cache', // Ключ для зберігання кешу в LocalStorage
         JACRED_PROTOCOL: 'https://', // Протокол для API JacRed
         JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         JACRED_API_KEY: '', // Ключ API (не використовується в даній версії)
         PROXY_LIST: [ // Список проксі серверів для обходу CORS обмежень
-            //'https://my-finder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
-            //'https://cors.bwa.workers.dev/',
-            //'https://api.allorigins.win/raw?url='
+            'https://myfinder.kozak-bohdan.workers.dev/?key={KEY}&url=',
+            'https://api.allorigins.win/raw?url=',
+            'https://cors.bwa.workers.dev/'
         ],
-        PROXY_TIMEOUT_MS: 4000, // Таймаут для проксі запитів (4 секунди)
+        WORKER_KEY: 'lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z', // ключ
+        PROXY_TIMEOUT_MS: 3000, // Таймаут для проксі запитів (3 секунди)
         SHOW_QUALITY_FOR_TV_SERIES: false, // ✅ Показувати якість для серіалів
         SHOW_FULL_CARD_LABEL: true,       // ✅ Показувати мітку якості у повній картці
 
@@ -484,85 +481,108 @@
      * @param {string} cardId - ID картки (тільки для логів)
      * @param {function} callback - callback(err, data)
      */
-    
-    /**
- * Smart fetch:
- * 1) пробує напряму (Lampa/WebView)
- * 2) якщо дозволено і є проксі — пробує через проксі
- * @param {string} url
- * @param {string} cardId
- * @param {function} callback  callback(err, text)
+/**
+ * Виконує запит: спочатку напряму, потім через проксі по черзі
+ * Працює і на старих WebView через LQE_safeFetchText (fetch/XHR).
+ *
+ * @param {string} url - оригінальний URL
+ * @param {string} cardId - ID картки (для логів)
+ * @param {function} callback - callback(err, dataText)
  */
 function fetchSmart(url, cardId, callback) {
-    var callbackCalled = false;
+    var called = false;
 
-    function finish(err, data) {
-        if (callbackCalled) return;
-        callbackCalled = true;
+    function done(err, data) {
+        if (called) return;
+        called = true;
+        if (typeof updateNetworkHealth === 'function') {
+            updateNetworkHealth(!err);
+        }
         callback(err, data);
     }
 
-    // ---------- 1) DIRECT ----------
-    var directTimeout = setTimeout(function () {
-        // якщо зависло — підемо в проксі (якщо дозволено)
-        tryProxy();
-    }, LQE_CONFIG.PROXY_TIMEOUT_MS);
+    // якщо сумісний fetch/XHR-обгортки немає — одразу фейл (щоб не падати)
+    var fetchText = window.LQE_safeFetchText;
+    if (typeof fetchText !== 'function') {
+        done(new Error('LQE_safeFetchText is not available'));
+        return;
+    }
 
-    // напряму (fetch або XHR) — через твій safeFetchText
-    LQE_safeFetchText(url)
-        .then(function (txt) {
-            clearTimeout(directTimeout);
-            if (txt) finish(null, txt);
-            else tryProxy();
+    function withTimeout(promise, ms) {
+        return new Promise(function (resolve, reject) {
+            var t = setTimeout(function () {
+                reject(new Error('Timeout ' + ms + 'ms'));
+            }, ms);
+
+            promise.then(function (v) {
+                clearTimeout(t);
+                resolve(v);
+            }).catch(function (e) {
+                clearTimeout(t);
+                reject(e);
+            });
+        });
+    }
+
+    function buildProxyUrl(tpl, rawUrl) {
+        // підстановка ключа для воркера
+        if (tpl.indexOf('{KEY}') !== -1) {
+            var k = (LQE_CONFIG.WORKER_KEY || '');
+            tpl = tpl.replace('{KEY}', encodeURIComponent(k));
+        }
+
+        // cors.bwa.workers.dev очікує формат Host/{URL} (краще без encodeURIComponent)
+        // приклад: https://cors.bwa.workers.dev/http://example.com
+        if (tpl.indexOf('cors.bwa.workers.dev') !== -1) {
+            // гарантуємо, що між хостом і URL є "/"
+            if (tpl.charAt(tpl.length - 1) !== '/') tpl += '/';
+            return tpl + rawUrl;
+        }
+
+        // allorigins/raw?url= та твій воркер url= — тут URL треба кодувати
+        return tpl + encodeURIComponent(rawUrl);
+    }
+
+    // 1) СПОЧАТКУ прямий запит
+    withTimeout(fetchText(url), 5000)
+        .then(function (text) {
+            done(null, text);
         })
         .catch(function () {
-            clearTimeout(directTimeout);
-            tryProxy();
+            // 2) Якщо напряму не вийшло — пробуємо проксі по черзі
+            if (!LQE_CONFIG.PROXY_LIST || !LQE_CONFIG.PROXY_LIST.length) {
+                done(new Error('Direct fetch failed'));
+                return;
+            }
+
+            var index = 0;
+
+            function tryNextProxy() {
+                if (index >= LQE_CONFIG.PROXY_LIST.length) {
+                    done(new Error('All proxies failed'));
+                    return;
+                }
+
+                var tpl = LQE_CONFIG.PROXY_LIST[index++];
+                var proxyUrl = buildProxyUrl(tpl, url);
+
+                if (LQE_CONFIG.LOGGING_GENERAL) {
+                    console.log('LQE-LOG', 'card: ' + cardId + ', Proxy fetch:', proxyUrl);
+                }
+
+                withTimeout(fetchText(proxyUrl), LQE_CONFIG.PROXY_TIMEOUT_MS || 3000)
+                    .then(function (text) {
+                        done(null, text);
+                    })
+                    .catch(function () {
+                        tryNextProxy();
+                    });
+            }
+
+            tryNextProxy();
         });
-
-    // ---------- 2) PROXY (optional) ----------
-    function tryProxy() {
-        // якщо проксі вимкнено або список пустий — завершуємо помилкою
-        if (!LQE_CONFIG.PROXY_LIST || !LQE_CONFIG.PROXY_LIST.length) {
-            return finish(new Error('Direct fetch failed (proxy disabled): ' + url));
-        }
-
-        var idx = 0;
-        function next() {
-            if (idx >= LQE_CONFIG.PROXY_LIST.length) {
-                return finish(new Error('All proxies failed for ' + url));
-            }
-
-            var proxyUrl = LQE_CONFIG.PROXY_LIST[idx] + encodeURIComponent(url);
-
-            if (LQE_CONFIG.LOGGING_GENERAL) {
-                console.log("LQE-LOG", "card: " + cardId + ", Fetch with proxy: " + proxyUrl);
-            }
-
-            var t = setTimeout(function () {
-                idx++;
-                next();
-            }, LQE_CONFIG.PROXY_TIMEOUT_MS);
-
-            LQE_safeFetchText(proxyUrl)
-                .then(function (txt) {
-                    clearTimeout(t);
-                    if (txt) finish(null, txt);
-                    else { idx++; next(); }
-                })
-                .catch(function (e) {
-                    clearTimeout(t);
-                    if (LQE_CONFIG.LOGGING_GENERAL) {
-                        console.error("LQE-LOG", "card: " + cardId + ", Proxy fetch error:", e);
-                    }
-                    idx++;
-                    next();
-                });
-        }
-
-        next();
-    }
 }
+
     /*function fetchWithProxy(url, cardId, callback) {
         var currentProxyIndex = 0;       // який проксі зараз пробуємо
         var callbackCalled = false;      // щоб не викликати callback двічі
@@ -578,7 +598,15 @@ function fetchSmart(url, cardId, callback) {
             }
 
             // формуємо фінальний URL через поточний проксі
-            var proxyUrl = LQE_CONFIG.PROXY_LIST[currentProxyIndex] + encodeURIComponent(url);
+            var proxyTpl = LQE_CONFIG.PROXY_LIST[currentProxyIndex];
+
+            // підставляємо
+            if (proxyTpl.indexOf('{KEY}') !== -1) {
+            var k = (LQE_CONFIG.WORKER_KEY || '');
+            proxyTpl = proxyTpl.replace('{KEY}', encodeURIComponent(k));
+            }
+
+            var proxyUrl = proxyTpl + encodeURIComponent(url);
 
             if (LQE_CONFIG.LOGGING_GENERAL) {
                 console.log("LQE-LOG", "card: " + cardId + ", Fetch with proxy: " + proxyUrl);
@@ -1079,8 +1107,8 @@ function fetchSmart(url, cardId, callback) {
                 }, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 1000);
 
                 // Виконуємо запит через проксі
-                //fetchWithProxy(apiUrl, cardId, function (error, responseText) {
                 fetchSmart(apiUrl, cardId, function (error, responseText) {
+                //fetchWithProxy(apiUrl, cardId, function (error, responseText) {
                     clearTimeout(timeoutId);
 
                     if (error || !responseText) {
@@ -1923,5 +1951,6 @@ function fetchSmart(url, cardId, callback) {
         //LQE_CONFIG.SHOW_FULL_CARD_LABEL = !!st.show_full_card;
 
     })();
+
 
 })();
