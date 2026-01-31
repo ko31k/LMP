@@ -210,7 +210,7 @@
         JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         JACRED_API_KEY: '', // Ключ API (не використовується в даній версії)
         PROXY_LIST: [ // Список проксі серверів для обходу CORS обмежень
-            'https://myfinder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
+            //'https://my-finder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
             //'https://cors.bwa.workers.dev/',
             //'https://api.allorigins.win/raw?url='
         ],
@@ -484,7 +484,86 @@
      * @param {string} cardId - ID картки (тільки для логів)
      * @param {function} callback - callback(err, data)
      */
-    function fetchWithProxy(url, cardId, callback) {
+    
+    /**
+ * Smart fetch:
+ * 1) пробує напряму (Lampa/WebView)
+ * 2) якщо дозволено і є проксі — пробує через проксі
+ * @param {string} url
+ * @param {string} cardId
+ * @param {function} callback  callback(err, text)
+ */
+function fetchSmart(url, cardId, callback) {
+    var callbackCalled = false;
+
+    function finish(err, data) {
+        if (callbackCalled) return;
+        callbackCalled = true;
+        callback(err, data);
+    }
+
+    // ---------- 1) DIRECT ----------
+    var directTimeout = setTimeout(function () {
+        // якщо зависло — підемо в проксі (якщо дозволено)
+        tryProxy();
+    }, LQE_CONFIG.PROXY_TIMEOUT_MS);
+
+    // напряму (fetch або XHR) — через твій safeFetchText
+    LQE_safeFetchText(url)
+        .then(function (txt) {
+            clearTimeout(directTimeout);
+            if (txt) finish(null, txt);
+            else tryProxy();
+        })
+        .catch(function () {
+            clearTimeout(directTimeout);
+            tryProxy();
+        });
+
+    // ---------- 2) PROXY (optional) ----------
+    function tryProxy() {
+        // якщо проксі вимкнено або список пустий — завершуємо помилкою
+        if (!LQE_CONFIG.PROXY_LIST || !LQE_CONFIG.PROXY_LIST.length) {
+            return finish(new Error('Direct fetch failed (proxy disabled): ' + url));
+        }
+
+        var idx = 0;
+        function next() {
+            if (idx >= LQE_CONFIG.PROXY_LIST.length) {
+                return finish(new Error('All proxies failed for ' + url));
+            }
+
+            var proxyUrl = LQE_CONFIG.PROXY_LIST[idx] + encodeURIComponent(url);
+
+            if (LQE_CONFIG.LOGGING_GENERAL) {
+                console.log("LQE-LOG", "card: " + cardId + ", Fetch with proxy: " + proxyUrl);
+            }
+
+            var t = setTimeout(function () {
+                idx++;
+                next();
+            }, LQE_CONFIG.PROXY_TIMEOUT_MS);
+
+            LQE_safeFetchText(proxyUrl)
+                .then(function (txt) {
+                    clearTimeout(t);
+                    if (txt) finish(null, txt);
+                    else { idx++; next(); }
+                })
+                .catch(function (e) {
+                    clearTimeout(t);
+                    if (LQE_CONFIG.LOGGING_GENERAL) {
+                        console.error("LQE-LOG", "card: " + cardId + ", Proxy fetch error:", e);
+                    }
+                    idx++;
+                    next();
+                });
+        }
+
+        next();
+    }
+}
+    /*function fetchWithProxy(url, cardId, callback) {
         var currentProxyIndex = 0;       // який проксі зараз пробуємо
         var callbackCalled = false;      // щоб не викликати callback двічі
 
@@ -547,7 +626,7 @@
         }
 
         tryNextProxy();
-    }
+    }*/
     // ===================== АНІМАЦІЯ ЗАВАНТАЖЕННЯ =====================
     /**
      * Додає анімацію завантаження до картки
@@ -1000,7 +1079,8 @@
                 }, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 1000);
 
                 // Виконуємо запит через проксі
-                fetchWithProxy(apiUrl, cardId, function (error, responseText) {
+                //fetchWithProxy(apiUrl, cardId, function (error, responseText) {
+                fetchSmart(apiUrl, cardId, function (error, responseText) {
                     clearTimeout(timeoutId);
 
                     if (error || !responseText) {
