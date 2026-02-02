@@ -47,7 +47,7 @@
         LOGGING_CARDLIST: true, // Логи обробки карток (скільки карток в пачці, тощо).
 
         // Налаштування API та мережі
-        JACRED_PROTOCOL: 'http://', 
+        JACRED_PROTOCOL: 'https://', 
         JACRED_URL: 'jacred.xyz',  //(redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
             'WRK',
