@@ -32,6 +32,8 @@
     var ukraineFlagSVG = '<i class="flag-css"></i>';
     // Головний об'єкт конфігурації
     var LTF_CONFIG = window.LTF_CONFIG || {
+        WRK_B: 'https://myfinder.kozak-bohdan.workers.dev/',
+        WRK_K: 'lmp_2026_JacRed_K9xP7aQ4mV2E',
         BADGE_STYLE: 'flag_count',        // 'text' | 'flag_count' | 'flag_only'
         SHOW_FOR_TV: true,          // показувати на серіалах
         // Налаштування кешу
@@ -45,22 +47,23 @@
         LOGGING_CARDLIST: true, // Логи обробки карток (скільки карток в пачці, тощо).
 
         // Налаштування API та мережі
-        JACRED_PROTOCOL: 'https://', // Протокол для API JacRed.
-        JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
+        JACRED_PROTOCOL: 'http://', 
+        JACRED_URL: 'jacred.xyz',  //(redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
-            'https://myfinder.kozak-bohdan.workers.dev/?key=lqe_2026_x9A3fQ7P2KJmLwD8N4s0Z&url=',
+            'WRK',
             'https://api.allorigins.win/raw?url=',
             'https://cors.bwa.workers.dev/'
             
         ],
-        PROXY_TIMEOUT_MS: 3500, // Максимальний час очікування відповіді від одного проксі (3.5 секунди).
-        MAX_PARALLEL_REQUESTS: 12, // Максимальна кількість одночасних запитів до API.
+        PROXY_TIMEOUT_MS: 3500, // Максимальний час очікування відповіді від одного проксі (4 секунди).
+        MAX_PARALLEL_REQUESTS: 2, // Максимальна кількість одночасних запитів до API.
         MAX_RETRY_ATTEMPTS: 2, // (Зараз не використовується, але зарезервовано).
+        MIN_GAP_MS: 800, // Мінімальна пауза між стартами мережевих задач у черзі (анти-бан / анти-DDoS)
 
         // Налаштування функціоналу
         SHOW_TRACKS_FOR_TV_SERIES: true, // Чи показувати мітки для серіалів (true або false).
 
-        // ✅ ОНОВЛЕНО: Налаштування відображення
+        //Налаштування відображення
         DISPLAY_MODE: 'flag_count', // Режим відображення мітки. Варіанти:
         // 'text': "Ukr" або "2xUkr"
         // 'flag_count': [SVG] або "2x[SVG]"
@@ -184,6 +187,25 @@
     var activeRequests = 0; // Лічильник активних (тих, що виконуються зараз) запитів.
     var networkHealth = 1.0; // Показник "здоров'я" мережі (1.0 = добре, 0.3 = погано).
 
+    var NEXT_REQUEST_TS = 0;
+
+    /**
+     * Гарантує мінімальну паузу між стартами task'ів.
+     * Паралельність контролюється activeRequests, а це — QPS.
+     */
+function scheduleStart(startFn) {
+    var now = Date.now();
+
+    // можна робити адаптивно, але ти просив просто MIN_GAP_MS
+    var gap = (LTF_CONFIG.MIN_GAP_MS || 700);
+
+    var wait = Math.max(0, NEXT_REQUEST_TS - now);
+    NEXT_REQUEST_TS = Math.max(NEXT_REQUEST_TS, now) + gap;
+
+    setTimeout(startFn, wait);
+}
+
+    
     /**
      * Додає завдання (функцію пошуку) до черги.
      * @param {function} fn - Функція, яку потрібно виконати.
@@ -199,7 +221,9 @@
     function processQueue() {
         // Адаптивний ліміт: базується на MAX_PARALLEL_REQUESTS, але зменшується,
         // якщо мережа "хворіє" (напр. проксі не відповідають).
-        var adaptiveLimit = Math.max(3, Math.min(LTF_CONFIG.MAX_PARALLEL_REQUESTS, Math.floor(LTF_CONFIG.MAX_PARALLEL_REQUESTS * networkHealth)));
+        var base = Math.max(1, (LTF_CONFIG.MAX_PARALLEL_REQUESTS || 1));
+        var adaptiveLimit = Math.max(1, Math.floor(base * networkHealth));
+
 
         // Не перевищувати адаптивний ліміт.
         if (activeRequests >= adaptiveLimit) return;
@@ -207,22 +231,21 @@
         var task = requestQueue.shift(); // Взяти перше завдання з черги.
         if (!task) return; // Якщо черга порожня, вийти.
 
-        activeRequests++; // Збільшити лічильник активних запитів.
+activeRequests++;
 
-        try {
-            // Виконати завдання.
-            // Важливо: ми передаємо в завдання функцію `onTaskDone`,
-            // яку це завдання *зобов'язане* викликати, коли завершиться.
-            task(function onTaskDone() {
-                activeRequests--; // Зменшити лічильник.
-                // Запустити обробку наступного завдання асинхронно (через 0ms).
-                setTimeout(processQueue, 0);
-            });
-        } catch (e) {
-            console.error("LTF-LOG", "Помилка виконання завдання з черги:", e);
-            activeRequests--; // Все одно зменшити лічильник при помилці.
+scheduleStart(function () {
+    try {
+        task(function onTaskDone() {
+            activeRequests--;
             setTimeout(processQueue, 0);
-        }
+        });
+    } catch (e) {
+        console.error("LTF-LOG", "Помилка виконання завдання з черги:", e);
+        activeRequests--;
+        setTimeout(processQueue, 0);
+    }
+});
+
     }
 
     /**
@@ -338,16 +361,24 @@ function fetchSmart(url, cardId, callback) {
                     return;
                 }
 
-                var proxy = LTF_CONFIG.PROXY_LIST[index++];
-                var proxyUrl;
+var proxy = LTF_CONFIG.PROXY_LIST[index++];
+var proxyUrl;
 
-                // allorigins / worker (?url=) -> encode
-                if (proxy.indexOf('url=') !== -1) {
-                    proxyUrl = proxy + encodeURIComponent(url);
-                } else {
-                    // cors.bwa.workers.dev/Host/{URL} -> без encode
-                    proxyUrl = (proxy.charAt(proxy.length - 1) === '/' ? proxy : (proxy + '/')) + url;
-                }
+if (proxy === 'WRK') {
+    proxyUrl =
+        LTF_CONFIG.WRK_B +
+        '?key=' + encodeURIComponent(LTF_CONFIG.WRK_K) +
+        '&url=' + encodeURIComponent(url);
+
+} else if (proxy.indexOf('url=') !== -1) {
+    // allorigins style (?url=)
+    proxyUrl = proxy + encodeURIComponent(url);
+
+} else {
+    // cors.bwa.workers.dev/Host/{URL} -> без encode
+    proxyUrl = (proxy.charAt(proxy.length - 1) === '/' ? proxy : (proxy + '/')) + url;
+}
+
 
                 LTF_safeFetchText(proxyUrl, LTF_CONFIG.PROXY_TIMEOUT_MS || 3000)
                     .then(function (text) {
@@ -1033,30 +1064,41 @@ function fetchSmart(url, cardId, callback) {
 
             ltfToast('Кеш очищено. Оновлюю дані...');
 
-            // 3. БЕЗПЕЧНЕ ОНОВЛЕННЯ: Запускаємо пересканування по черзі, щоб не "повісити" інтерфейс
-            var cards = Array.from(document.querySelectorAll('.card')); // Беремо всі картки
-            var index = 0;
+// 3. Обмежений перескан: тільки видимі 5–10 карток.
+// Нові мітки для інших підтягнуться самі через Card.onVisible під час гортання.
+var MAX_RESCAN = 8; // або 5, якщо хочеш ще обережніше
+var RESCAN_GAP = 250; // пауза між картками (UI-friendly)
 
-            function processNext() {
-                if (index >= cards.length) return; // Кінець списку
+function isCardVisible(cardEl) {
+    if (!cardEl || !cardEl.isConnected) return false;
+    var r = cardEl.getBoundingClientRect();
+    // видима хоча б частково + в межах viewport
+    return (r.bottom > 0 && r.top < window.innerHeight);
+}
 
-                var card = cards[index];
-                // Перевіряємо, чи картка видима, щоб не витрачати ресурси даремно
-                if (card.isConnected && card.getBoundingClientRect().top < window.innerHeight) {
-                    // Викликаємо головну функцію. Оскільки кеш пустий, вона сама піде в мережу шукати дані
-                    if (typeof processListCard === 'function') {
-                        processListCard(card);
-                    }
-                }
+// беремо тільки видимі
+var visibleCards = Array.from(document.querySelectorAll('.card')).filter(isCardVisible);
 
-                index++;
-                // ❗ ГОЛОВНЕ: Робимо паузу 250мс між картками. 
-                // Це дозволить інтерфейсу реагувати на натискання пульта.
-                setTimeout(processNext, 250);
-            }
+// обмежуємо кількість
+visibleCards = visibleCards.slice(0, MAX_RESCAN);
 
-            processNext(); // Запуск ланцюжка
-        }
+var idx = 0;
+
+function rescanNext() {
+    if (idx >= visibleCards.length) return;
+
+    var el = visibleCards[idx++];
+    // Тут передаємо DOM — твій processListCard це витримає (він дістає card_data з cardRoot)
+    try {
+        if (typeof processListCard === 'function') processListCard(el);
+    } catch (e) { }
+
+    setTimeout(rescanNext, RESCAN_GAP);
+}
+
+rescanNext();
+
+}
 
         // ❗ Порожній шаблон — щоб не дублювати контейнер налаштувань
         Lampa.Template.add('settings_ltf', '<div></div>');
