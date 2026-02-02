@@ -308,7 +308,7 @@
         "Blu-Ray Remux 2160p | 4K | HDR | Dolby Vision P7": "4K BDRemux",
         "4K, HEVC, HDR / WEB-DLRip (2160p)": "4K WEB-DLRip",
         "Blu-ray disc (custom) 1080P] [StudioCanal]": "1080P BDRip",
-        "HD-DVD Remux": "HDRemux", "HDDVDRemux": "HDRemux",
+        "hd-dvd remux": "HDRemux", "hddvdremux": "HDRemux", "hd dvd remux": "HDRemux",
         "HDTVRip [H.264/720p]": "720p HDTVRip",
         "HDTVRip 720p": "720p HDTVRip",
         "2025 / ЛМ / TC": "TC", // Telecine
@@ -343,8 +343,8 @@
     // Мапа для визначення джерела відео
     var SOURCE_MAP = {
         "blu-ray remux": "BDRemux", "uhd bdremux": "4K BDRemux", "bdremux": "BDRemux",
-        "remux": "BDRemux", "blu-ray disc": "Blu-ray", "bluray": "Blu-ray", "HD-DVD Remux": "HDRemux",
-        "HDDVDRemux": "HDRemux",
+        "remux": "BDRemux", "blu-ray disc": "Blu-ray", "bluray": "Blu-ray", "hd-dvd remux": "HDRemux",
+        "hddvdremux": "HDRemux", "hd dvd remux": "HDRemux",
         "blu-ray": "Blu-ray", "bdrip": "BDRip", "brrip": "BDRip",
         "uhd blu-ray": "4K Blu-ray", "4k blu-ray": "4K Blu-ray",
         "web-dl": "WEB-DL", "webdl": "WEB-DL", "web dl": "WEB-DL",
@@ -705,13 +705,13 @@ function fetchWithProxy(url, cardId, callback) {
         }
 
         // TS (Telesync) - погана якість (запис з проектора)
-        if (/(telesync|телесинк|ts\b)/.test(lowerLabel)) {
+        if (/(telesync|телесинк|\bts\b|hdts)/.test(lowerLabel)) {
             if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TS");
             return "TS";
         }
 
         // TC (Telecine) - погана якість (запис з кіноплівки)
-        if (/(telecine|телесин|tc\b)/.test(lowerLabel)) {
+        if (/(telecine|телесин|\btc\b|hdtc)/.test(lowerLabel)) {
             if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TC");
             return "TC";
         }
@@ -933,8 +933,10 @@ function fetchWithProxy(url, cardId, callback) {
         if (/720p/.test(lower)) return 720; // HD
         if (/480p/.test(lower)) return 480; // SD
         // Погані якості - правильний порядок (TC > TS > CamRip):
-        if (/tc|telecine/.test(lower)) return 3; // TC краще за TS
-        if (/ts|telesync/.test(lower)) return 2; // TS краще за CamRip
+        if (/(?:\btelecine\b|\btc\b)/.test(lower)) return 3;
+        //if (/tc|telecine/.test(lower)) return 3; // TC краще за TS
+        if (/(?:\btelesync\b|\bts\b)/.test(lower)) return 2;
+        //if (/ts|telesync/.test(lower)) return 2; // TS краще за CamRip
         if (/camrip|камрип/.test(lower)) return 1; // CamRip - найгірше
 
         return 0; // Якість не визначена
@@ -1023,12 +1025,18 @@ function fetchWithProxy(url, cardId, callback) {
                     }
 
                     try {
-                        var torrents = JSON.parse(responseText);
-                        if (!Array.isArray(torrents) || torrents.length === 0) {
-                            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "card: " + cardId + ", No torrents found");
-                            apiCallback(null);
-                            return;
-                        }
+                        var parsed = JSON.parse(responseText);
+                        var torrents = [];
+
+                            if (Array.isArray(parsed)) torrents = parsed;
+                            else if (parsed && Array.isArray(parsed.Results)) torrents = parsed.Results;
+                            else if (parsed && Array.isArray(parsed.results)) torrents = parsed.results;
+
+                                    if (!torrents.length) {
+                                    apiCallback(null);
+                                    return;
+                                    }
+
 
                         var bestNumericQuality = -1; // Найкраща знайдена якість
                         var bestFoundTorrent = null; // Найкращий знайдений торрент
@@ -1081,7 +1089,7 @@ function fetchWithProxy(url, cardId, callback) {
                             }
 
                             // === ЗМІНА 2: Покращена валідація року ===
-                            var torrentYearRaw = currentTorrent.relased;
+                            var torrentYearRaw = currentTorrent.relased || currentTorrent.released;
                             var parsedYear = 0;
                             if (torrentYearRaw && !isNaN(torrentYearRaw)) {
                                 parsedYear = parseInt(torrentYearRaw, 10);
@@ -1311,8 +1319,10 @@ function fetchWithProxy(url, cardId, callback) {
     function updateFullCardQualityElement(qualityCode, fullTorrentTitle, cardId, renderElement, bypassTranslation) {
         if (!renderElement) return;
         var element = $('.full-start__status.lqe-quality', renderElement);
-        var rateLine = $('.full-start-new__rate-line', renderElement);
+        var rateLine = $('.full-start-new__rate-line, .full-start__rate-line', renderElement).first();
         if (!rateLine.length) return;
+        //var rateLine = $('.full-start-new__rate-line', renderElement);
+        //if (!rateLine.length) return;
 
         var displayQuality = bypassTranslation ? fullTorrentTitle : translateQualityLabel(qualityCode, fullTorrentTitle);
 
@@ -1462,7 +1472,7 @@ function fetchWithProxy(url, cardId, callback) {
 
         // Тип контенту та ключ кешу
         var isTvSeries = (normalizedCard.type === 'tv' || normalizedCard.name);
-        var cacheKey = LQE_CONFIG.CACHE_VERSION + '_' + (isTvSeries ? 'tv_' : 'movie_') + normalizedCard.id;
+        var cacheKey = makeCacheKey(LQE_CONFIG.CACHE_VERSION, normalizedCard.type, normalizedCard.id);
 
         // Ручне перевизначення має найвищий пріоритет
         var manualOverrideData = LQE_CONFIG.MANUAL_OVERRIDES[cardId];
@@ -1510,8 +1520,15 @@ if (Date.now() - cachedQualityData.timestamp > LQE_CONFIG.CACHE_REFRESH_THRESHOL
     // ✅ inflight-захист і для фонового оновлення full card
     if (inflightRequests[cacheKey]) return;
     inflightRequests[cacheKey] = true;
+    // ✅ failsafe: якщо callback не повернеться — не блокуємо ключ назавжди
+    var __lqeInflightKill_bg = setTimeout(function () {
+        if (inflightRequests[cacheKey]) delete inflightRequests[cacheKey];
+    }, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 3000);
+
 
     getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
+         clearTimeout(__lqeInflightKill_bg);
+        
         if (jrResult && jrResult.quality && jrResult.quality !== 'NO') {
             saveQualityCache(cacheKey, {
                 quality_code: jrResult.quality,
@@ -1552,6 +1569,12 @@ if (inflightRequests[cacheKey]) {
     return;
 }
 inflightRequests[cacheKey] = true;
+// ✅ failsafe: якщо JacRed завис/впав — прибираємо лоадер і знімаємо inflight
+var __lqeInflightKill_full = setTimeout(function () {
+    if (inflightRequests[cacheKey]) delete inflightRequests[cacheKey];
+    removeLoadingAnimation(cardId, renderElement);
+}, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 3000);
+
 
 // Кешу нема — робимо свіжий пошук
 clearFullCardQualityElements(cardId, renderElement);
@@ -1561,6 +1584,7 @@ addLoadingAnimation(cardId, renderElement);
 
 
 getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
+    clearTimeout(__lqeInflightKill_full);
     var qualityCode = (jrResult && jrResult.quality) || null;
     var fullTorrentTitle = (jrResult && jrResult.full_label) || null;
 
@@ -1591,7 +1615,9 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
     function updateCardListQuality(cardInstance) {
         if (LQE_CONFIG.LOGGING_CARDLIST) console.log("LQE-CARDLIST", "Processing list card");
         var cardRoot = cardInstance && cardInstance.html ? (cardInstance.html[0] || cardInstance.html) : cardInstance;
-        if (!cardRoot || !cardRoot.isConnected || !document.body.contains(cardRoot)) return;
+        if (!cardRoot) return;
+        if (document.body && !document.body.contains(cardRoot)) return;
+
 
         var cardView = cardRoot.querySelector ? cardRoot.querySelector('.card__view') : null;
         var cardData = cardInstance && cardInstance.data ? cardInstance.data : cardRoot.card_data;
@@ -1639,7 +1665,12 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
                 if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "card: " + cardId + ", Background refresh for list");
                 if (inflightRequests[cacheKey]) return;
                 inflightRequests[cacheKey] = true;
+                    var __lqeInflightKill_list_bg = setTimeout(function () {
+                        if (inflightRequests[cacheKey]) delete inflightRequests[cacheKey];
+                    }, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 3000);
+
                 getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
+                    clearTimeout(__lqeInflightKill_list_bg);
                     if (jrResult && jrResult.quality && jrResult.quality !== 'NO') {
                         saveQualityCache(cacheKey, {
                             quality_code: jrResult.quality,
@@ -1658,7 +1689,13 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
         // Завантажуємо нові дані
         if (inflightRequests[cacheKey]) return;
         inflightRequests[cacheKey] = true;
+            var __lqeInflightKill_list = setTimeout(function () {
+                if (inflightRequests[cacheKey]) delete inflightRequests[cacheKey];
+            }, LQE_CONFIG.PROXY_TIMEOUT_MS * LQE_CONFIG.PROXY_LIST.length + 3000);
+
         getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
+            clearTimeout(__lqeInflightKill_list);
+
             if (LQE_CONFIG.LOGGING_CARDLIST) console.log('LQE-CARDLIST', 'card: ' + cardId + ', JacRed result for list');
 
             if (!document.body.contains(cardRoot)) {
@@ -1700,12 +1737,21 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
         }
 
         // Підписуємось на lifecycle картки, щоб працювати лише з видимими елементами.
-        var originalOnVisible = card.Card.onVisible;
+        if (!card.Card.__lqe_onVisible_patched) {
+            card.Card.__lqe_onVisible_patched = true;
+            var originalOnVisible = card.Card.onVisible;
+                card.Card.onVisible = function () {
+                if (typeof originalOnVisible === 'function') originalOnVisible.apply(this, arguments);
+                updateCardListQuality(this);
+                };
+        }
+
+        /*var originalOnVisible = card.Card.onVisible;
         card.Card.onVisible = function () {
             var self = this;
             if (typeof originalOnVisible === 'function') originalOnVisible.apply(self, arguments);
             updateCardListQuality(self);
-        };
+        };*/
         // Підписуємося на події повної картки
         Lampa.Listener.follow('full', function (event) {
             if (event.type == 'complite') {
@@ -1760,8 +1806,8 @@ getBestReleaseFromJacred(normalizedCard, cardId, function (jrResult) {
         function load() {
             var s = (Lampa.Storage.get(SETTINGS_KEY) || {});
             return {
-                show_tv: (typeof s.show_tv === 'boolean') ? s.show_tv : true,
-                show_full_card: (typeof s.show_full_card === 'boolean') ? s.show_full_card : true,
+                show_tv: (typeof s.show_tv === 'boolean') ? s.show_tv : !!LQE_CONFIG.SHOW_QUALITY_FOR_TV_SERIES,
+                show_full_card: (typeof s.show_full_card === 'boolean') ? s.show_full_card : !!LQE_CONFIG.SHOW_FULL_CARD_LABEL,
                 label_style: s.label_style || 'short'
             };
         }
