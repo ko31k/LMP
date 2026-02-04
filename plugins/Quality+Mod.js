@@ -206,7 +206,7 @@
         CACHE_VALID_TIME_MS: 48 * 60 * 60 * 1000, // Час життя кешу (48 години)
         CACHE_REFRESH_THRESHOLD_MS: 24 * 60 * 60 * 1000, // Час для фонового оновлення кешу (24 годин)
         CACHE_KEY: 'lampa_quality_cache', // Ключ для зберігання кешу в LocalStorage
-        JACRED_PROTOCOL: 'http://', // Протокол для API JacRed
+        JACRED_PROTOCOL: 'https://', // Протокол для API JacRed
         JACRED_URL: 'jacred.xyz', // Домен API JacRed (redapi.cfhttp.top або jacred.xyz)
         JACRED_API_KEY: '', // Ключ API (не використовується в даній версії)
         PROXY_LIST: [ // Список проксі серверів для обходу CORS обмежень
@@ -214,12 +214,12 @@
             'https://cors.bwa.workers.dev/',
             'https://api.allorigins.win/raw?url='
         ],
-        PROXY_TIMEOUT_MS: 3000, // Таймаут для проксі запитів (3 секунди)
-        WORKER_KEY: 'lmp_2026_JacRed_K9xP7aQ4mV2E', // ключ
+        PROXY_TIMEOUT_MS: 3000,
+        WORKER_KEY: 'lmp_2026_JacRed_K9xP7aQ4mV2E',
         SHOW_QUALITY_FOR_TV_SERIES: false, // ✅ Показувати якість для серіалів
         SHOW_FULL_CARD_LABEL: true,       // ✅ Показувати мітку якості у повній картці
 
-        MAX_PARALLEL_REQUESTS: 4, // Максимальна кількість паралельних запитів
+        MAX_PARALLEL_REQUESTS: 5, // Максимальна кількість паралельних запитів
 
         USE_SIMPLE_QUALITY_LABELS: true, // ✅ Використовувати спрощені мітки якості (4K, FHD, TS, TC тощо) "true" - так /  "false" - ні
 
@@ -354,8 +354,8 @@
         "dvd": "DVD", "dvdscr": "DVDSCR", "scr": "SCR", "bdscr": "BDSCR", "r5": "R5",
         "hdrip": "HDRip",
         "screener": "SCR",
-        "telecine": "TC", "tc": "TC", "hdtc": "TC", "telesync": "TS", "ts": "TS",
-        "hdts": "TS", "camrip": "CAMRip", "cam": "CAMRip", "hdcam": "CAMRip",
+        "telecine": "TC", "hdtc": "TC", "telesync": "TS", /*"ts": "TS", "tc": "TC",*/
+        "hdts": "TS", "camrip": "CAMRip", "hdcam": "CAMRip", /*"cam": "CAMRip",*/
         "vhsrip": "VHSRip", "vcdrip": "VCDRip", "dcp": "DCP", "workprint": "Workprint",
         "preair": "Preair", "tv": "TVRip", "line": "Line Audio", "hybrid": "Hybrid",
         "uhd hybrid": "4K Hybrid", "upscale": "Upscale", "ai upscale": "AI Upscale",
@@ -490,6 +490,7 @@
 function fetchWithProxy(url, cardId, callback) {
     var currentProxyIndex = 0;
     var callbackCalled = false;
+    var saw429 = false;
 
     function buildProxyUrl(proxy, targetUrl) {
         // підстановка ключа у воркер-проксі
@@ -508,16 +509,35 @@ function fetchWithProxy(url, cardId, callback) {
     }
 
     function tryNextProxy() {
-        if (currentProxyIndex >= LQE_CONFIG.PROXY_LIST.length) {
-            if (!callbackCalled) {
-                callbackCalled = true;
-                callback(new Error('All proxies failed for ' + url));
-            }
-            return;
-        }
+if (currentProxyIndex >= LQE_CONFIG.PROXY_LIST.length) {
+    if (!callbackCalled) {
+        callbackCalled = true;
 
-        var proxy = LQE_CONFIG.PROXY_LIST[currentProxyIndex];
-        var proxyUrl = buildProxyUrl(proxy, url);
+        // якщо причина — 429/cooldown, повертаємо спец-помилку
+        if (saw429) {
+            callback(new Error('LQE_COOLDOWN'));
+        } else {
+            callback(new Error('All proxies failed for ' + url));
+        }
+    }
+    return;
+}
+
+
+var proxy = LQE_CONFIG.PROXY_LIST[currentProxyIndex];
+var proxyUrl = buildProxyUrl(proxy, url);
+
+// якщо цей proxy-host у cooldown — пропускаємо його
+var phost = lqeGetHost(proxyUrl);
+if (phost && lqeHostInCooldown(phost)) {
+    if (LQE_CONFIG.LOGGING_GENERAL) {
+        console.log("LQE-LOG", "card: " + cardId + ", Proxy in cooldown, skip:", phost);
+    }
+    currentProxyIndex++;
+    tryNextProxy();
+    return;
+}
+
 
         if (LQE_CONFIG.LOGGING_GENERAL) {
             console.log("LQE-LOG", "card: " + cardId + ", Fetch with proxy: " + proxyUrl);
@@ -531,31 +551,58 @@ function fetchWithProxy(url, cardId, callback) {
             tryNextProxy();
         }, LQE_CONFIG.PROXY_TIMEOUT_MS);
 
-        LQE_safeFetchText(proxyUrl)
-            .then(function (data) {
-                if (finished) return;
-                finished = true;
-                clearTimeout(timeoutId);
+LQE_safeFetchText(proxyUrl)
+    .then(function (data) {
+        if (finished) return;
 
-                if (!callbackCalled) {
-                    callbackCalled = true;
-                    callback(null, data);
-                }
-            })
-            .catch(function (error) {
-                if (finished) return;
-                finished = true;
-                clearTimeout(timeoutId);
+        // ⛔️ 429 як текстове тіло (від воркера або upstream)
+        if (typeof data === 'string' && data.indexOf('Too Many Requests') !== -1) {
+            finished = true;
+            clearTimeout(timeoutId);
 
-                console.error(
-                    "LQE-LOG",
-                    "card: " + cardId + ", Proxy fetch error for " + proxyUrl + ":",
-                    error
-                );
+            saw429 = true;
+            lqeSetHostCooldown(phost);
 
-                currentProxyIndex++;
-                tryNextProxy();
-            });
+            currentProxyIndex++;
+            tryNextProxy();
+            return;
+        }
+
+        // ✅ нормальна відповідь
+        finished = true;
+        clearTimeout(timeoutId);
+
+        if (!callbackCalled) {
+            callbackCalled = true;
+            callback(null, data);
+        }
+    })
+
+.catch(function (error) {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timeoutId);
+
+    var emsg = (error && error.message) ? String(error.message) : '';
+
+    // ⛔️ 429 через fetch / XHR
+    if (emsg.indexOf('429') !== -1) {
+        saw429 = true;
+        lqeSetHostCooldown(phost);
+    }
+
+    if (LQE_CONFIG.LOGGING_GENERAL) {
+        console.error(
+            "LQE-LOG",
+            "card: " + cardId + ", Proxy fetch error for " + proxyUrl + ":",
+            error
+        );
+    }
+
+    currentProxyIndex++;
+    tryNextProxy();
+});
+
     }
 
     tryNextProxy();
@@ -670,6 +717,29 @@ function fetchWithProxy(url, cardId, callback) {
             .replace(/\s+/g, ' ') // Видалення зайвих пробілів
             .trim(); // Обрізка пробілів по краях
     }
+
+    // ===================== TS/TC CONTEXT HELPERS =====================
+// Ідея: TS/TC беремо як "погану якість" лише коли це ВІДЕО-контекст,
+// а не "звук с TS" (аудіо) або шматки слів/імен.
+
+// "звук с TS", "звук из TS", "audio from TS", "sound from TS"
+function lqeHasAudioTSContext(s) {
+    if (!s) return false;
+    return /(?:звук\s*(?:с|из|із)\s*ts\b|audio\s*(?:from|of)\s*ts\b|sound\s*(?:from|of)\s*ts\b)/i.test(s);
+}
+
+// TS як відео-джерело: "(2025) TS", "/ 2025 / TS", "TS [H.264/1080p]" і т.п.
+function lqeHasVideoTSContext(s) {
+    if (!s) return false;
+    return /(?:\(\s*\d{4}\s*\)\s*ts\b|\b\d{4}\s*\/\s*ts\b|\bts\b\s*\[(?:h\.?264|h\.?265|hevc|avc|x264|x265|1080p|720p))/i.test(s);
+}
+
+// TC як відео-джерело: "(2025) TC", "/ 2025 / TC", "TC [H.264/1080p]" і т.п.
+function lqeHasVideoTCContext(s) {
+    if (!s) return false;
+    return /(?:\(\s*\d{4}\s*\)\s*tc\b|\b\d{4}\s*\/\s*tc\b|\btc\b\s*\[(?:h\.?264|h\.?265|hevc|avc|x264|x265|1080p|720p))/i.test(s);
+}
+
     /**
      * Генерує ключ для кешу
      * @param {number} version - Версія кешу
@@ -694,6 +764,20 @@ function fetchWithProxy(url, cardId, callback) {
         var lowerLabel = fullLabel.toLowerCase(); // Нижній регістр для порівняння
         // var lowerTitle = (originalTitle || '').toLowerCase(); // ❌ БІЛЬШЕ НЕ ВИКОРИСТОВУЄМО (перебиває якісний реліз)
 
+        // Якщо в уже сформованій мітці є TS/TC — це ТОЧНО відео-тип релізу
+        // (бо translateQualityLabel формує "1080p TS", а не "звук с TS").
+        // Але на всякий випадок відсікаємо аудіо-контекст.
+        if (!lqeHasAudioTSContext(lowerLabel)) {
+            if (/\bts\b/.test(lowerLabel)) {
+                if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TS (label contains TS)");
+                return "TS";
+            }
+            if (/\btc\b/.test(lowerLabel)) {
+                if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TC (label contains TC)");
+                return "TC";
+            }
+        }
+        
         // --- Крок 1: Погані якості (найвищий пріоритет) ---
         // Якщо JacRed вибрав реліз з поганою якістю - показуємо тип якості
         // Це означає що кращих варіантів немає
@@ -704,17 +788,31 @@ function fetchWithProxy(url, cardId, callback) {
             return "CamRip";
         }
 
-        // TS (Telesync) - погана якість (запис з проектора)
-        if (/(telesync|телесинк|\bts\b|hdts)/.test(lowerLabel)) {
-            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TS");
+
+        // TS (Telesync) - погана якість (відео-джерело)
+        if (/(telesync|телесинк|hdts)/.test(lowerLabel)) {
+            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TS (telesync/hdts)");
             return "TS";
         }
 
-        // TC (Telecine) - погана якість (запис з кіноплівки)
-        if (/(telecine|телесин|\btc\b|hdtc)/.test(lowerLabel)) {
-            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TC");
+        // "голий" TS як токен — тільки якщо є відео-контекст
+        if (/\bts\b/.test(lowerLabel) && lqeHasVideoTSContext(lowerLabel)) {
+            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TS (token, video-context)");
+            return "TS";
+        }
+
+        // TC (Telecine) - погана якість (відео-джерело)
+        if (/(telecine|телесин|hdtc)/.test(lowerLabel)) {
+            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TC (telecine/hdtc)");
             return "TC";
         }
+
+        // "голий" TC як токен — тільки якщо є відео-контекст
+        if (/\btc\b/.test(lowerLabel) && lqeHasVideoTCContext(lowerLabel)) {
+            if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "Simplified to TC (token, video-context)");
+            return "TC";
+        }
+
 
         // SCR (DVD Screener) - погана якість (промо-копія)
         if (/(dvdscr|scr\b)/.test(lowerLabel)) {
@@ -805,6 +903,7 @@ function fetchWithProxy(url, cardId, callback) {
         }
         if (bestResKey) resolution = RESOLUTION_MAP[bestResKey]; // Отримуємо роздільність
 
+
         // Пошук джерела в назві
         var source = '';
         var bestSrcKey = '';
@@ -821,6 +920,39 @@ function fetchWithProxy(url, cardId, callback) {
         }
         if (bestSrcKey) source = SOURCE_MAP[bestSrcKey]; // Отримуємо джерело
 
+        // --- TS/TC як відео-джерело (коли це просто токен) ---
+        // Не тримаємо "ts"/"tc" у SOURCE_MAP, щоб не ловити "звук с TS".
+        // Тому: якщо source не визначився або визначився як "TV"/інше,
+        // пробуємо витягнути TS/TC через контекст.
+
+        var t = title; // title вже sanitizeTitle(...)
+        if (!source) {
+            // відсікаємо "звук с TS", "audio from TS" тощо
+            if (!lqeHasAudioTSContext(t)) {
+                if (/\btc\b/.test(t) && lqeHasVideoTCContext(t)) {
+                    source = "TC";
+                } else if (/\bts\b/.test(t) && lqeHasVideoTSContext(t)) {
+                    source = "TS";
+                }
+            }
+        }
+
+
+        // --- ДОДАТКОВО: TS/TC як відео-джерело (коли це просто токен) ---
+        // Ми НЕ тримаємо "ts"/"tc" у SOURCE_MAP, щоб не ловити "звук с TS".
+        // Тому визначаємо TS/TC через контекст-хелпери.
+        if (!source) {
+            // спершу відсікаємо "звук с TS", "audio from TS" і т.п.
+            if (!lqeHasAudioTSContext(title)) {
+                if (lqeHasVideoTCContext(title)) {
+                    source = "TC";
+                } else if (lqeHasVideoTSContext(title)) {
+                    source = "TS";
+                }
+            }
+        }
+
+        
         // Комбінуємо роздільність та джерело
         var finalLabel = '';
         if (resolution && source) {
@@ -915,6 +1047,98 @@ function fetchWithProxy(url, cardId, callback) {
             setTimeout(processQueue, 0); // Продовжуємо обробку
         }
     }
+// ===================== 429 COOLDOWN + RETRY (A+B) =====================
+
+// cooldown по проксі-хосту: { "myfinder.kozak-bohdan.workers.dev": timestamp_ms }
+var LQE_HOST_COOLDOWN = {};
+
+// pending повтори по cardId: { "123": { nextAt, tries } }
+var LQE_PENDING = {};
+var LQE_PENDING_TIMER = null;
+
+function lqeNow() { return Date.now(); }
+
+function lqeRand(min, max) {
+    return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+function lqeGetHost(u) {
+    try { return (new URL(u)).hostname; } catch (e) { return ''; }
+}
+
+function lqeHostInCooldown(host) {
+    var t = LQE_HOST_COOLDOWN[host] || 0;
+    return t > lqeNow();
+}
+
+function lqeSetHostCooldown(host, ms) {
+    if (!host) return;
+    var dur = ms || lqeRand(30000, 120000); // 30–120s
+    var until = lqeNow() + dur;
+
+    // не зменшуємо існуючий cooldown, тільки продовжуємо
+    if ((LQE_HOST_COOLDOWN[host] || 0) < until) LQE_HOST_COOLDOWN[host] = until;
+
+    if (LQE_CONFIG.LOGGING_GENERAL) {
+        console.log("LQE-LOG", "Cooldown set for host:", host, "ms:", dur);
+    }
+}
+
+function lqeFindCardRootById(cardId) {
+    // шукаємо DOM-картку, яка має card_data.id
+    var cards = document.querySelectorAll('.card');
+    for (var i = 0; i < cards.length; i++) {
+        var cd = cards[i].card_data;
+        if (cd && String(cd.id) === String(cardId)) return cards[i];
+    }
+    return null;
+}
+
+function lqeSchedulePendingRetry(cardId) {
+    if (!cardId) return;
+
+    var p = LQE_PENDING[cardId] || { tries: 0, nextAt: 0 };
+    if (p.tries >= 2) return; // щоб не крутити безкінечно (можеш підняти до 3)
+
+    p.tries++;
+    p.nextAt = lqeNow() + lqeRand(30000, 120000);
+    LQE_PENDING[cardId] = p;
+
+    if (LQE_CONFIG.LOGGING_GENERAL) {
+        console.log("LQE-LOG", "Pending retry scheduled for card:", cardId, "tries:", p.tries, "in(ms):", (p.nextAt - lqeNow()));
+    }
+
+    if (!LQE_PENDING_TIMER) {
+        LQE_PENDING_TIMER = setInterval(function () {
+            var now = lqeNow();
+            var any = false;
+
+            for (var id in LQE_PENDING) {
+                if (!LQE_PENDING.hasOwnProperty(id)) continue;
+                any = true;
+
+                var st = LQE_PENDING[id];
+                if (!st || now < st.nextAt) continue;
+
+                // якщо картка є в DOM — пробуємо оновити (B)
+                var root = lqeFindCardRootById(id);
+                if (root) {
+                    // updateCardListQuality вже вміє приймати DOM element
+                    updateCardListQuality(root);
+                }
+
+                // прибираємо pending незалежно від того, вдалось чи ні:
+                // якщо не вдалось або картки нема — доб’є onVisible (A)
+                delete LQE_PENDING[id];
+            }
+
+            if (!any) {
+                clearInterval(LQE_PENDING_TIMER);
+                LQE_PENDING_TIMER = null;
+            }
+        }, 1500);
+    }
+}
 
     // ===================== ПОШУК В JACRED =====================
     /**
@@ -923,23 +1147,26 @@ function fetchWithProxy(url, cardId, callback) {
      * @returns {number} - Числовий код якості (2160, 1440, 1080, 720, 480, 3, 2, 1)
      */
     function extractNumericQualityFromTitle(title) {
-        if (!title) return 0; // Перевірка на пусту назву
-        var lower = title.toLowerCase(); // Нижній регістр для порівняння
+        if (!title) return 0;
+        var lower = title.toLowerCase();
 
-        // ✅ ПРАВИЛЬНІ ПРІОРИТЕТИ:
-        if (/2160p|4k/.test(lower)) return 2160; // Найвищий пріоритет - 4K
-        if (/1440p|qhd|2k/.test(lower)) return 1440; // QHD
-        if (/1080p/.test(lower)) return 1080; // Full HD
-        if (/720p/.test(lower)) return 720; // HD
-        if (/480p/.test(lower)) return 480; // SD
-        // Погані якості - правильний порядок (TC > TS > CamRip):
-        if (/(?:\btelecine\b|\btc\b)/.test(lower)) return 3;
-        //if (/tc|telecine/.test(lower)) return 3; // TC краще за TS
-        if (/(?:\btelesync\b|\bts\b)/.test(lower)) return 2;
-        //if (/ts|telesync/.test(lower)) return 2; // TS краще за CamRip
-        if (/camrip|камрип/.test(lower)) return 1; // CamRip - найгірше
+        // 1) Погані якості — ПЕРШІ (але тільки у відео-контексті)
+        if (/(?:\btelecine\b|hdtc)/.test(lower)) return 3;
+        if (/(?:\btelesync\b|hdts)/.test(lower)) return 2;
 
-        return 0; // Якість не визначена
+        if (/\btc\b/.test(lower) && lqeHasVideoTCContext(lower)) return 3;
+        if (/\bts\b/.test(lower) && lqeHasVideoTSContext(lower)) return 2;
+
+        if (/camrip|камрип/.test(lower)) return 1;
+
+        // 2) Далі — роздільність (для нормальних релізів)
+        if (/2160p|4k/.test(lower)) return 2160;
+        if (/1440p|qhd|2k/.test(lower)) return 1440;
+        if (/1080p/.test(lower)) return 1080;
+        if (/720p/.test(lower)) return 720;
+        if (/480p/.test(lower)) return 480;
+
+        return 0;
     }
 
     /**
@@ -1018,11 +1245,21 @@ function fetchWithProxy(url, cardId, callback) {
                 fetchWithProxy(apiUrl, cardId, function (error, responseText) {
                     clearTimeout(timeoutId);
 
-                    if (error || !responseText) {
-                        if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "card: " + cardId + ", JacRed fetch error:", error);
-                        apiCallback(null);
-                        return;
-                    }
+    // якщо всі проксі дали 429/cooldown — плануємо повтор (A+B)
+    if (error && error.message === 'LQE_COOLDOWN') {
+        if (LQE_CONFIG.LOGGING_GENERAL) {
+            console.log("LQE-LOG", "card: " + cardId + ", 429 cooldown. Schedule retry.");
+        }
+        lqeSchedulePendingRetry(cardId);
+        apiCallback(null);
+        return;
+    }
+
+    if (error || !responseText) {
+        if (LQE_CONFIG.LOGGING_QUALITY) console.log("LQE-QUALITY", "card: " + cardId + ", JacRed fetch error:", error);
+        apiCallback(null);
+        return;
+    }
 
                     try {
                         var parsed = JSON.parse(responseText);
@@ -1079,15 +1316,21 @@ function fetchWithProxy(url, cardId, callback) {
 
                             // Визначаємо якість (спочатку з поля, потім з назви)
                             var currentNumericQuality = currentTorrent.quality;
-                            if (typeof currentNumericQuality !== 'number' || currentNumericQuality === 0) {
-                                var extractedQuality = extractNumericQualityFromTitle(currentTorrent.title);
-                                if (extractedQuality > 0) {
-                                    currentNumericQuality = extractedQuality;
-                                } else {
-                                    continue; // Пропускаємо якщо якість не визначена
+
+                            // завжди пробуємо витягнути з назви
+                            var extractedQuality = extractNumericQualityFromTitle(currentTorrent.title);
+
+                            // якщо з назви витягнули TS/TC/CAM — воно має пріоритет навіть над API quality
+                            if (extractedQuality > 0 && extractedQuality <= 3) {
+                                currentNumericQuality = extractedQuality;
+                            } else {
+                                // інакше — якщо API quality нема/0, тоді беремо з назви
+                                if (typeof currentNumericQuality !== 'number' || currentNumericQuality === 0) {
+                                    if (extractedQuality > 0) currentNumericQuality = extractedQuality;
+                                    else continue; // якщо нічого не визначили — пропускаємо
                                 }
                             }
-
+                     
                             // === ЗМІНА 2: Покращена валідація року ===
                             var torrentYearRaw = currentTorrent.relased || currentTorrent.released;
                             var parsedYear = 0;
