@@ -47,8 +47,8 @@
         LOGGING_CARDLIST: true, // Логи обробки карток (скільки карток в пачці, тощо).
 
         // Налаштування API та мережі
-        JACRED_PROTOCOL: 'https://', 
-        JACRED_URL: 'jacred.xyz',  //(redapi.cfhttp.top або jacred.xyz)
+        JACRED_PROTOCOL: 'http://', 
+        JACRED_URL: 'jr.maxvol.pro',  //(redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
             'WRK',
             'https://api.allorigins.win/raw?url=',
@@ -392,59 +392,6 @@ if (proxy === 'WRK') {
             tryProxy();
         });
 }
-
-
-   
-    /*function fetchWithProxy(url, cardId, callback) {
-        var currentProxyIndex = 0; // Починаємо з першого проксі.
-        var callbackCalled = false; // Прапорець, щоб уникнути подвійного виклику callback.
-
-        function tryNextProxy() {
-            // Якщо всі проксі не спрацювали.
-            if (currentProxyIndex >= LTF_CONFIG.PROXY_LIST.length) {
-                if (!callbackCalled) {
-                    callbackCalled = true;
-                    updateNetworkHealth(false); // ❗ Погіршуємо здоров'я мережі
-                    callback(new Error('Всі проксі не відповіли для ' + url));
-                }
-                return;
-            }
-            // Формуємо URL через проксі.
-            var proxyUrl = LTF_CONFIG.PROXY_LIST[currentProxyIndex] + encodeURIComponent(url);
-
-            // Встановлюємо таймаут для запиту. Якщо проксі "висить", ми перейдемо до наступного.
-            var timeoutId = setTimeout(function () {
-                if (!callbackCalled) {
-                    currentProxyIndex++; // Переходимо до наступного проксі.
-                    tryNextProxy();
-                }
-            }, LTF_CONFIG.PROXY_TIMEOUT_MS);
-
-            // Виконуємо запит.
-            fetch(proxyUrl)
-                .then(function (response) {
-                    clearTimeout(timeoutId); // Прибираємо таймаут.
-                    if (!response.ok) throw new Error('Помилка проксі: ' + response.status);
-                    return response.text(); // Отримуємо дані як текст
-                })
-                .then(function (data) {
-                    if (!callbackCalled) {
-                        callbackCalled = true;
-                        updateNetworkHealth(true); // ✅ Покращуємо здоров'я мережі
-                        callback(null, data); // Успіх, повертаємо дані.
-                    }
-                })
-                .catch(function (error) {
-                    // Якщо сталася помилка (проксі впав, 404, 500...)
-                    clearTimeout(timeoutId);
-                    if (!callbackCalled) {
-                        currentProxyIndex++; // Переходимо до наступного проксі.
-                        tryNextProxy();
-                    }
-                });
-        }
-        tryNextProxy(); // Починаємо спроби.
-    }*/
 
     // ===================== ДОПОМІЖНІ ФУНКЦІЇ =====================
     /**
