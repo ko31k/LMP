@@ -375,50 +375,65 @@ function isMonoEnabled() {
   (function injectBaseCss() {
     if (document.getElementById('interface_mod_base')) return;
 
-    var css = `
-      .full-start-new__details{
-        color:#fff !important;
-        margin:-0.45em !important;
-        margin-bottom:1em !important;
-        display:flex !important;
-        align-items:center !important;
-        flex-wrap:wrap !important;
-        min-height:1.9em !important;
-        font-size:1.1em !important;
-      }
-      *:not(input){ -webkit-user-select:none !important; -moz-user-select:none !important; -ms-user-select:none !important; user-select:none !important; }
-      *{ -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; box-sizing:border-box; outline:none; -webkit-user-drag:none; }
+var css = `
+  .full-start-new__details{
+    color:#fff !important;
+    margin:-0.45em !important;
+    margin-bottom:1em !important;
+    display:flex !important;
+    align-items:center !important;
+    flex-wrap:wrap !important;
+    min-height:1.9em !important;
+    font-size:1.1em !important;
+  }
 
-      .full-start-new__rate-line > * {
-        margin-left: 0 !important;
-        margin-right: 1em !important;
-        flex-shrink: 0;
-        flex-grow: 0;
-      }
+  *:not(input){
+    -webkit-user-select:none !important;
+    -moz-user-select:none !important;
+    -ms-user-select:none !important;
+    user-select:none !important;
+  }
 
-      /* ОРИГІНАЛЬНА НАЗВА — сірий, −25%, з лівою лінією */
-      .ifx-original-title{
-        color:#aaa;
-        font-size: 0.75em;
-        font-weight: 600;
-        margin-top: 4px;
-        border-left: 2px solid #777;
-        padding-left: 8px;
-      }
+  *{
+    -webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;
+    box-sizing:border-box;
+    outline:none;
+    -webkit-user-drag:none;
+  }
 
-      /* Іконки без тексту */
-      .ifx-btn-icon-only .full-start__button span,
-      .ifx-btn-icon-only .full-start__button .full-start__text{
-        display:none !important;
-      }
+  .full-start-new__rate-line > * {
+    margin-left: 0 !important;
+    margin-right: 1em !important;
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
 
-      .full-start__buttons.ifx-flex,
-      .full-start-new__buttons.ifx-flex{
-        display:flex !important;
-        flex-wrap:wrap !important;
-        gap:10px !important;
-      }
-    `;
+  /* ОРИГІНАЛЬНА НАЗВА — сірий, −25%, з лівою лінією */
+  .ifx-original-title{
+    color:#aaa;
+    font-size: 0.75em;
+    font-weight: 600;
+    margin-top: 4px;
+    border-left: 2px solid #777;
+    padding-left: 8px;
+  }
+
+  /* Іконки без тексту */
+  .ifx-btn-icon-only .full-start__button span,
+  .ifx-btn-icon-only .full-start__button .full-start__text{
+    display:none !important;
+  }
+
+  .full-start__buttons.ifx-flex,
+  .full-start-new__buttons.ifx-flex{
+    display:flex !important;
+    flex-wrap:wrap !important;
+    gap:10px !important;
+  }
+`;
+
+
     var st = document.createElement('style');
     st.id = 'interface_mod_base';
     st.textContent = css;
@@ -1817,29 +1832,76 @@ function applyAgeOnceIn(elRoot) {
    */
   function injectColoredButtonsCss() {
     if (document.getElementById(__ifx_colbtn.styleId)) return;
-    var css = `
-      .head__action.selector.open--feed svg path { fill: #2196F3 !important; }
+var css = `
+  .head__action.selector.open--feed svg path { fill: #2196F3 !important; }
 
-      .full-start__button { transition: transform 0.2s ease !important; position: relative; }
-      .full-start__button:active { transform: scale(0.98) !important; }
+  .full-start__button {
+    transition: transform 0.2s ease !important;
+    position: relative;
+  }
+  .full-start__button:active {
+    transform: scale(0.98) !important;
+  }
 
-      .full-start__button.view--online  svg path { fill: #2196f3 !important; }
-      .full-start__button.view--torrent svg path { fill: lime !important; }
-      .full-start__button.view--trailer svg path { fill: #f44336 !important; }
+  /* ============================================================
+   * ONLINE buttons colors
+   * ============================================================ */
 
-      .full-start__button.loading::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: rgba(255,255,255,0.5);
-        animation: ifx_loading 1s linear infinite;
-      }
-      @keyframes ifx_loading {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-      }
-    `;
+  /* 1) BanderaOnline: не чіпаємо (як і було) */
+  .full-start__button.ifx-bandera-online svg path,
+  .full-start__button.ifx-bandera-online svg rect {
+    fill: unset !important;
+  }
+
+  /* 2) BazarNetUA — ТІЛЬКИ КОЛІР ІКОНКИ (без фону/рамки)
+   * ЗМІНА КОЛЬОРУ: поміняй значення нижче (будь-який HEX)
+   */
+  :root{
+    --ifx-bazarnet-play-color: #8b5cf6; /* <-- ЗМІНИ ТУТ, якщо треба інший фіолетовий */
+  }
+
+  /* Важливо: фарбуємо саме PATH, бо в більшості іконок play це path */
+  .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg path{
+    fill: var(--ifx-bazarnet-play-color) !important;
+  }
+
+  /* На випадок, якщо SVG використовує currentColor */
+  .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg{
+    color: var(--ifx-bazarnet-play-color) !important;
+  }
+
+  /* 3) Всі інші online — стандартний синій play */
+  .full-start__button.view--online:not(.ifx-bandera-online):not(.lampac--button) svg path {
+    fill: #2196f3 !important;
+  }
+
+  .full-start__button.view--online:not(.ifx-bandera-online)
+  .lampac--button:not([data-subtitle*="BazarNetUA"]) svg path {
+    fill: #2196f3 !important;
+  }
+
+  /* TORRENT / TRAILER */
+  .full-start__button.view--torrent svg path { fill: lime !important; }
+  .full-start__button.view--trailer svg path { fill: #f44336 !important; }
+
+  .full-start__button.loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.5);
+    animation: ifx_loading 1s linear infinite;
+  }
+
+  @keyframes ifx_loading {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+`;
+
+
     var st = document.createElement('style');
     st.id = __ifx_colbtn.styleId;
     st.textContent = css;
@@ -1851,6 +1913,40 @@ function applyAgeOnceIn(elRoot) {
     if (el) el.remove();
   }
 
+  function makeOnlineUaSvg() {
+    var gid = 'ifx_ua_grad_' + Math.random().toString(16).slice(2);
+
+    return (
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+        '<defs>' +
+          '<linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0%" stop-color="#156DD1"/>' +
+            '<stop offset="50%" stop-color="#156DD1"/>' +
+            '<stop offset="50%" stop-color="#FFD948"/>' +
+            '<stop offset="100%" stop-color="#FFD948"/>' +
+          '</linearGradient>' +
+        '</defs>' +
+        '<path style="fill:url(#' + gid + ') !important" d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z"/>' +
+      '</svg>'
+    );
+  }
+
+  function isBanderaOnlineBtn($btn) {
+    if (!$btn || !$btn.length) return false;
+
+    var sub = String($btn.attr('data-subtitle') || '').toLowerCase();
+    var txt = String($btn.text() || '').toLowerCase();
+
+    // BanderaOnline так ідентифікується у твоєму коді:
+    // data-subtitle="[Free] Bandera Online vX" і текст "t.me/mmssixxx"
+    if (sub.indexOf('bandera online') !== -1) return true;
+    if (txt.indexOf('mmssixxx') !== -1) return true;
+
+    return false;
+  }
+
+
+  
   // SVG іконки
   var SVG_MAP = {
     torrent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50px" height="50px"><path d="M25,2C12.317,2,2,12.317,2,25s10.317,23,23,23s23-10.317,23-23S37.683,2,25,2zM40.5,30.963c-3.1,0-4.9-2.4-4.9-2.4S34.1,35,27,35c-1.4,0-3.6-0.837-3.6-0.837l4.17,9.643C26.727,43.92,25.874,44,25,44c-2.157,0-4.222-0.377-6.155-1.039L9.237,16.851c0,0-0.7-1.2,0.4-1.5c1.1-0.3,5.4-1.2,5.4-1.2s1.475-0.494,1.8,0.5c0.5,1.3,4.063,11.112,4.063,11.112S22.6,29,27.4,29c4.7,0,5.9-3.437,5.7-3.937c-1.2-3-4.993-11.862-4.993-11.862s-0.6-1.1,0.8-1.4c1.4-0.3,3.8-0.7,3.8-0.7s1.105-0.163,1.6,0.8c0.738,1.437,5.193,11.262,5.193,11.262s1.1,2.9,3.3,2.9c0.464,0,0.834-0.046,1.152-0.104c-0.082,1.635-0.348,3.221-0.817,4.722C42.541,30.867,41.756,30.963,40.5,30.963z"/></svg>',
@@ -1861,22 +1957,99 @@ function applyAgeOnceIn(elRoot) {
   /**
    * Замінює іконки на кастомні
    */
-  function replaceIconsIn($root) {
+  function isBazarNetBtn($btn){
+  var sub = String($btn.attr('data-subtitle') || '');
+  return sub.indexOf('BazarNetUA') !== -1;
+}
+
+function replaceIconsIn($root) {
+  $root = $root && $root.length ? $root : $(document);
+
+  // torrent + trailer: як і було — для всіх
+  ['torrent', 'trailer'].forEach(function (kind) {
+    $root.find('.full-start__button.view--' + kind + ' svg').each(function () {
+      var $svg = $(this);
+      var $btn = $svg.closest('.full-start__button');
+
+      if (!$btn.data('ifxOrigSvg')) $btn.data('ifxOrigSvg', $svg.prop('outerHTML'));
+      $svg.replaceWith(SVG_MAP[kind]);
+    });
+  });
+
+  // online: ТІЛЬКИ BanderaOnline і BazarNetUA
+  $root.find('.full-start__button.view--online svg').each(function () {
+    var $svg = $(this);
+    var $btn = $svg.closest('.full-start__button');
+
+    var isBandera = isBanderaOnlineBtn($btn);
+    var isBazar   = isBazarNetBtn($btn);
+
+    if (!isBandera && !isBazar) return; // <-- ключова різниця
+
+    if (!$btn.data('ifxOrigSvg')) $btn.data('ifxOrigSvg', $svg.prop('outerHTML'));
+
+    if (isBandera) {
+      $btn.addClass('ifx-bandera-online');
+      $svg.replaceWith(makeOnlineUaSvg());      // прапор (UA play)
+    } else {
+      // BazarNetUA: міняємо іконку на "play" (а колір дасть CSS)
+      $btn.removeClass('ifx-bandera-online');
+      $svg.replaceWith(SVG_MAP.online);
+    }
+  });
+}
+
+  
+  /*function replaceIconsIn($root) {
     $root = $root && $root.length ? $root : $(document);
+
     ['torrent', 'online', 'trailer'].forEach(function (kind) {
       $root.find('.full-start__button.view--' + kind + ' svg').each(function () {
         var $svg = $(this);
         var $btn = $svg.closest('.full-start__button');
+
         if (!$btn.data('ifxOrigSvg')) $btn.data('ifxOrigSvg', $svg.prop('outerHTML'));
-        $svg.replaceWith(SVG_MAP[kind]);
+
+        // ✅ SPECIAL: тільки BanderaOnline -> UA play
+        if (kind === 'online' && isBanderaOnlineBtn($btn)) {
+        // позначаємо кнопку, щоб CSS НЕ перефарбовував її SVG
+        $btn.addClass('ifx-bandera-online');
+        // якщо хочеш лишити ОРИГІНАЛЬНУ bandera-іконку — нічого не міняй:
+        // return;
+        // якщо хочеш саме "play" синьо-жовтий (твій SVG) — тоді міняй:
+        $svg.replaceWith(makeOnlineUaSvg());
+          } else {
+            $svg.replaceWith(SVG_MAP[kind]);
+          }
+
       });
     });
-  }
+  }*/
+
 
   /**
    * Відновлює оригінальні іконки
    */
   function restoreIconsIn($root) {
+  $root = $root && $root.length ? $root : $(document);
+
+  $root.find('.full-start__button').each(function () {
+    var $btn = $(this);
+    var orig = $btn.data('ifxOrigSvg');
+
+    if (orig) {
+      var $current = $btn.find('svg').first();
+      if ($current.length) $current.replaceWith(orig);
+      $btn.removeData('ifxOrigSvg');
+    }
+
+    // важливо: прибрати маркер
+    $btn.removeClass('ifx-bandera-online');
+  });
+}
+
+  
+  /*function restoreIconsIn($root) {
     $root = $root && $root.length ? $root : $(document);
     $root.find('.full-start__button').each(function () {
       var $btn = $(this);
@@ -1887,14 +2060,26 @@ function applyAgeOnceIn(elRoot) {
         $btn.removeData('ifxOrigSvg');
       }
     });
-  }
+  }*/
 
   function applyColoredButtonsIn(root) {
     injectColoredButtonsCss();
     replaceIconsIn(root);
   }
 
+  
   function setColoredButtonsEnabled(enabled) {
+  if (enabled) {
+    injectColoredButtonsCss();
+    if (__ifx_last.fullRoot) replaceIconsIn(__ifx_last.fullRoot);
+    else replaceIconsIn($(document));
+  } else {
+    removeColoredButtonsCss();
+    restoreIconsIn($(document));
+  }
+}
+
+  /*function setColoredButtonsEnabled(enabled) {
     if (enabled) {
       injectColoredButtonsCss();
       if (__ifx_last.fullRoot) replaceIconsIn(__ifx_last.fullRoot);
@@ -1902,7 +2087,7 @@ function applyAgeOnceIn(elRoot) {
       removeColoredButtonsCss();
       restoreIconsIn(__ifx_last.fullRoot || $(document));
     }
-  }
+  }*/
 
   /* ============================================================
    * СЛУХАЧ КАРТКИ
@@ -1938,7 +2123,15 @@ function applyAgeOnceIn(elRoot) {
         applyIconOnlyClass(root);
 
         // 4. Кольорові кнопки
-        if (settings.colored_buttons) applyColoredButtonsIn(root);
+        //if (settings.colored_buttons) applyColoredButtonsIn(root);
+        if (settings.colored_buttons) {
+        applyColoredButtonsIn(root);
+
+        // BanderaOnline може вставити кнопку трохи пізніше — доганяємо
+        setTimeout(function(){ try { replaceIconsIn(root); } catch(e){} }, 300);
+        setTimeout(function(){ try { replaceIconsIn(root); } catch(e){} }, 900);
+        }
+
       }, 120);
     });
   }
