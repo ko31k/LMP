@@ -139,9 +139,14 @@
       settings: { url: 'jackettua.mooo.com', key: 'ua', parser_torrent_type: 'jackett' }
     },
     {
+      base: 'spawnum_duckdns_org_49117',
+      name: 'SpawnUA (toloka, mazepa only)',
+      settings: { url: 'http://spawnum.duckdns.org:49117', key: '2', parser_torrent_type: 'jackett' }
+    }, 
+    {
       base: 'spawnum_duckdns_org_59117',
-      name: 'SpawnUA (toloka, mazepa)',
-      settings: { url: 'spawnum.duckdns.org:59117', key: '2', parser_torrent_type: 'jackett' }
+      name: 'SpawnUA (toloka, mazepa, etc.)',
+      settings: { url: 'http://spawnum_duckdns_org_59117', key: '2', parser_torrent_type: 'jackett' }
     },
     {
       base: 'jacred_pro',
@@ -157,12 +162,8 @@
       base: 'maxvol_pro',
       name: 'Maxvol.pro',
       settings: { url: 'jac.maxvol.pro', key: '1', parser_torrent_type: 'jackett' }
-    },
-    {
-      base: 'redapi_cfhttp_top',
-      name: 'RedApi',
-      settings: { url: 'redapi.cfhttp.top', key: '', parser_torrent_type: 'jackett' }
     }
+
     /*{
       base: 'spawnpp_ua',
       name: 'Spawnpp-UA',
