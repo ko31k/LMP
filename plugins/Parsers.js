@@ -162,13 +162,21 @@
       base: 'maxvol_pro',
       name: 'Maxvol.pro',
       settings: { url: 'jac.maxvol.pro', key: '1', parser_torrent_type: 'jackett' }
+    },
+    {
+      base: 'jacred_torrservera_net',
+      name: 'Jacred 2.0',
+      settings: { url: 'http://jacred.torrservera.net/', key: '', parser_torrent_type: 'jackett' }
     }
 
+    
     /*{
       base: 'spawnpp_ua',
       name: 'Spawnpp-UA',
       settings: { url: 'spawn.pp.ua:59117', key: '2', parser_torrent_type: 'jackett' }
     }*/
+
+    
   ];
 
   /* =========================
