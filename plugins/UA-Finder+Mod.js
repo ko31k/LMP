@@ -48,7 +48,7 @@
 
         // Налаштування API та мережі
         JACRED_PROTOCOL: 'http://', 
-        JACRED_URL: 'jr.maxvol.pro',  //(redapi.cfhttp.top або jacred.xyz)
+        JACRED_URL: 'jacred.xyz',  //(redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
             'WRK',
             'https://api.allorigins.win/raw?url=',
