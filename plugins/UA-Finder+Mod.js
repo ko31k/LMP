@@ -32,7 +32,7 @@
     var ukraineFlagSVG = '<i class="flag-css"></i>';
     // Головний об'єкт конфігурації
     var LTF_CONFIG = window.LTF_CONFIG || {
-        WRK_B: 'https://myfinder.kozak-bohdan.workers.dev/',
+        WRK_B: 'https://fndr.kozak-bohdan.workers.dev/',
         WRK_K: 'lmp_2026_JacRed_K9xP7aQ4mV2E',
         BADGE_STYLE: 'flag_count',        // 'text' | 'flag_count' | 'flag_only'
         SHOW_FOR_TV: true,          // показувати на серіалах
