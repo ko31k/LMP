@@ -32,8 +32,8 @@
     var ukraineFlagSVG = '<i class="flag-css"></i>';
     // Головний об'єкт конфігурації
     var LTF_CONFIG = window.LTF_CONFIG || {
-        WRK_B: 'https://fndr.kozak-bohdan.workers.dev/',
-        WRK_K: 'lmp_2026_JacRed_K9xP7aQ4mV2E',
+        WRK_B: '',
+        WRK_K: '',
         BADGE_STYLE: 'flag_count',        // 'text' | 'flag_count' | 'flag_only'
         SHOW_FOR_TV: true,          // показувати на серіалах
         // Налаштування кешу
@@ -50,7 +50,7 @@
         JACRED_PROTOCOL: 'http://', 
         JACRED_URL: 'jacred.xyz',  //(redapi.cfhttp.top або jacred.xyz)
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
-            'WRK',
+            //'WRK',
             'https://api.allorigins.win/raw?url=',
             'https://cors.bwa.workers.dev/'
             
