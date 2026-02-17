@@ -367,7 +367,7 @@ function getLocalizedTitleAsync(movie, cb) {
 
 function getTitleMode() {
 
-  var m = Lampa.Storage.get('interface_mod_new_title_mode');
+  var m = Lampa.Storage.get('interface_mod_new_title_mode_v1');
   if (typeof m !== 'undefined' && m !== null && m !== '') {
     m = String(m);
 
@@ -897,7 +897,7 @@ add({
               if (window.runTorrentStyleRefresh) window.runTorrentStyleRefresh();
               break;
 
-case 'interface_mod_new_title_mode':
+case 'interface_mod_new_title_mode_v1':
   applyOriginalTitleToggle();
   break;
 
