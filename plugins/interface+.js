@@ -1,13 +1,12 @@
 (function () {
   'use strict';
 
-  /* ============================================================
-   * ПОЛІФІЛИ ТА УТИЛІТИ
-   * ============================================================ */
 
-  /**
-   * Поліфіл для String.prototype.startsWith
-   */
+  var IFX_TITLE_SIZE_DEFAULT = 0.75;
+  var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 днів
+  var IFX_TMDB_UA_CACHE_PREFIX = 'ifx_tmdb_ua_title_v2:'; // + type:id
+  
+
   if (!String.prototype.startsWith) {
     String.prototype.startsWith = function (searchString, position) {
       position = position || 0;
@@ -15,14 +14,6 @@
     };
   }
 
-  /**
-   * Повертає правильну форму слова для числівника
-   * @param {number} n - Число
-   * @param {string} one - 'година'
-   * @param {string} two - 'години'
-   * @param {string} five - 'годин'
-   * @returns {string}
-   */
   function plural(n, one, two, five) {
     n = Math.abs(n) % 100;
     if (n >= 5 && n <= 20) return five;
@@ -32,22 +23,39 @@
     return five;
   }
 
-  /**
-   * Отримує булеве значення зі сховища Lampa
-   * @param {string} key - Ключ у сховищі
-   * @param {boolean} def - Значення за замовчуванням
-   * @returns {boolean}
-   */
   function getBool(key, def) {
     var v = Lampa.Storage.get(key, def);
     if (typeof v === 'string') v = v.trim().toLowerCase();
     return v === true || v === 'true' || v === 1 || v === '1';
   }
+function cacheGet(key) {
+  try {
+    var raw = Lampa.Storage.get(key);
+    if (!raw) return null;
+    var obj = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    if (!obj || !obj.t || !obj.v) return null;
+    if ((Date.now() - obj.t) > IFX_TMDB_UA_TTL_MS) return null;
+    return String(obj.v || '').trim();
+  } catch (e) { return null; }
+}
+
+function cacheSet(key, val) {
+  try {
+    var obj = { t: Date.now(), v: String(val || '').trim() };
+    Lampa.Storage.set(key, JSON.stringify(obj));
+  } catch (e) {}
+}
 
 
-/**
- * Чи увімкнений монохромний режим
- */
+function tmdbCacheKey(movie) {
+  var type = (movie && (movie.type || movie.media_type)) ? String(movie.type || movie.media_type) : '';
+  type = /tv|serial/i.test(type) ? 'tv' : 'movie';
+  var id = movie && (movie.id || movie.tmdb_id);
+  if (!id) return '';
+  return IFX_TMDB_UA_CACHE_PREFIX + type + ':' + String(id);
+}
+
+
 function isMonoEnabled() {
   try {
     return getBool('interface_mod_new_mono_mode', false);
@@ -56,22 +64,16 @@ function isMonoEnabled() {
   }
 }
 
-  /**
-   * Монохром застосовується ТІЛЬКИ якщо:
-   * - моно увімкнено
-   * - і конкретна опція теж увімкнена (кольорові статуси / PG / інфо-панель)
-   */
+
   function isMonoFor(settingKey) {
     return isMonoEnabled() && getBool(settingKey, false);
   }
 
-  /**
-   * Єдиний монохромний стиль для бейджів/плашок
-   */
+
   function applyMonoBadgeStyle(el) {
     if (!el || !el.style) return;
 
-    // прибираємо попередні інлайн-кольори/ефекти
+
     [
       'background-color','color','border','border-color','border-width','border-style',
       'box-shadow','text-shadow'
@@ -86,12 +88,6 @@ function isMonoEnabled() {
     el.style.setProperty('color', '#fff', 'important');
   }
 
-  
-  /**
-   * Розраховує середню тривалість епізоду (в хвилинах)
-   * @param {object} movie - Об'єкт movie з Lampa
-   * @returns {number} - Середня тривалість в хвилинах
-   */
   function calculateAverageEpisodeDuration(movie) {
     if (!movie || typeof movie !== 'object') return 0;
     var total = 0,
@@ -126,11 +122,6 @@ function isMonoEnabled() {
     return 0;
   }
 
-  /**
-   * Форматує хвилини у рядок "X годин Y хвилин"
-   * @param {number} minutes - Тривалість в хвилинах
-   * @returns {string}
-   */
   function formatDurationMinutes(minutes) {
     if (!minutes || minutes <= 0) return '';
     var h = Math.floor(minutes / 60),
@@ -145,9 +136,6 @@ function isMonoEnabled() {
     return out;
   }
 
-  /* ============================================================
-   * ЛОКАЛІЗАЦІЯ
-   * ============================================================ */
   Lampa.Lang.add({
     interface_mod_new_group_title: {
       en: 'Interface +',
@@ -223,26 +211,37 @@ function isMonoEnabled() {
       uk: 'Aurora'
     },
 
-    // ОРИГІНАЛЬНА НАЗВА
-    interface_mod_new_en_data: {
-      en: 'Original title',
-      uk: 'Оригінальна назва'
-    },
-    interface_mod_new_en_data_desc: {
-      en: 'Show original title under the card header',
-      uk: 'Показувати оригінальну назву в заголовку картки'
-    },
+interface_mod_new_title_mode: {
+  en: 'Titles under header',
+  uk: 'Назви під заголовком'
+},
+    
+interface_mod_new_title_mode_desc: {
+  en: 'Show original title, localized title, both, or hide',
+  uk: 'Показувати оригінальну, локалізовану, обидві або вимкнути'
+},
 
+interface_mod_new_title_mode_off:  { en: 'No', uk: 'Ні' },
+interface_mod_new_title_mode_orig: { en: 'Original title', uk: 'Оригінальна назва' },
+interface_mod_new_title_mode_loc:  { en: 'Localized title', uk: 'Локалізована назва' },
+interface_mod_new_title_mode_orig_loc: { en: 'Original / Localized', uk: 'Оригінальна / Локалізована назва' },
+
+interface_mod_new_title_size_name: { en: 'Title size', uk: 'Розмір назви' },
+interface_mod_new_title_size_desc: { en: 'Font size (default 0.75)', uk: 'Розмір шрифту (за замовч. 0.75)' },
+
+interface_mod_new_title_locale_name: { en: 'Localization source', uk: 'Джерело локалізації' },
+interface_mod_new_title_locale_desc: { en: 'Where to take localized title from', uk: 'Звідки брати локалізовану назву' },
+interface_mod_new_title_locale_ua_tmdb: { en: 'Ukrainian (TMDB)', uk: 'Українська (TMDB)' },
+interface_mod_new_title_locale_ui: { en: 'UI language', uk: 'Як мова інтерфейсу' },
     // КНОПКИ
-    interface_mod_new_all_buttons: {
-      en: 'All buttons in card',
-      uk: 'Всі кнопки в картці'
-    },
-    interface_mod_new_all_buttons_desc: {
-      en: 'Show all buttons in the card.',
-      uk: 'Показує всі кнопки у картці (Потрібне перезавантаження)'
-    },
-
+    //interface_mod_new_all_buttons_v1: {
+    //  en: 'All buttons in card',
+    //  uk: 'Всі кнопки в картці'
+    //},
+    //interface_mod_new_all_buttons_desc: {
+    //  en: 'Show all buttons in the card.',
+    //  uk: 'Показує всі кнопки у картці (Потрібне перезавантаження)'
+    //},
     interface_mod_new_icon_only: {
       en: 'Icons only',
       uk: 'Кнопки без тексту'
@@ -288,22 +287,106 @@ function isMonoEnabled() {
     },
   });
 
-  /* ============================================================
-   * НАЛАШТУВАННЯ
-   * ============================================================ */
-  /**
-   * Отримує налаштування оригінальної назви (зі зворотною сумісністю)
-   */
+ function getTitleSizeEm() {
+  var raw = Lampa.Storage.get('interface_mod_new_title_size', String(IFX_TITLE_SIZE_DEFAULT));
+  var n = parseFloat(String(raw).replace(',', '.'));
+  if (!isFinite(n) || n <= 0) n = IFX_TITLE_SIZE_DEFAULT;
+  if (n < 0.4) n = 0.4;
+  if (n > 2.5) n = 2.5;
+  return n;
+}
+
+function applyTitleSizeNow() {
+  try {
+    var n = getTitleSizeEm();
+    document.documentElement.style.setProperty('--ifx-title-size', n + 'em');
+  } catch (e) {}
+}
+
+  
+function fetchTmdbUaTitle(movie, cb) {
+  try {
+    if (!movie) return cb('');
+    var id = movie.id || movie.tmdb_id;
+    if (!id) return cb('');
+
+    var type = String(movie.type || movie.media_type || '');
+    type = /tv|serial/i.test(type) ? 'tv' : 'movie';
+
+    var key = tmdbCacheKey(movie);
+    if (key) {
+      var hit = cacheGet(key);
+      if (hit) return cb(hit);
+    }
+
+
+    if (Lampa.Api && typeof Lampa.Api.tmdb === 'function') {
+      return Lampa.Api.tmdb(type + '/' + id, { language: 'uk-UA' }, function (res) {
+        var title = '';
+        try { title = String((res && (res.title || res.name)) || '').trim(); } catch (e) {}
+        if (title && key) cacheSet(key, title);
+        cb(title || '');
+      }, function() { cb(''); }); 
+    }
+
+    if (Lampa.TMDB && typeof Lampa.TMDB.get === 'function') {
+      return Lampa.TMDB.get(type, id, { language: 'uk-UA' }, function (res) {
+        var title = '';
+        try { title = String((res && (res.title || res.name)) || '').trim(); } catch (e) {}
+        if (title && key) cacheSet(key, title);
+        cb(title || '');
+      });
+    }
+
+    cb('');
+  } catch (e) {
+    cb('');
+  }
+}
+
+function getLocalizedTitleAsync(movie, cb) {
+    if (!movie) return cb('');
+
+    fetchTmdbUaTitle(movie, function (uaTitle) {
+        if (uaTitle) {
+            return cb(uaTitle);
+        }
+        
+        var uiLoc = String((movie && (movie.title || movie.name)) || '').trim();
+        cb(uiLoc);
+    });
+}
+  
   function getOriginalTitleEnabled() {
     var rawNew = Lampa.Storage.get('interface_mod_new_en_data');
     if (typeof rawNew !== 'undefined') return getBool('interface_mod_new_en_data', true);
-    // Fallback до старого ключа
+
     return getBool('interface_mod_new_english_data', false);
   }
 
-  /**
-   * Об'єкт з поточними налаштуваннями плагіну
-   */
+
+function getTitleMode() {
+
+  var m = Lampa.Storage.get('interface_mod_new_title_mode');
+  if (typeof m !== 'undefined' && m !== null && m !== '') {
+    m = String(m);
+
+    if (m === 'orig_ua') m = 'orig_loc';
+
+    if (m !== 'off' && m !== 'orig' && m !== 'loc' && m !== 'orig_loc') m = 'orig';
+
+    return m;
+  }
+
+  var old = Lampa.Storage.get('interface_mod_new_en_data');
+  if (typeof old !== 'undefined') return getBool('interface_mod_new_en_data', true) ? 'orig' : 'off';
+
+  var older = Lampa.Storage.get('interface_mod_new_english_data');
+  if (typeof older !== 'undefined') return getBool('interface_mod_new_english_data', false) ? 'orig' : 'off';
+
+  return 'orig';
+}
+
   var settings = {
     info_panel: getBool('interface_mod_new_info_panel', true),
     colored_ratings: getBool('interface_mod_new_colored_ratings', false),
@@ -313,19 +396,17 @@ function isMonoEnabled() {
     theme: (Lampa.Storage.get('interface_mod_new_theme_select', 'default') || 'default'),
 
     en_data: getOriginalTitleEnabled(),
-    all_buttons: getBool('interface_mod_new_all_buttons', false),
+    all_buttons: getBool('interface_mod_new_all_buttons_v1', false),
     icon_only: getBool('interface_mod_new_icon_only', false),
     colored_buttons: getBool('interface_mod_new_colored_buttons', false),
 
-    // Налаштування для torrents+mod
     tor_frame: getBool('interface_mod_new_tor_frame', true),
     tor_bitrate: getBool('interface_mod_new_tor_bitrate', true),
     tor_seeds: getBool('interface_mod_new_tor_seeds', true),
+
+    
   };
 
-  /**
-   * Кеш DOM-елементів та даних поточної відкритої картки
-   */
   var __ifx_last = {
     details: null,
     movie: null,
@@ -338,12 +419,7 @@ function isMonoEnabled() {
     nodes: null
   };
 
-  /* ============================================================
-   * ФОЛБЕК-CSS + ПРІОРИТЕТ СТИЛІВ
-   * ============================================================ */
-  /**
-   * Додає CSS для "відкату" стилів (якщо кольорові статуси/рейтинги вимкнені)
-   */
+
   function injectFallbackCss() {
     if (document.getElementById('ifx_fallback_css')) return;
     var st = document.createElement('style');
@@ -355,9 +431,7 @@ function isMonoEnabled() {
     document.head.appendChild(st);
   }
 
-  /**
-   * Переконується, що стилі плагіну (особливо теми) мають вищий пріоритет
-   */
+
   function ensureStylesPriority(ids) {
     var head = document.head;
     ids.forEach(function (id) {
@@ -369,9 +443,6 @@ function isMonoEnabled() {
     });
   }
 
-  /* ============================================================
-   * БАЗОВІ СТИЛІ
-   * ============================================================ */
   (function injectBaseCss() {
     if (document.getElementById('interface_mod_base')) return;
 
@@ -412,7 +483,7 @@ var css = `
   /* ОРИГІНАЛЬНА НАЗВА — сірий, −25%, з лівою лінією */
   .ifx-original-title{
     color:#aaa;
-    font-size: 0.75em;
+    font-size: var(--ifx-title-size, 0.75em);
     font-weight: 600;
     margin-top: 4px;
     border-left: 2px solid #777;
@@ -440,9 +511,6 @@ var css = `
     document.head.appendChild(st);
   })();
 
-  /* ============================================================
-   * ТЕМИ
-   * ============================================================ */
   function applyTheme(theme) {
     var old = document.getElementById('interface_mod_theme');
     if (old) old.remove();
@@ -505,18 +573,9 @@ var css = `
     ensureStylesPriority(['interface_mod_theme']);
   }
 
-  /* ============================================================
-   * СЕЛЕКТОРИ ДЛЯ СТАТУСІВ ТА PG
-   * ============================================================ */
   var STATUS_BASE_SEL = '.full-start__status, .full-start-new__status, .full-start__soon, .full-start-new__soon, .full-start [data-status], .full-start-new [data-status]';
   var AGE_BASE_SEL = '.full-start__pg, .full-start-new__pg, .full-start [data-pg], .full-start-new [data-pg], .full-start [data-age], .full-start-new [data-age]';
 
-  /* ============================================================
-   * НАЛАШТУВАННЯ UI
-   * ============================================================ */
-  /**
-   * Ініціалізує компонент налаштувань "Інтерфейс +"
-   */
   function initInterfaceModSettingsUI() {
     if (window.__ifx_settings_ready) return;
     window.__ifx_settings_ready = true;
@@ -598,9 +657,7 @@ var css = `
         description: Lampa.Lang.translate('interface_mod_new_mono_mode_desc')
       }
     });
-
-
-    
+ 
     add({
       component: 'interface_mod_new',
       param: {
@@ -619,35 +676,38 @@ var css = `
       }
     });
 
-    // Оригінальна назва
     add({
       component: 'interface_mod_new',
       param: {
-        name: 'interface_mod_new_en_data',
-        type: 'trigger',
-        values: true,
-        default: true
+        name: 'interface_mod_new_title_mode_v1',
+        type: 'select',
+        values: {
+          off: Lampa.Lang.translate('interface_mod_new_title_mode_off'),
+          orig: Lampa.Lang.translate('interface_mod_new_title_mode_orig'),
+          loc: Lampa.Lang.translate('interface_mod_new_title_mode_loc'),
+          orig_loc: Lampa.Lang.translate('interface_mod_new_title_mode_orig_loc')
+        },
+        default: 'orig_loc'
       },
       field: {
-        name: Lampa.Lang.translate('interface_mod_new_en_data'),
-        description: Lampa.Lang.translate('interface_mod_new_en_data_desc')
+        name: Lampa.Lang.translate('interface_mod_new_title_mode'),
+        description: Lampa.Lang.translate('interface_mod_new_title_mode_desc')
       }
     });
 
-    // Всі кнопки + Іконки без тексту
-    add({
-      component: 'interface_mod_new',
-      param: {
-        name: 'interface_mod_new_all_buttons',
-        type: 'trigger',
-        values: true,
-        default: false
-      },
-      field: {
-        name: Lampa.Lang.translate('interface_mod_new_all_buttons'),
-        description: Lampa.Lang.translate('interface_mod_new_all_buttons_desc')
-      }
-    });
+add({
+  component: 'interface_mod_new',
+  param: {
+    name: 'interface_mod_new_title_size',
+    type: 'input',
+    values: true,
+    default: '0.75'
+  },
+  field: {
+    name: Lampa.Lang.translate('interface_mod_new_title_size_name'),
+    description: Lampa.Lang.translate('interface_mod_new_title_size_desc')
+  }
+});
 
     add({
       component: 'interface_mod_new',
@@ -663,7 +723,6 @@ var css = `
       }
     });
 
-    // Кольорові кнопки
     add({
       component: 'interface_mod_new',
       param: {
@@ -678,7 +737,6 @@ var css = `
       }
     });
 
-    // Торенти: три тумблери
     add({
       component: 'interface_mod_new',
       param: {
@@ -721,9 +779,6 @@ var css = `
       }
     });
 
-    /**
-     * Переміщує групу "Інтерфейс +" відразу після групи "Інтерфейс"
-     */
     function moveAfterInterface() {
       var $folders = $('.settings-folder');
       var $interface = $folders.filter(function () {
@@ -749,10 +804,6 @@ var css = `
       subtree: true
     });
 
-    /**
-     * Закриває випадаючі списки і оновлює налаштування
-     * ВИКЛИКАЄ Lampa.Settings.update()
-     */
     function closeOpenSelects() {
       setTimeout(function () {
         $('.selectbox').remove();
@@ -760,8 +811,6 @@ var css = `
       }, 60);
     }
 
-    // ПАТЧ Lampa.Storage.set
-    // Це "контролер", який реагує на зміни налаштувань
     if (!window.__ifx_patch_storage) {
       window.__ifx_patch_storage = true;
       var _set = Lampa.Storage.set;
@@ -769,12 +818,8 @@ var css = `
       Lampa.Storage.set = function (key, val) {
         var res = _set.apply(this, arguments);
 
-        // Реагуємо тільки на зміни *наших* налаштувань
+
         if (typeof key === 'string' && key.indexOf('interface_mod_new_') === 0) {
-          
-          // [!!!] Update only the changed setting in the local 'settings' object
-          // and call the specific function for that setting.
-          // This avoids re-reading all 13 settings from storage on every change.
 
           switch (key) {
             case 'interface_mod_new_info_panel':
@@ -804,29 +849,28 @@ var css = `
 
             case 'interface_mod_new_mono_mode':
               settings.mono_mode = getBool(key, false);
-              // Перебудувати інфо-панель (бо кольори там інлайном)
+
               rebuildInfoPanelActive();
-              // Перемалювати статуси/PG на відкритій картці, якщо вони увімкнені
+
               if (settings.colored_status) applyStatusOnceIn(document);
               if (settings.colored_age) applyAgeOnceIn(document);
               break;
               
             case 'interface_mod_new_theme_select':
-              settings.theme = (val || 'default'); // Use 'val' directly from arguments
+              settings.theme = (val || 'default'); 
               applyTheme(settings.theme);
-              //closeOpenSelects(); // This is the only one that needs this
               break;
               
-            case 'interface_mod_new_en_data':
+            /*case 'interface_mod_new_en_data':
             case 'interface_mod_new_english_data': // Handle fallback
               settings.en_data = getOriginalTitleEnabled(); // This function already checks both keys
               applyOriginalTitleToggle();
-              break;
+              break;*/
               
-            case 'interface_mod_new_all_buttons':
+            /*case 'interface_mod_new_all_buttons':
               settings.all_buttons = getBool(key, false);
               rebuildButtonsNow();
-              break;
+              break;*/
               
             case 'interface_mod_new_icon_only':
               settings.icon_only = getBool(key, false);
@@ -852,6 +896,19 @@ var css = `
               settings.tor_seeds = getBool(key, true);
               if (window.runTorrentStyleRefresh) window.runTorrentStyleRefresh();
               break;
+
+case 'interface_mod_new_title_mode':
+  applyOriginalTitleToggle();
+  break;
+
+case 'interface_mod_new_title_size':
+  applyTitleSizeNow();
+
+  applyOriginalTitleToggle();
+  break;
+
+
+           
           }
         }
         return res;
@@ -859,19 +916,6 @@ var css = `
     }
   }
 
-  /* ============================================================
-   * ІНФО-ПАНЕЛЬ (4 ряди + кольорові жанри)
-   * ============================================================ */
-  /**
-   * Створює і наповнює нову інфо-панель
-   */
-/**
- * Створює і наповнює нову інфо-панель
- * + Монохромний оверрайд (перекриває всі кольори бейджів і жанрів),
- *   але тільки коли:
- *   - увімкнено "Монохромний режим"
- *   - і увімкнено "Нова інфо-панель"
- */
 function buildInfoPanel(details, movie, isTvShow, originalDetails) {
   var mono = isMonoFor('interface_mod_new_info_panel');
 
@@ -929,7 +973,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     'margin-bottom': '0.2em'
   };
 
-  // Хелпери стилів: або кольорово, або моно
   function badgeCss(bg, text) {
     if (mono) {
       return $.extend({}, baseBadge, {
@@ -970,7 +1013,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     });
   }
 
-  // 1 — Серії (для серіалів)
   if (isTvShow && Array.isArray(movie.seasons)) {
     var totalEps = 0, airedEps = 0, now = new Date(), hasEpisodes = false;
 
@@ -1006,7 +1048,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     );
   }
 
-  // 2 — Наступна серія
+
   if (isTvShow && movie.next_episode_to_air && movie.next_episode_to_air.air_date) {
     var nextDate = new Date(movie.next_episode_to_air.air_date), today = new Date();
     nextDate.setHours(0, 0, 0, 0);
@@ -1023,7 +1065,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     );
   }
 
-  // 3 — Тривалість
+
   if (!isTvShow && movie.runtime > 0) {
     var mins = movie.runtime, h = Math.floor(mins / 60), m = mins % 60;
     var tt = 'Тривалість фільму: ';
@@ -1041,7 +1083,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     );
   }
 
-  // 4 — Сезони + Жанри
+
   var seasonsCount = (movie.season_count || movie.number_of_seasons || (movie.seasons ? movie.seasons.filter(function (s) {
     return s.season_number !== 0;
   }).length : 0)) || 0;
@@ -1073,9 +1115,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
   details.append(container);
 }
 
-  /**
-   * Перебудовує інфо-панель на відкритій картці (або повертає оригінальну)
-   */
   function rebuildInfoPanelActive() {
     var enabled = getBool('interface_mod_new_info_panel', true);
     if (!__ifx_last.details || !__ifx_last.details.length) return;
@@ -1088,9 +1127,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     }
   }
 
-  /**
-   * Встановлює слухача Lampa.Listener 'full' для нової інфо-панелі
-   */
   function newInfoPanel() {
     Lampa.Listener.follow('full', function (data) {
       if (data.type !== 'complite') return;
@@ -1107,29 +1143,21 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
           movie.type === 'tv' || movie.type === 'serial'
         ));
 
-        // Кешуємо дані про відкриту картку
         __ifx_last.details = details;
         __ifx_last.movie = movie;
         __ifx_last.isTv = isTvShow;
         __ifx_last.originalHTML = details.html();
         __ifx_last.fullRoot = $(data.object.activity.render());
 
-        // Якщо налаштування вимкнене, нічого не робимо
+
         if (!getBool('interface_mod_new_info_panel', true)) return;
 
-        // Будуємо нову панель
         details.empty();
         buildInfoPanel(details, movie, isTvShow, __ifx_last.originalHTML);
       }, 100);
     });
   }
 
-  /* ============================================================
-   * КОЛЬОРОВІ РЕЙТИНГИ
-   * ============================================================ */
-  /**
-   * Застосовує кольори до всіх видимих рейтингів
-   */
   function updateVoteColors() {
     if (!getBool('interface_mod_new_colored_ratings', false)) return;
 
@@ -1158,9 +1186,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     });
   }
 
-  /**
-   * Скидає кольори рейтингів до стандартних
-   */
   function clearVoteColors() {
     var SEL = '.card__vote, .full-start__rate, .full-start-new__rate, .info__rate, .card__imdb-rate, .card__kinopoisk-rate';
     $(SEL).css({
@@ -1169,10 +1194,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     });
   }
 
-  /**
-   * Встановлює MutationObserver для динамічного оновлення рейтингів
-   */
-  var __voteObserverDebounce = null; // OPTIMIZATION: Debounce timer
+  var __voteObserverDebounce = null; 
   function setupVoteColorsObserver() {
     setTimeout(function () {
       if (getBool('interface_mod_new_colored_ratings', false)) updateVoteColors();
@@ -1180,9 +1202,9 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
 
     var obs = new MutationObserver(function () {
       if (getBool('interface_mod_new_colored_ratings', false)) {
-        // OPTIMIZATION: Debounce heavy DOM scan
+
         if (__voteObserverDebounce) clearTimeout(__voteObserverDebounce);
-        __voteObserverDebounce = setTimeout(updateVoteColors, 200); // Was 80ms
+        __voteObserverDebounce = setTimeout(updateVoteColors, 200); 
       }
     });
     obs.observe(document.body, {
@@ -1195,12 +1217,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     });
   }
 
-  /* ============================================================
-   * БАЗА СТИЛІВ ДЛЯ СТАТУСІВ/PG
-   * ============================================================ */
-  /**
-   * Вмикає/вимикає базові стилі для плашок СТАТУСУ
-   */
   function setStatusBaseCssEnabled(enabled) {
     var idEn = 'interface_mod_status_enabled';
     var idDis = 'interface_mod_status_disabled';
@@ -1236,9 +1252,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     document.head.appendChild(st);
   }
 
-  /**
-   * Вмикає/вимикає базові стилі для плашок ВІКОВОГО РЕЙТИНГУ (PG)
-   */
   function setAgeBaseCssEnabled(enabled) {
     var idEn = 'interface_mod_age_enabled';
     var idDis = 'interface_mod_age_disabled';
@@ -1256,7 +1269,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
-        /* БЕЗ display тут (щоб можна було ховати пусті) */
+
         '}';
     } else {
       st.id = idDis;
@@ -1268,24 +1281,15 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
-        /* БЕЗ display тут! */
         '}';
     }
     document.head.appendChild(st);
   }
 
-  /* ============================================================
-   * КОЛЬОРОВІ СТАТУСИ
-   * ============================================================ */
+
   var __statusObserver = null;
   var __statusFollowReady = false;
 
-/**
- * Застосовує кольори до плашок статусів
- * + Монохромний оверрайд (перекриває палітру, але тільки коли:
- *   - увімкнено "Монохромний режим"
- *   - і увімкнено "Кольорові статуси"
- */
 function applyStatusOnceIn(elRoot) {
   if (!getBool('interface_mod_new_colored_status', false)) return;
 
@@ -1325,7 +1329,7 @@ function applyStatusOnceIn(elRoot) {
     el.classList.remove('ifx-status-fallback');
 
     if (!key) {
-      // Якщо статус не розпізнано, повертаємо білу рамку
+
       el.classList.add('ifx-status-fallback');
       el.style.setProperty('border-width', '1px', 'important');
       el.style.setProperty('border-style', 'solid', 'important');
@@ -1335,15 +1339,13 @@ function applyStatusOnceIn(elRoot) {
       return;
     }
 
-    // === МОНОХРОМНИЙ ОВЕРРАЙД ===
     if (mono) {
-      // ВАЖЛИВО: перекриваємо value-based кольори
+
       applyMonoBadgeStyle(el);
       el.style.setProperty('display', 'inline-block', 'important');
       return;
     }
 
-    // === КОЛЬОРОВИЙ РЕЖИМ (як було) ===
     var c = palette[key];
     $(el).css({
       'background-color': c.bg,
@@ -1403,9 +1405,6 @@ function applyStatusOnceIn(elRoot) {
     });
   }
 
-  /* ============================================================
-   * КОЛЬОРОВІ ВІКОВІ РЕЙТИНГИ (PG)
-   * ============================================================ */
   var __ageObserver = null;
   var __ageFollowReady = false;
 
@@ -1439,25 +1438,19 @@ function applyStatusOnceIn(elRoot) {
     }
   };
 
-  /**
-   * Визначає вікову категорію за текстом
-   */
-  
     function ageCategoryFor(text) {
     var t = (text || '').trim();
 
-    // 1) Спочатку числовий формат N+
     var mm = t.match(/(^|\D)(\d{1,2})\s*\+(?=\D|$)/);
     if (mm) {
       var n = parseInt(mm[2], 10);
       if (n >= 18) return 'adult';
       if (n >= 17) return 'almostAdult';
-      if (n >= 13) return 'teens';      // ← тут 14+ автоматично піде в teens (жовтий)
+      if (n >= 13) return 'teens'; 
       if (n >= 6)  return 'children';
       return 'kids';
     }
 
-    // 2) Маркери (дорослі → дитячі) з точними межами
     var ORDER = ['adult', 'almostAdult', 'teens', 'children', 'kids'];
     for (var oi = 0; oi < ORDER.length; oi++) {
       var k = ORDER[oi];
@@ -1470,12 +1463,6 @@ function applyStatusOnceIn(elRoot) {
     return '';
    }
   
-/**
- * Застосовує кольори до вікових рейтингів (PG)
- * + Монохромний оверрайд (перекриває __ageColors, але тільки коли:
- *   - увімкнено "Монохромний режим"
- *   - і увімкнено "Кольоровий віковий рейтинг"
- */
 function applyAgeOnceIn(elRoot) {
   if (!getBool('interface_mod_new_colored_age', false)) return;
 
@@ -1485,14 +1472,12 @@ function applyAgeOnceIn(elRoot) {
   $root.find(AGE_BASE_SEL).each(function () {
     var el = this;
 
-    // беремо текст або значення з атрибутів
     var t = (el.textContent || '').trim();
     if (!t) {
       var attr = ((el.getAttribute('data-age') || el.getAttribute('data-pg') || '') + '').trim();
       if (attr) t = attr;
     }
 
-    // якщо ПУСТО — ховаємо елемент і зчищаємо все
     if (!t) {
       el.classList.add('hide');
       el.classList.remove('ifx-age-fallback');
@@ -1502,7 +1487,6 @@ function applyAgeOnceIn(elRoot) {
       return;
     }
 
-    // є значення — показуємо
     el.classList.remove('hide');
     el.classList.remove('ifx-age-fallback');
     ['border-width', 'border-style', 'border-color', 'background-color', 'color'].forEach(function (p) {
@@ -1512,14 +1496,13 @@ function applyAgeOnceIn(elRoot) {
     var g = ageCategoryFor(t);
 
     if (g) {
-      // === МОНОХРОМНИЙ ОВЕРРАЙD ===
+
       if (mono) {
         applyMonoBadgeStyle(el);
-        el.style.display = 'inline-block'; // без !important — .hide завжди переможе
+        el.style.display = 'inline-block'; 
         return;
       }
 
-      // === КОЛЬОРОВИЙ РЕЖИМ (як було) ===
       var c = __ageColors[g];
       $(el).css({
         'background-color': c.bg,
@@ -1528,7 +1511,7 @@ function applyAgeOnceIn(elRoot) {
       });
       el.style.display = 'inline-block';
     } else {
-      // невідома категорія — «fallback», але тільки коли є текст
+
       el.classList.add('ifx-age-fallback');
       el.style.setProperty('border-width', '1px', 'important');
       el.style.setProperty('border-style', 'solid', 'important');
@@ -1619,43 +1602,60 @@ function applyAgeOnceIn(elRoot) {
     });
   }
 
-  /* ============================================================
-   * ОРИГІНАЛЬНА НАЗВА (EN)
-   * ============================================================ */
-  /**
-   * Додає оригінальну назву в заголовок картки
-   */
-  function setOriginalTitle(fullRoot, movie) {
-    if (!fullRoot || !movie) return;
-    var head = fullRoot.find('.full-start-new__head, .full-start__head').first();
-    if (!head.length) return;
+function setOriginalTitle(fullRoot, movie) {
+  if (!fullRoot || !movie) return;
 
-    head.find('.ifx-original-title').remove();
-    if (!getOriginalTitleEnabled()) return;
+  var head = fullRoot.find('.full-start-new__head, .full-start__head').first();
+  if (!head.length) return;
 
-    var original = movie.original_title || movie.original_name || movie.original || movie.name || movie.title || '';
-    if (!original) return;
+  head.find('.ifx-original-title').remove();
 
-    $('<div class="ifx-original-title"></div>').text(original).appendTo(head);
+  var mode = getTitleMode();
+  if (mode === 'off') return;
+
+  var original = String(movie.original_title || movie.original_name || movie.original || '').trim();
+  var uiLoc    = String((movie.title || movie.name) || '').trim();
+
+  function render(text) {
+    text = String(text || '').trim();
+    if (!text) return;
+    $('<div class="ifx-original-title"></div>').text(text).appendTo(head);
   }
 
-  /**
-   * Оновлює показ оригінальної назви (для реактивності)
-   */
-  function applyOriginalTitleToggle() {
-    if (!__ifx_last.fullRoot) return;
-    var head = __ifx_last.fullRoot.find('.full-start-new__head, .full-start__head').first();
-    if (!head.length) return;
-    head.find('.ifx-original-title').remove();
-    if (getOriginalTitleEnabled()) setOriginalTitle(__ifx_last.fullRoot, __ifx_last.movie || {});
+  if (mode === 'orig') {
+    return render(original || uiLoc);
   }
 
-  /* ============================================================
-   * КНОПКИ (Всі / Іконки без тексту)
-   * ============================================================ */
-  /**
-   * Перевіряє, чи є кнопка кнопкою "Play" (щоб уникнути дублювання)
-   */
+  if (mode === 'loc') {
+    return getLocalizedTitleAsync(movie, function (loc) {
+      render(loc || uiLoc || original);
+    });
+  }
+
+
+  return getLocalizedTitleAsync(movie, function (loc) {
+    loc = String(loc || uiLoc || '').trim();
+    var a = original || '';
+    var b = loc || '';
+
+    if (!a && b) return render(b);
+    if (a && !b) return render(a);
+
+    if (a && b && a.toLowerCase() === b.toLowerCase()) return render(a);
+
+    render(a + ' / ' + b);
+  });
+}
+
+function applyOriginalTitleToggle() {
+  if (!__ifx_last.fullRoot) return;
+  var head = __ifx_last.fullRoot.find('.full-start-new__head, .full-start__head').first();
+  if (!head.length) return;
+
+  head.find('.ifx-original-title').remove();
+  if (getTitleMode() !== 'off') setOriginalTitle(__ifx_last.fullRoot, __ifx_last.movie || {});
+}
+
   function isPlayBtn($b) {
     var cls = ($b.attr('class') || '').toLowerCase();
     var act = String($b.data('action') || '').toLowerCase();
@@ -1667,19 +1667,14 @@ function applyAgeOnceIn(elRoot) {
     return false;
   }
 
-  /**
-   * Перезбирає кнопки в порядку Онлайн -> Торенти -> Трейлери
-   */
   function reorderAndShowButtons(fullRoot) {
     if (!fullRoot) return;
 
     var $container = fullRoot.find('.full-start-new__buttons, .full-start__buttons').first();
     if (!$container.length) return;
 
-    // Прибрати можливі дублі "play"
     fullRoot.find('.button--play, .button--player, .view--play, .view--player').remove();
 
-    // Зібрати всі кнопки
     var $source = fullRoot.find(
       '.buttons--container .full-start__button, ' +
       '.full-start__buttons .full-start__button, ' +
@@ -1700,10 +1695,10 @@ function applyAgeOnceIn(elRoot) {
 
     $source.each(function () {
       var $b = $(this);
-      if (isPlayBtn($b)) return; // Ігноруємо кнопки "Play"
+      if (isPlayBtn($b)) return;
 
       var s = sig($b);
-      if (seen.has(s)) return; // Уникаємо дублікатів
+      if (seen.has(s)) return;
       seen.add(s);
 
       var cls = ($b.attr('class') || '').toLowerCase();
@@ -1719,7 +1714,6 @@ function applyAgeOnceIn(elRoot) {
       }
     });
 
-    // Хак для перефокусування Lampa
     var needToggle = false;
     try {
       needToggle = (Lampa.Controller.enabled().name === 'full_start');
@@ -1730,7 +1724,6 @@ function applyAgeOnceIn(elRoot) {
       } catch (e) {}
     }
 
-    // Вставляємо кнопки у правильному порядку
     $container.empty();
     ['online', 'torrent', 'trailer', 'other'].forEach(function (cat) {
       groups[cat].forEach(function ($b) {
@@ -1738,7 +1731,6 @@ function applyAgeOnceIn(elRoot) {
       });
     });
 
-    // Видаляємо "пусті" кнопки (без тексту та іконок)
     $container.find('.full-start__button').filter(function () {
       return $(this).text().trim() === '' && $(this).find('svg').length === 0;
     }).remove();
@@ -1747,7 +1739,6 @@ function applyAgeOnceIn(elRoot) {
 
     applyIconOnlyClass(fullRoot);
 
-    // Повертаємо фокус
     if (needToggle) {
       setTimeout(function () {
         try {
@@ -1757,9 +1748,6 @@ function applyAgeOnceIn(elRoot) {
     }
   }
 
-  /**
-   * Відновлює оригінальний порядок кнопок (з кешу)
-   */
   function restoreButtons() {
     if (!__ifx_btn_cache.container || !__ifx_btn_cache.nodes) return;
 
@@ -1788,9 +1776,6 @@ function applyAgeOnceIn(elRoot) {
     applyIconOnlyClass(__ifx_last.fullRoot || $(document));
   }
 
-  /**
-   * Примусово перебудовує кнопки (для реактивності)
-   */
   function rebuildButtonsNow() {
     if (!__ifx_last.fullRoot) return;
     if (settings.all_buttons) {
@@ -1800,13 +1785,9 @@ function applyAgeOnceIn(elRoot) {
     }
     applyIconOnlyClass(__ifx_last.fullRoot);
 
-    // якщо ввімкнено — оновлюємо кольорові кнопки після перестановки
     if (settings.colored_buttons) applyColoredButtonsIn(__ifx_last.fullRoot);
   }
 
-  /**
-   * Додає/видаляє клас для режиму "тільки іконки"
-   */
   function applyIconOnlyClass(fullRoot) {
     var $c = fullRoot.find('.full-start-new__buttons, .full-start__buttons').first();
     if (!$c.length) return;
@@ -1820,16 +1801,10 @@ function applyAgeOnceIn(elRoot) {
     }
   }
 
-  /* ============================================================
-   * КОЛЬОРОВІ КНОПКИ 
-   * ============================================================ */
   var __ifx_colbtn = {
     styleId: 'interface_mod_colored_buttons'
   };
 
-  /**
-   * Додає CSS для кольорових кнопок
-   */
   function injectColoredButtonsCss() {
     if (document.getElementById(__ifx_colbtn.styleId)) return;
 var css = `
@@ -1843,44 +1818,43 @@ var css = `
     transform: scale(0.98) !important;
   }
 
-  /* ============================================================
-   * ONLINE buttons colors
-   * ============================================================ */
 
-  /* 1) BanderaOnline: не чіпаємо (як і було) */
   .full-start__button.ifx-bandera-online svg path,
   .full-start__button.ifx-bandera-online svg rect {
     fill: unset !important;
   }
 
-  /* 2) BazarNetUA — ТІЛЬКИ КОЛІР ІКОНКИ (без фону/рамки)
-   * ЗМІНА КОЛЬОРУ: поміняй значення нижче (будь-який HEX)
-   */
   :root{
     --ifx-bazarnet-play-color: #8b5cf6; /* <-- ЗМІНИ ТУТ, якщо треба інший фіолетовий */
   }
 
-  /* Важливо: фарбуємо саме PATH, бо в більшості іконок play це path */
+
   .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg path{
     fill: var(--ifx-bazarnet-play-color) !important;
   }
 
-  /* На випадок, якщо SVG використовує currentColor */
   .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg{
     color: var(--ifx-bazarnet-play-color) !important;
   }
 
-  /* 3) Всі інші online — стандартний синій play */
+
   .full-start__button.view--online:not(.ifx-bandera-online):not(.lampac--button) svg path {
     fill: #2196f3 !important;
   }
 
-  .full-start__button.view--online:not(.ifx-bandera-online)
-  .lampac--button:not([data-subtitle*="BazarNetUA"]) svg path {
-    fill: #2196f3 !important;
+  /*.full-start__button.view--online:not(.ifx-bandera-online)*/
+  /*.lampac--button:not([data-subtitle*="BazarNetUA"]) svg path {*/
+  /*  fill: #2196f3 !important;*/
+  /*}*/
+
+  .full-start__button.view--online.lampac--button:not(.ifx-bandera-online):not([data-subtitle*="BazarNetUA"]) svg path{
+  fill:#2196f3 !important;
   }
 
-  /* TORRENT / TRAILER */
+  .full-start__button.view--online:not(.ifx-bandera-online):not(.lampac--button) svg{
+  color: #2196f3 !important;
+  }
+
   .full-start__button.view--torrent svg path { fill: lime !important; }
   .full-start__button.view--trailer svg path { fill: #f44336 !important; }
 
@@ -1937,26 +1911,18 @@ var css = `
     var sub = String($btn.attr('data-subtitle') || '').toLowerCase();
     var txt = String($btn.text() || '').toLowerCase();
 
-    // BanderaOnline так ідентифікується у твоєму коді:
-    // data-subtitle="[Free] Bandera Online vX" і текст "t.me/mmssixxx"
     if (sub.indexOf('bandera online') !== -1) return true;
     if (txt.indexOf('mmssixxx') !== -1) return true;
 
     return false;
   }
 
-
-  
-  // SVG іконки
   var SVG_MAP = {
     torrent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50px" height="50px"><path d="M25,2C12.317,2,2,12.317,2,25s10.317,23,23,23s23-10.317,23-23S37.683,2,25,2zM40.5,30.963c-3.1,0-4.9-2.4-4.9-2.4S34.1,35,27,35c-1.4,0-3.6-0.837-3.6-0.837l4.17,9.643C26.727,43.92,25.874,44,25,44c-2.157,0-4.222-0.377-6.155-1.039L9.237,16.851c0,0-0.7-1.2,0.4-1.5c1.1-0.3,5.4-1.2,5.4-1.2s1.475-0.494,1.8,0.5c0.5,1.3,4.063,11.112,4.063,11.112S22.6,29,27.4,29c4.7,0,5.9-3.437,5.7-3.937c-1.2-3-4.993-11.862-4.993-11.862s-0.6-1.1,0.8-1.4c1.4-0.3,3.8-0.7,3.8-0.7s1.105-0.163,1.6,0.8c0.738,1.437,5.193,11.262,5.193,11.262s1.1,2.9,3.3,2.9c0.464,0,0.834-0.046,1.152-0.104c-0.082,1.635-0.348,3.221-0.817,4.722C42.541,30.867,41.756,30.963,40.5,30.963z"/></svg>',
     online: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M20.331 14.644l-13.794-13.831 17.55 10.075zM2.938 0c-0.813 0.425-1.356 1.2-1.356 2.206v27.581c0 1.006 0.544 1.781 1.356 2.206l16.038-16zM29.512 14.1l-3.681-2.131-4.106 4.031 4.106 4.031 3.756-2.131c1.125-0.893 1.125-2.906-0.075-3.8zM6.538 31.188l17.55-10.075-3.756-3.756z"/></svg>',
     trailer: '<svg height="70" viewBox="0 0 80 70" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M71.2555 2.08955C74.6975 3.2397 77.4083 6.62804 78.3283 10.9306C80 18.7291 80 35 80 35C80 35 80 51.2709 78.3283 59.0694C77.4083 63.372 74.6975 66.7603 71.2555 67.9104C65.0167 70 40 70 40 70C40 70 14.9833 70 8.74453 67.9104C5.3025 66.7603 2.59172 63.372 1.67172 59.0694C0 51.2709 0 35 0 35C0 35 0 18.7291 1.67172 10.9306C2.59172 6.62804 5.3025 3.2395 8.74453 2.08955C14.9833 0 40 0 40 0C40 0 65.0167 0 71.2555 2.08955ZM55.5909 35.0004L29.9773 49.5714V20.4286L55.5909 35.0004Z"/></svg>'
   };
 
-  /**
-   * Замінює іконки на кастомні
-   */
   function isBazarNetBtn($btn){
   var sub = String($btn.attr('data-subtitle') || '');
   return sub.indexOf('BazarNetUA') !== -1;
@@ -1965,7 +1931,6 @@ var css = `
 function replaceIconsIn($root) {
   $root = $root && $root.length ? $root : $(document);
 
-  // torrent + trailer: як і було — для всіх
   ['torrent', 'trailer'].forEach(function (kind) {
     $root.find('.full-start__button.view--' + kind + ' svg').each(function () {
       var $svg = $(this);
@@ -1976,60 +1941,29 @@ function replaceIconsIn($root) {
     });
   });
 
-  // online: ТІЛЬКИ BanderaOnline і BazarNetUA
   $root.find('.full-start__button.view--online svg').each(function () {
     var $svg = $(this);
     var $btn = $svg.closest('.full-start__button');
 
-    var isBandera = isBanderaOnlineBtn($btn);
-    var isBazar   = isBazarNetBtn($btn);
-
-    if (!isBandera && !isBazar) return; // <-- ключова різниця
-
     if (!$btn.data('ifxOrigSvg')) $btn.data('ifxOrigSvg', $svg.prop('outerHTML'));
 
-    if (isBandera) {
+    if (isBanderaOnlineBtn($btn)) {
       $btn.addClass('ifx-bandera-online');
-      $svg.replaceWith(makeOnlineUaSvg());      // прапор (UA play)
-    } else {
-      // BazarNetUA: міняємо іконку на "play" (а колір дасть CSS)
+      $svg.replaceWith(makeOnlineUaSvg());
+      return;
+    }
+
+    if (isBazarNetBtn($btn)) {
       $btn.removeClass('ifx-bandera-online');
       $svg.replaceWith(SVG_MAP.online);
+      return;
     }
+
+    $btn.removeClass('ifx-bandera-online');
+    $svg.replaceWith(SVG_MAP.online);
   });
 }
 
-  
-  /*function replaceIconsIn($root) {
-    $root = $root && $root.length ? $root : $(document);
-
-    ['torrent', 'online', 'trailer'].forEach(function (kind) {
-      $root.find('.full-start__button.view--' + kind + ' svg').each(function () {
-        var $svg = $(this);
-        var $btn = $svg.closest('.full-start__button');
-
-        if (!$btn.data('ifxOrigSvg')) $btn.data('ifxOrigSvg', $svg.prop('outerHTML'));
-
-        // ✅ SPECIAL: тільки BanderaOnline -> UA play
-        if (kind === 'online' && isBanderaOnlineBtn($btn)) {
-        // позначаємо кнопку, щоб CSS НЕ перефарбовував її SVG
-        $btn.addClass('ifx-bandera-online');
-        // якщо хочеш лишити ОРИГІНАЛЬНУ bandera-іконку — нічого не міняй:
-        // return;
-        // якщо хочеш саме "play" синьо-жовтий (твій SVG) — тоді міняй:
-        $svg.replaceWith(makeOnlineUaSvg());
-          } else {
-            $svg.replaceWith(SVG_MAP[kind]);
-          }
-
-      });
-    });
-  }*/
-
-
-  /**
-   * Відновлює оригінальні іконки
-   */
   function restoreIconsIn($root) {
   $root = $root && $root.length ? $root : $(document);
 
@@ -2043,24 +1977,9 @@ function replaceIconsIn($root) {
       $btn.removeData('ifxOrigSvg');
     }
 
-    // важливо: прибрати маркер
     $btn.removeClass('ifx-bandera-online');
   });
 }
-
-  
-  /*function restoreIconsIn($root) {
-    $root = $root && $root.length ? $root : $(document);
-    $root.find('.full-start__button').each(function () {
-      var $btn = $(this);
-      var orig = $btn.data('ifxOrigSvg');
-      if (orig) {
-        var $current = $btn.find('svg').first();
-        if ($current.length) $current.replaceWith(orig);
-        $btn.removeData('ifxOrigSvg');
-      }
-    });
-  }*/
 
   function applyColoredButtonsIn(root) {
     injectColoredButtonsCss();
@@ -2079,23 +1998,6 @@ function replaceIconsIn($root) {
   }
 }
 
-  /*function setColoredButtonsEnabled(enabled) {
-    if (enabled) {
-      injectColoredButtonsCss();
-      if (__ifx_last.fullRoot) replaceIconsIn(__ifx_last.fullRoot);
-    } else {
-      removeColoredButtonsCss();
-      restoreIconsIn(__ifx_last.fullRoot || $(document));
-    }
-  }*/
-
-  /* ============================================================
-   * СЛУХАЧ КАРТКИ
-   * ============================================================ */
-
-  /**
-   * Встановлює слухача Lampa.Listener 'full' для кнопок та оригінальної назви
-   */
   function wireFullCardEnhancers() {
     Lampa.Listener.follow('full', function (e) {
       if (e.type !== 'complite') return;
@@ -2103,7 +2005,6 @@ function replaceIconsIn($root) {
       setTimeout(function () {
         var root = $(e.object.activity.render());
 
-        // кешуємо поточний контейнер і його дітей (для відновлення)
         var $container = root.find('.full-start-new__buttons, .full-start__buttons').first();
         if ($container.length) {
           __ifx_btn_cache.container = $container;
@@ -2113,21 +2014,15 @@ function replaceIconsIn($root) {
         __ifx_last.fullRoot = root;
         __ifx_last.movie = e.data.movie || __ifx_last.movie || {};
 
-        // 1. Оригінальна назва
         setOriginalTitle(root, __ifx_last.movie);
 
-        // 2. Всі кнопки
         if (settings.all_buttons) reorderAndShowButtons(root);
 
-        // 3. Режим «іконки без тексту»
         applyIconOnlyClass(root);
 
-        // 4. Кольорові кнопки
-        //if (settings.colored_buttons) applyColoredButtonsIn(root);
         if (settings.colored_buttons) {
         applyColoredButtonsIn(root);
 
-        // BanderaOnline може вставити кнопку трохи пізніше — доганяємо
         setTimeout(function(){ try { replaceIconsIn(root); } catch(e){} }, 300);
         setTimeout(function(){ try { replaceIconsIn(root); } catch(e){} }, 900);
         }
@@ -2136,7 +2031,6 @@ function replaceIconsIn($root) {
     });
   }
 
-  // Слухач для оновлення стилів торентів при відкритті картки
   Lampa.Listener.follow('full', function (e) {
     if (e.type === 'complite') {
       setTimeout(function () {
@@ -2147,17 +2041,16 @@ function replaceIconsIn($root) {
     }
   });
 
-  // Спостерігач для динамічного оновлення блоків торентів
   (function observeTorrents() {
     var obs = new MutationObserver(function (muts) {
       if (typeof window.runTorrentStyleRefresh === 'function') {
-        // антидребезг (debounce)
+
         clearTimeout(window.__ifx_tor_debounce);
         window.__ifx_tor_debounce = setTimeout(function () {
           try {
             window.runTorrentStyleRefresh();
           } catch (e) {}
-        }, 200); // OPTIMIZATION: Was 60ms
+        }, 200); 
       }
     });
     try {
@@ -2168,16 +2061,12 @@ function replaceIconsIn($root) {
     } catch (e) {}
   })();
 
-
-  /* ============================================================
-   * ЗАПУСК
-   * ============================================================ */
   function startPlugin() {
     injectFallbackCss();
     initInterfaceModSettingsUI();
     newInfoPanel();
     setupVoteColorsObserver();
-
+    
     if (settings.colored_ratings) updateVoteColors();
 
     setStatusBaseCssEnabled(settings.colored_status);
@@ -2189,18 +2078,17 @@ function replaceIconsIn($root) {
     else disableAgeColoring(true);
 
     if (settings.theme) applyTheme(settings.theme);
-
+    
+    applyTitleSizeNow();
     wireFullCardEnhancers();
 
     setColoredButtonsEnabled(settings.colored_buttons);
     
-    // Перший запуск стилів торентів
     try {
       if (window.runTorrentStyleRefresh) window.runTorrentStyleRefresh();
     } catch (e) {}
   }
 
-  // Запуск плагіну при готовності Lampa
   if (window.appready) {
     startPlugin();
   } else {
@@ -2209,14 +2097,16 @@ function replaceIconsIn($root) {
     });
   }
 
-  /* BEGIN my torrents mod (Verbatim) */
   (function () {
     try {
       (function () {
-        // ===================== КОНФІГУРАЦІЯ ПРАПОРЦЯ =====================
-        const UKRAINE_FLAG_SVG = '<svg viewBox="0 0 20 15"><rect width="20" height="7.5" y="0" fill="#0057B7"/><rect width="20" height="7.5" y="7.5" fill="#FFD700"/></svg>';
 
-        // ===================== СИСТЕМА ТЕКСТОВИХ ЗАМІН =====================
+        const UKRAINE_FLAG_SVG =
+        '<svg class="ua-flag-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 15" aria-hidden="true" focusable="false">' +
+        '<rect width="20" height="7.5" y="0" fill="#0057B7"/>' +
+        '<rect width="20" height="7.5" y="7.5" fill="#FFD700"/>' +
+        '</svg>';
+        
         const REPLACEMENTS = [
           ['Uaflix', 'UAFlix'],
           ['Zetvideo', 'UaFlix'],
@@ -2227,10 +2117,11 @@ function replaceIconsIn($root) {
           ['многоголосый', 'багатоголосий'],
           ['двухголосый', 'двоголосий'],
           ['Украинский', UKRAINE_FLAG_SVG + ' Українською'],
+          ['украинский', UKRAINE_FLAG_SVG + ' Українською'],
           ['Український', UKRAINE_FLAG_SVG + ' Українською'],
           ['Украинская', UKRAINE_FLAG_SVG + ' Українською'],
           ['Українська', UKRAINE_FLAG_SVG + ' Українською'],
-          ['1+1', UKRAINE_FLAG_SVG + ' 1+1'],
+          //['1+1', UKRAINE_FLAG_SVG + ' 1+1'],
           {
             pattern: /\bUkr\b/gi,
             replacement: UKRAINE_FLAG_SVG + ' Українською',
@@ -2243,7 +2134,6 @@ function replaceIconsIn($root) {
           }
         ];
 
-        // ===================== СИСТЕМА СТИЛІВ ДЛЯ ПРАПОРЦЯ =====================
         const FLAG_STYLES = `
           .flag-container {
               display: inline-flex;
@@ -2308,9 +2198,9 @@ function replaceIconsIn($root) {
           }
       `;
 
-        // ===================== СИСТЕМА КОЛЬОРОВИХ ІНДИКАТОРІВ =====================
+
 const STYLES = {
-          /* СІДИ: Текст яскравий, фон ледь помітний (0.15) */
+
           '.torrent-item__seeds span.low-seeds': { 
             'color': '#ff9696', 
             'background': 'rgba(255, 150, 150, 0.10)', 
@@ -2332,7 +2222,7 @@ const STYLES = {
             'text-shadow': '0 0 5px rgba(119, 205, 178, 0.4)',
             'box-shadow': '0 0 8px rgba(119, 205, 178, 0.2)'
           },
-          /* БІТРЕЙТ: Кольорова диференціація */
+
           '.torrent-item__bitrate span.low-bitrate': { 
             'color': '#fbcb79', 
             'background': 'rgba(251, 203, 121, 0.10)', 
@@ -2354,7 +2244,7 @@ const STYLES = {
             'text-shadow': '0 0 5px rgba(255, 150, 150, 0.4)',
             'box-shadow': '0 0 8px rgba(255, 150, 150, 0.2)'
           },
-          /* РАМКИ КАРТОК (interface_mod_new_tor_frame) */
+
           '.torrent-item.low-seeds': { 
             'border': '2px solid rgba(255, 150, 150, 0.45)', 
             'border-radius': '6px',
@@ -2370,20 +2260,18 @@ const STYLES = {
             'border-radius': '6px',
             'box-sizing': 'border-box'
           },
-          /* ТРЕКЕРИ */
+
           '.torrent-item__tracker.utopia': { 'color': '#9b59b6', 'font-weight': 'bold' },
           '.torrent-item__tracker.toloka': { 'color': '#3498db', 'font-weight': 'bold' },
           '.torrent-item__tracker.mazepa': { 'color': '#C9A0DC', 'font-weight': 'bold' }
         };
 
-        // ===================== ІНІЦІАЛІЗАЦІЯ СТИЛІВ ====================
         let style = document.createElement('style');
         style.innerHTML = FLAG_STYLES + '\n' + Object.entries(STYLES).map(([selector, props]) => {
           return `${selector} { ${Object.entries(props).map(([prop, val]) => `${prop}: ${val} !important`).join('; ')} }`;
         }).join('\n');
         document.head.appendChild(style);
 
-        // ============= СИСТЕМА ЗАМІНИ ТЕКСТУ ДЛЯ ФІЛЬТРІВ =============
         const UKRAINIAN_STUDIOS = [
           'DniproFilm', 'Дніпрофільм', 'Цікава Ідея', 'Колодій Трейлерів',
           'UaFlix', 'BaibaKo', 'В одне рило', 'Так Треба Продакшн',
@@ -2432,7 +2320,8 @@ const STYLES = {
                   filter.innerHTML = html;
                   filter.classList.add('ua-voice-processed');
 
-                  filter.querySelectorAll('svg').forEach(svg => {
+                  filter.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
+                  //filter.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2449,7 +2338,6 @@ const STYLES = {
           });
         }
 
-        // =============== ОПТИМІЗОВАНА СИСТЕМА ЗАМІНИ ТЕКСТУ ===============
         function replaceTexts() {
           const safeContainers = [
             '.online-prestige-watched__body',
@@ -2464,7 +2352,6 @@ const STYLES = {
 
           const processSafeElements = () => {
             
-            // [!!!] OPTIMIZATION: Combine selectors into one query
             const selectors = safeContainers.map(s => s + ':not(.ua-flag-processed)').join(', ');
             
             try {
@@ -2493,7 +2380,8 @@ const STYLES = {
                   element.innerHTML = html;
                   element.classList.add('ua-flag-processed');
 
-                  element.querySelectorAll('svg').forEach(svg => {
+                  element.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
+                  //element.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2523,7 +2411,6 @@ const STYLES = {
           }
         }
 
-        // ================= СИСТЕМА ОНОВЛЕННЯ СТИЛІВ ТОРЕНТІВ =================
         function updateTorrentStyles() {
           const visibleElements = {
             seeds: document.querySelectorAll('.torrent-item__seeds span:not([style*="display: none"])'),
@@ -2581,7 +2468,6 @@ const STYLES = {
           }
         }
 
-        // ===================== ОСНОВНА ФУНКЦІЯ ОНОВЛЕННЯ =====================
         function updateAll() {
           try {
             replaceTexts();
@@ -2591,7 +2477,6 @@ const STYLES = {
           }
         }
 
-        // ================= ОПТИМІЗОВАНА СИСТЕМА СПОСТЕРЕЖЕННЯ =================
         let updateTimeout = null;
         const observer = new MutationObserver(mutations => {
           const hasImportantChanges = mutations.some(mutation => {
@@ -2601,7 +2486,7 @@ const STYLES = {
 
           if (hasImportantChanges) {
             clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(updateAll, 250); // OPTIMIZATION: Was 150ms
+            updateTimeout = setTimeout(updateAll, 250);
           }
         });
 
@@ -2615,20 +2500,14 @@ const STYLES = {
         setTimeout(updateAll, 1000);
       })();
 
-      /* Lampa.Platform.tv(); */ // Цей виклик тут не потрібен, якщо це плагін
     } catch (e) {
       try {
         console.error('torrents+mod error', e);
       } catch (_e) {}
     }
   })();
-  /* END my torrents mod */
 
-  /* torrent toggles overrides */
-  // Цей блок динамічно вмикає/вимикає стилі з torrents mod
-  // на основі налаштувань з "Інтерфейс +"
   (function () {
-    // Власна реалізація getBool, щоб бути незалежним
     function getBool(key, def) {
       var v = Lampa.Storage.get(key);
       if (v === true || v === false) return v;
@@ -2638,9 +2517,6 @@ const STYLES = {
       return !!v;
     }
 
-
-    
-
 function apply() {
       var s = document.getElementById('torr_mod_overrides');
       if (!s) {
@@ -2649,24 +2525,20 @@ function apply() {
         document.head.appendChild(s);
       }
       
-      // Отримуємо налаштування з "Інтерфейс +"
       var ef = getBool('interface_mod_new_tor_frame', true),
           eb = getBool('interface_mod_new_tor_bitrate', true),
           es = getBool('interface_mod_new_tor_seeds', true);
           
       var css = '';
       
-      // Якщо вимкнено БІТРЕЙТ: скидаємо колір, фон та внутрішню рамку цифр
       if (!eb) {
         css += '.torrent-item__bitrate span.low-bitrate, .torrent-item__bitrate span.medium-bitrate, .torrent-item__bitrate span.high-bitrate { color: inherit !important; background: none !important; border: none !important; font-weight: inherit !important; }\n';
       }
       
-      // Якщо вимкнено СІДИ: скидаємо колір, фон та внутрішню рамку цифр
       if (!es) {
         css += '.torrent-item__seeds span.low-seeds, .torrent-item__seeds span.medium-seeds, .torrent-item__seeds span.high-seeds { color: inherit !important; background: none !important; border: none !important; font-weight: inherit !important; }\n';
       }
       
-      // Якщо вимкнено ЗАГАЛЬНІ РАМКИ: прибираємо бордер з усього рядка торента
       if (!ef) {
         css += '.torrent-item.low-seeds, .torrent-item.medium-seeds, .torrent-item.high-seeds { border: none !important; box-shadow: none !important; }\n';
       }
@@ -2674,19 +2546,13 @@ function apply() {
       s.textContent = css;
     }
     
-    // Робимо функцію глобальною, щоб її міг викликати основний плагін
     window.runTorrentStyleRefresh = apply;
-    setTimeout(apply, 0); // Перший запуск
+    setTimeout(apply, 0); 
   })();
 
-/* ============================================================
- * YEAR PILL + ALT EPISODE CARDS (NO MENU REORDER)
- * - year pill styles intact
- * - hide year ONLY on processed list/episode cards (not in full view)
- * - strip year from titles only on processed cards
- * ============================================================ */
+
 (function(){
-  // ---------- i18n ----------
+
   Lampa.Lang.add({
     ifx_year_on_cards:         { uk:'Показувати рік на картці', en:'Show year on card' },
     ifx_year_on_cards_desc:    { uk:'Увімкнути/Вимкнути відображення року на постері', en:'Year displayed on the poster only' },
@@ -2707,7 +2573,6 @@ function apply() {
   
   });
 
-  // keys (усі дефолт: false) 
   var KEY_YEAR = 'interface_mod_new_year_on_cards';
   var KEY_ALT  = 'interface_mod_new_episode_alt_cards';
   var KEY_NUM  = 'interface_mod_new_episode_numbers_only';
@@ -2721,7 +2586,6 @@ function apply() {
   
   };
 
-  // settings UI (без перестановок)
   (function addSettings(){
     var add = Lampa.SettingsApi.addParam;
     add({ component:'interface_mod_new',
@@ -2753,7 +2617,6 @@ function apply() {
     
   })();
 
-  //  CSS 
 function ensureCss(){
     var id = 'ifx_css_stable_final_v2';
     if (document.getElementById(id)) return;
@@ -2838,17 +2701,15 @@ function ensureCss(){
     document.head.appendChild(st);
 }
 
-// Синхронізуємо ТІЛЬКИ кольори з якості (фон/текст).
-// Якщо нічого не знайдено — дефолт як у твоєму прикладі.
 function ifxSyncAltBadgeThemeFromQuality(){
   try{
-    // Спершу сезонні мітки Quality, потім card__quality
+
     var q = document.querySelector('.card--season-complete, .card--season-progress')
          || document.querySelector('.card__quality');
     var inner = q ? (q.querySelector('div') || q) : null;
 
-    var bg = 'rgba(61,161,141,0.9)'; // дефолтний зелений фон
-    var fg = '#FFFFFF';              // дефолтний білий текст
+    var bg = 'rgba(61,161,141,0.9)';
+    var fg = '#FFFFFF';              
 
     if (q){
       var csQ = getComputedStyle(q);
@@ -2865,28 +2726,25 @@ function ifxSyncAltBadgeThemeFromQuality(){
   }catch(e){}
 }
 
-// Ввімкнення CSS
-// Альтернативні мітки у фіксованому стилі.
-// ✅ Можеш змінювати значення у КОНСТАНТАХ нижче.
 function ensureAltBadgesCss(){
   var st = document.getElementById('ifx_alt_badges_css');
 
-  /* ====== КОНСТАНТИ ДЛЯ ШВИДКОГО ТЮНІНГУ ====== */
-  var RIGHT_OFFSET  = '.3em';   // правий відступ (як у стандартного рейтингу/року)
-  var BOTTOM_OFFSET = '.50em';  // нижній відступ
-  var RADIUS        = '0.3em';  // радіус заокруглення
+
+  var RIGHT_OFFSET  = '.3em';   
+  var BOTTOM_OFFSET = '.50em';  
+  var RADIUS        = '0.3em';  
   var FONT_FAMILY   = "'Roboto Condensed','Arial Narrow',Arial,sans-serif";
   var FONT_WEIGHT   = '700';
-  var FONT_SIZE     = '1.0em';  // РОЗМІР ШРИФТУ
-  var PAD_Y         = '.19em';  // ВНУТРІШНІ ВІДСТУПИ
-  var PAD_X         = '.39em';  // ВНУТРІШНІ ВІДСТУПИ
-  var UPPERCASE     = true;     // true => uppercase, false => як є
-  /* ============================================ */
+  var FONT_SIZE     = '1.0em';  
+  var PAD_Y         = '.19em';  
+  var PAD_X         = '.39em';  
+  var UPPERCASE     = true;     
+
 
   var css = `
     body.ifx-alt-badges .card .card__view{ position:relative; }
 
-    /* Стек праворуч БЕЗ виступу; мінімальна «щілина» між рейтингом і роком */
+
     body.ifx-alt-badges .ifx-corner-stack{
       position:absolute; right:${RIGHT_OFFSET}; bottom:${BOTTOM_OFFSET};
       margin-right:0;
@@ -2895,7 +2753,6 @@ function ensureAltBadgesCss(){
     }
     body.ifx-alt-badges .ifx-corner-stack > *{ pointer-events:auto; }
 
-    /* Рейтинг у стеку та рік — однаковий вигляд */
     body.ifx-alt-badges .ifx-corner-stack .card__vote,
     body.ifx-alt-badges .ifx-corner-stack .card_vote,
     body.ifx-alt-badges .ifx-corner-stack .ifx-year-pill{
@@ -2915,7 +2772,7 @@ function ensureAltBadgesCss(){
       white-space: nowrap;
     }
 
-    /* Якщо року немає в стеку — стилізуємо окремо рейтинг у .card__view */
+
     body.ifx-alt-badges .card__view > .card__vote,
     body.ifx-alt-badges .card__view > .card_vote{
       position:absolute !important;
@@ -2942,7 +2799,7 @@ function ensureAltBadgesCss(){
   if (st){ st.textContent = css; }
   else { st = document.createElement('style'); st.id = 'ifx_alt_badges_css'; st.textContent = css; document.head.appendChild(st); }
 }
-  // ALT episode template
+
   var tplEpisodeOriginal = null;
   var tplEpisodeAlt =
     '<div class="card-episode selector layer--visible layer--render">\
@@ -2976,77 +2833,56 @@ function ensureAltBadgesCss(){
     Lampa.Template.add('card_episode', on ? tplEpisodeAlt : (tplEpisodeOriginal || tplEpisodeAlt));
     document.body.classList.toggle('ifx-ep-alt', !!on);
     
-    // [!!!] ВИПРАВЛЕНО:
-    // 'ifx-num-only' керується незалежно, базуючись лише на S.num_only
     document.body.classList.toggle('ifx-num-only', S.num_only);
     
     try{ Lampa.Settings.update(); }catch(e){}
   }
 
-  // ---------- helpers ----------
   function episodeWord(){
     var code = (Lampa.Lang && Lampa.Lang.code) || 'uk';
     return code.indexOf('en')===0 ? 'Episode' : 'Серія';
   }
 
-  // ВАЖЛИВО: спершу з даних, потім — з DOM (щоб не залежати від прихованих .card__age)
-  /* ОПТИМІЗАЦІЯ: Кешування року (WeakMap) + ПРАВИЛЬНИЙ рік серіалу */
+
   var __ifx_yearCache = window.__ifx_yearCache || new WeakMap();
   window.__ifx_yearCache = __ifx_yearCache;
 
-  /**
-   * Оригінальна логіка getYear (Тепер пріоритезує рік СЕРІАЛУ, ігноруючи рік ЕПІЗОДУ)
-   * Викликається щонайбільше 1 раз для кожної картки; результат кешується.
-   */
   function __ifx_getYear_orig($root){
     var d = $root.data() || {};
     
-    // 1) Дані Lampa: Пріоритет - рік виходу СЕРІАЛУ або ФІЛЬМУ
-    // (Ми свідомо ігноруємо d.air_date та d.next_episode_date, бо це дати епізодів)
-    var y = (d.first_air_date || '').slice(0,4) // << Пріоритет #1: Рік виходу серіалу
-         || (d.release_date || '').slice(0,4) // << Пріоритет #2: Рік виходу фільму
-         || d.release_year // << Резерв
-         || d.year; // << Резерв
+    var y = (d.first_air_date || '').slice(0,4) 
+         || (d.release_date || '').slice(0,4) 
+         || d.release_year 
+         || d.year; 
     if (/^(19|20)\d{2}$/.test(String(y))) return String(y);
 
-    // 2) Текстовий рік з .card__age
-    //    (зазвичай ставиться сюди рік СЕРІАЛУ, навіть на картках епізодів)
     var ageTxt = ($root.find('.card__age').first().text() || '').trim();
     var mAge = ageTxt.match(/(19|20)\d{2}/);
     if (mAge) return mAge[0];
 
-    // 3) Назва: (2023) / [2023] або "— 2023" (як і було)
-    //    Це фолбек, якщо .card__age порожній, але в назві рік є.
     var title = ($root.find('.card__title').first().text() || '').trim();
     var mTitle =
       title.match(/[\[\(]\s*((?:19|20)\d{2})\s*[\]\)]\s*$/) ||
       title.match(/(?:[–—·\/-]\s*)((?:19|20)\d{2})\s*$/);
     if (mTitle) return mTitle[1];
     
-    // ПРИБРАЛИ ПОШУК .full-episode__date, оскільки він дає рік ЕПІЗОДУ.
-
     return '';
   }
 
-  /**
-   * Головна функція 'getYear' із кешуванням
-   */
   function getYear($root){
     try{
       var el = $root && $root[0];
-      // 1) З кешу (миттєво)
+
       if (el && __ifx_yearCache.has(el)) return __ifx_yearCache.get(el);
 
-      // 2) Обчислення + кеш
       var y = __ifx_getYear_orig($root) || '';
       if (el) __ifx_yearCache.set(el, y);
       return y;
     }catch(e){
-      // У випадку помилки, просто викликати оригінал без кешування
+
       return __ifx_getYear_orig($root);
     }
   }
-  /* --- Кінець блоку getYear --- */
 
   function ensureStack($anchor){
     var $stack = $anchor.children('.ifx-corner-stack');
@@ -3054,7 +2890,6 @@ function ensureAltBadgesCss(){
     return $stack;
   }
 
-  // Акуратно прибираємо рік у кінці назви: (2021) [2021] – 2021 · 2021 / 2021
   function stripYear(txt){
     var s = String(txt||'');
     s = s.replace(/\s*\((19|20)\d{2}\)\s*$/,'');
@@ -3064,16 +2899,14 @@ function ensureAltBadgesCss(){
     return s;
   }
 
-  // Підчищаємо/повертаємо рік у заголовках ТІЛЬКИ для оброблених карток (які мають .ifx-hide-age)
   function applyTitleYearHide($scope){
     $scope = $scope || $(document.body);
-    // працюємо тільки в межах карток, де ми сховали текстові роки
+
     var sel = '.ifx-hide-age .card__title';
 
     $(sel).each(function(){
       var $t = $(this);
 
-      // якщо всередині є .card__age — його вже ховає локальний клас; текст не чіпаємо
       if ($t.find('.card__age').length){
         var saved = $t.data('ifx-title-orig');
         if (typeof saved === 'string'){ $t.text(saved); $t.removeData('ifx-title-orig'); }
@@ -3093,9 +2926,6 @@ function ensureAltBadgesCss(){
     });
   }
 
-  // ---------- інʼєкції ----------
-  /* === керування видимістю рейтингу в списках === */
-  /* === рейтинг працює незалежно від "року" === */
 function applyListCard($card){
   var $view = $card.find('.card__view').first();
   if (!$view.length) return;
@@ -3103,23 +2933,21 @@ function applyListCard($card){
   var $vote  = $view.find('.card__vote, .card_vote').first();
   var $stack = ensureStack($view);
 
-// 1) Показ/приховування рейтингу — ЖОРСТКО
+
 var hardHide = !S.show_rate || document.body.classList.contains('ifx-no-rate');
 
 if ($vote.length){
   if (hardHide){
-    // нічого не переносимо, просто ховаємо
+
     $vote.addClass('ifx-vote-hidden').hide();
   } else {
     $vote.removeClass('ifx-vote-hidden').show();
 
-    // Переносимо в стек тільки якщо він використовується
     var useStack = S.year_on || document.body.classList.contains('ifx-alt-badges');
     if (useStack && !$vote.parent().is($stack)) $stack.prepend($vote);
   }
 }
 
-  // 2) Рік на картці (додаємо/прибираємо бейдж та локальне приховування)
   if (S.year_on){
     if (!$stack.children('.ifx-year-pill').length){
       var y = getYear($card);
@@ -3127,7 +2955,7 @@ if ($vote.length){
     }
     $card.addClass('ifx-hide-age');
   } else {
-    $stack.children('.ifx-year-pill').remove(); // при вимкненні року прибираємо наш бейдж
+    $stack.children('.ifx-year-pill').remove();
     $card.removeClass('ifx-hide-age');
   }
 }
@@ -3143,21 +2971,18 @@ if ($vote.length){
           if (y) $('<div class="ifx-pill ifx-year-pill"></div>').text(y).appendTo($stack);
     }
 
-    // ЛОКАЛЬНО ховаємо текстові роки й підчищаємо назву лише для цієї картки епізоду
     if (S.year_on) $full.addClass('ifx-hide-age'); else $full.removeClass('ifx-hide-age');
   }
 
 function injectAll($scope){
   $scope = $scope || $(document.body);
 
-  // 1) Списки тайтлів: завжди проганяємо, щоб рейтинг працював незалежно від року
   $scope.find('.card').each(function(){
     var $c = $(this);
-    if ($c.closest('.full-start, .full-start-new, .full, .details').length) return; // не чіпаємо повну картку
+    if ($c.closest('.full-start, .full-start-new, .full, .details').length) return; 
     applyListCard($c);
   });
 
-  // 2) Картки епізодів: рік — тільки коли увімкнено; інакше чистимо
   $scope.find('.card-episode').each(function(){
     var $ep   = $(this);
     var $full = $ep.find('.full-episode').first();
@@ -3170,17 +2995,14 @@ function injectAll($scope){
     }
   });
 
-  // 3) Інше
   applyNumberOnly($scope);
   applyTitleYearHide($scope);
 }   
   
-  // ---------- «лише номер серії» (та ALT) ----------
+
   function applyNumberOnly($scope){
     $scope = $scope || $(document.body);
-    
-    // [!!!] ВИПРАВЛЕНО:
-    // Тепер 'force' залежить ТІЛЬКИ від S.num_only
+
     var force = S.num_only;
 
     $scope.find('.card-episode .full-episode').each(function(){
@@ -3207,17 +3029,17 @@ function injectAll($scope){
     });
   }
 
-  // ---------- observers ----------
+
   var mo = null;
-  var moDebounce = null; // OPTIMIZATION: Debounce timer
+  var moDebounce = null; 
   function enableObserver(){
     if (mo) return;
     mo = new MutationObserver(function(muts){
       for (var i=0;i<muts.length;i++){
         if (muts[i].addedNodes && muts[i].addedNodes.length){
-          // OPTIMIZATION: Debounce
+
           if (moDebounce) clearTimeout(moDebounce);
-          moDebounce = setTimeout(function(){ injectAll($(document.body)); }, 200); // Was 30ms
+          moDebounce = setTimeout(function(){ injectAll($(document.body)); }, 200);
           break;
         }
       }
@@ -3226,7 +3048,6 @@ function injectAll($scope){
   }
   function disableObserver(){ if (mo){ try{ mo.disconnect(); }catch(e){} mo=null; } }
 
-  // ---------- react to settings ----------
   if (!window.__ifx_storage_stable_final_v2){
     window.__ifx_storage_stable_final_v2 = true;
     var _prev = Lampa.Storage.set;
@@ -3237,26 +3058,17 @@ function injectAll($scope){
           S.year_on = (v===true || v==='true' || Lampa.Storage.get(KEY_YEAR,'false')==='true');
           ensureCss();
           injectAll($(document.body));
-          
-          // [!!!] ВИПРАВЛЕНО:
-          // Умовне ввімкнення/вимкнення обсервера видалено.
-          // if (S.year_on) enableObserver(); else disableObserver(); // <--- ВИДАЛЕНО
+
         }
         if (k===KEY_ALT){
           S.alt_ep = (v===true || v==='true' || Lampa.Storage.get(KEY_ALT,'false')==='true');
           setEpisodeAlt(S.alt_ep);
-          
-          // [!!!] ВИПРАВЛЕНО:
-          // Рядок document.body.classList.toggle('ifx-num-only', S.alt_ep || S.num_only);
-          // ВИДАЛЕНО, оскільки setEpisodeAlt() тепер робить це коректно.
-          
+        
           setTimeout(function(){ injectAll($(document.body)); }, 50);
         }
         if (k===KEY_NUM){
           S.num_only = (v===true || v==='true' || Lampa.Storage.get(KEY_NUM,'false')==='true');
 
-          // [!!!] ВИПРАВЛЕНО:
-          // Тепер логіка незалежна:
           document.body.classList.toggle('ifx-num-only', S.num_only);
           
           applyNumberOnly($(document.body));
@@ -3271,11 +3083,8 @@ function injectAll($scope){
         }
         if (k===KEY_RATING){
           S.show_rate = (v===true || v==='true' || Lampa.Storage.get(KEY_RATING,'true')==='true');
-          // Перемальовуємо всі видимі картки списків із новим станом
-          // NEW: синхронізуємо клас для жорсткого приховування
-          document.body.classList.toggle('ifx-no-rate', !S.show_rate);
 
-          // Перемальовуємо всі видимі картки списків із новим станом
+          document.body.classList.toggle('ifx-no-rate', !S.show_rate);
   
           injectAll($(document.body));
         }
@@ -3285,19 +3094,15 @@ function injectAll($scope){
     };
   }
 
-  // ---------- boot ----------
   function boot(){
     ensureCss();
     setEpisodeAlt(S.alt_ep);
     
-    // [!!!] ВИПРАВЛЕНО:
-    // Обсервер (MutationObserver) тепер вмикається ЗАВЖДИ,
-    // а не тільки коли S.year_on === true.
-    enableObserver(); // <--- ЗАМІНЕНО (було: if (S.year_on) ... else ...)
+    enableObserver(); 
     
     injectAll($(document.body));
    
-  // ALT badges: підключаємо CSS і застосовуємо стан тумблера
+
   ensureAltBadgesCss();
   var altOn = (Lampa.Storage.get('interface_mod_new_alt_badges', false)===true
             || Lampa.Storage.get('interface_mod_new_alt_badges','false')==='true');
