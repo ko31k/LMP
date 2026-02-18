@@ -709,6 +709,21 @@ add({
   }
 });
 
+    // Всі кнопки + Іконки без тексту
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_all_buttons_v1',
+        type: 'trigger',
+        values: true,
+        default: false
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_all_buttons'),
+        description: Lampa.Lang.translate('interface_mod_new_all_buttons_desc')
+      }
+    });
+    
     add({
       component: 'interface_mod_new',
       param: {
