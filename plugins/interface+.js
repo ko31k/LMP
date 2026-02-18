@@ -234,14 +234,14 @@ interface_mod_new_title_locale_desc: { en: 'Where to take localized title from',
 interface_mod_new_title_locale_ua_tmdb: { en: 'Ukrainian (TMDB)', uk: 'Українська (TMDB)' },
 interface_mod_new_title_locale_ui: { en: 'UI language', uk: 'Як мова інтерфейсу' },
     // КНОПКИ
-    //interface_mod_new_all_buttons_v1: {
-    //  en: 'All buttons in card',
-    //  uk: 'Всі кнопки в картці'
-    //},
-    //interface_mod_new_all_buttons_desc: {
-    //  en: 'Show all buttons in the card.',
-    //  uk: 'Показує всі кнопки у картці (Потрібне перезавантаження)'
-    //},
+    interface_mod_new_all_buttons_v1: {
+      en: 'All buttons in card',
+      uk: 'Всі кнопки в картці'
+    },
+    interface_mod_new_all_buttons_desc: {
+      en: 'Show all buttons in the card.',
+      uk: 'Показує всі кнопки у картці (Потрібне перезавантаження)'
+    },
     interface_mod_new_icon_only: {
       en: 'Icons only',
       uk: 'Кнопки без тексту'
@@ -867,10 +867,10 @@ add({
               applyOriginalTitleToggle();
               break;*/
               
-            /*case 'interface_mod_new_all_buttons':
+            case 'interface_mod_new_all_buttons':
               settings.all_buttons = getBool(key, false);
               rebuildButtonsNow();
-              break;*/
+              break;
               
             case 'interface_mod_new_icon_only':
               settings.icon_only = getBool(key, false);
