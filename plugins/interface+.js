@@ -719,7 +719,7 @@ add({
         default: false
       },
       field: {
-        name: Lampa.Lang.translate('interface_mod_new_all_buttons'),
+        name: Lampa.Lang.translate('interface_mod_new_all_buttons_v1'),
         description: Lampa.Lang.translate('interface_mod_new_all_buttons_desc')
       }
     });
@@ -882,7 +882,7 @@ add({
               applyOriginalTitleToggle();
               break;*/
               
-            case 'interface_mod_new_all_buttons':
+            case 'interface_mod_new_all_buttons_v1':
               settings.all_buttons = getBool(key, false);
               rebuildButtonsNow();
               break;
