@@ -1,11 +1,9 @@
 (function () {
   'use strict';
 
-
   var IFX_TITLE_SIZE_DEFAULT = 0.75;
-  var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 днів
-  var IFX_TMDB_UA_CACHE_PREFIX = 'ifx_tmdb_ua_title_v2:'; // + type:id
-  
+  var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 2;
+  var IFX_TMDB_UA_CACHE_PREFIX = 'ifx_tmdb_ua_title_v1.1:';
 
   if (!String.prototype.startsWith) {
     String.prototype.startsWith = function (searchString, position) {
@@ -46,7 +44,6 @@ function cacheSet(key, val) {
   } catch (e) {}
 }
 
-
 function tmdbCacheKey(movie) {
   var type = (movie && (movie.type || movie.media_type)) ? String(movie.type || movie.media_type) : '';
   type = /tv|serial/i.test(type) ? 'tv' : 'movie';
@@ -54,7 +51,6 @@ function tmdbCacheKey(movie) {
   if (!id) return '';
   return IFX_TMDB_UA_CACHE_PREFIX + type + ':' + String(id);
 }
-
 
 function isMonoEnabled() {
   try {
@@ -64,15 +60,12 @@ function isMonoEnabled() {
   }
 }
 
-
   function isMonoFor(settingKey) {
     return isMonoEnabled() && getBool(settingKey, false);
   }
 
-
   function applyMonoBadgeStyle(el) {
     if (!el || !el.style) return;
-
 
     [
       'background-color','color','border','border-color','border-width','border-style',
@@ -229,10 +222,7 @@ interface_mod_new_title_mode_orig_loc: { en: 'Original / Localized', uk: 'Ори
 interface_mod_new_title_size_name: { en: 'Title size', uk: 'Розмір назви' },
 interface_mod_new_title_size_desc: { en: 'Font size (default 0.75)', uk: 'Розмір шрифту (за замовч. 0.75)' },
 
-interface_mod_new_title_locale_name: { en: 'Localization source', uk: 'Джерело локалізації' },
-interface_mod_new_title_locale_desc: { en: 'Where to take localized title from', uk: 'Звідки брати локалізовану назву' },
-interface_mod_new_title_locale_ua_tmdb: { en: 'Ukrainian (TMDB)', uk: 'Українська (TMDB)' },
-interface_mod_new_title_locale_ui: { en: 'UI language', uk: 'Як мова інтерфейсу' },
+
     // КНОПКИ
     interface_mod_new_all_buttons_v1: {
       en: 'All buttons in card',
@@ -260,7 +250,6 @@ interface_mod_new_title_locale_ui: { en: 'UI language', uk: 'Як мова ін�
       uk: 'Оновлює іконки та кольори кнопок онлайн, торенти, трейлери'
     },
 
-    // ТОРЕНТИ (з torrents+mod)
     torr_mod_frame: {
       uk: 'Кольорова рамка блоку торентів',
       en: 'Colored torrent frame by seeders'
@@ -282,8 +271,8 @@ interface_mod_new_title_locale_ui: { en: 'UI language', uk: 'Як мова ін�
       en: 'Seeder count coloring'
     },
     torr_mod_seeds_desc: {
-      uk: 'Підсвічувати кількість сідерів на роздачі: \n0–4 — червоний, 5–14 — жовтий, 15 і вище — зелений',
-      en: 'Seeders: 0–4 red, 5–14 yellow, 15+ green'
+      uk: 'Підсвічувати кількість сідерів на роздачі: \n0–5 — червоний, 6–19 — жовтий, 20 і вище — зелений',
+      en: 'Seeders: 0–5 red, 6–19 yellow, 20+ green'
     },
   });
 
@@ -304,6 +293,28 @@ function applyTitleSizeNow() {
 }
 
   
+function pickUaFromTranslations(res, type){
+  try{
+    var tr = res && res.translations && res.translations.translations;
+    if (!tr || !tr.length) return '';
+
+
+    var ua = null;
+    for (var i=0;i<tr.length;i++){
+      var t = tr[i];
+      if (!t) continue;
+      if (String(t.iso_639_1 || '').toLowerCase() === 'uk') { ua = t; break; }
+      if (String(t.iso_3166_1 || '').toUpperCase() === 'UA') { ua = t; /* не break, але ок */ }
+    }
+    if (!ua || !ua.data) return '';
+
+    var s = (type === 'tv') ? (ua.data.name || ua.data.title) : (ua.data.title || ua.data.name);
+    return String(s || '').trim();
+  }catch(e){
+    return '';
+  }
+}
+
 function fetchTmdbUaTitle(movie, cb) {
   try {
     if (!movie) return cb('');
@@ -321,24 +332,33 @@ function fetchTmdbUaTitle(movie, cb) {
 
 
     if (Lampa.Api && typeof Lampa.Api.tmdb === 'function') {
-      return Lampa.Api.tmdb(type + '/' + id, { language: 'uk-UA' }, function (res) {
-        var title = '';
-        try { title = String((res && (res.title || res.name)) || '').trim(); } catch (e) {}
+      var bust = Date.now();
+      return Lampa.Api.tmdb(type + '/' + id, { language: 'uk-UA', append_to_response: 'translations', _ifx: bust }, function (res) {
+        var title = pickUaFromTranslations(res, type)
+                 || String((res && (res.title || res.name)) || '').trim();
         if (title && key) cacheSet(key, title);
         cb(title || '');
-      }, function() { cb(''); }); 
-    }
+      }, function() { 
 
-    if (Lampa.TMDB && typeof Lampa.TMDB.get === 'function') {
-      return Lampa.TMDB.get(type, id, { language: 'uk-UA' }, function (res) {
-        var title = '';
-        try { title = String((res && (res.title || res.name)) || '').trim(); } catch (e) {}
-        if (title && key) cacheSet(key, title);
-        cb(title || '');
+        fallbackTMDB(); 
       });
+    } else {
+      fallbackTMDB();
     }
 
-    cb('');
+    function fallbackTMDB() {
+      if (Lampa.TMDB && typeof Lampa.TMDB.get === 'function') {
+        Lampa.TMDB.get(type, id, { language: 'uk-UA', append_to_response: 'translations' }, function (res) {
+          var title = pickUaFromTranslations(res, type)
+                   || String((res && (res.title || res.name)) || '').trim();
+          if (title && key) cacheSet(key, title);
+          cb(title || '');
+        });
+      } else {
+        cb('');
+      }
+    }
+
   } catch (e) {
     cb('');
   }
@@ -356,6 +376,7 @@ function getLocalizedTitleAsync(movie, cb) {
         cb(uiLoc);
     });
 }
+
   
   function getOriginalTitleEnabled() {
     var rawNew = Lampa.Storage.get('interface_mod_new_en_data');
@@ -371,16 +392,20 @@ function getTitleMode() {
   if (typeof m !== 'undefined' && m !== null && m !== '') {
     m = String(m);
 
+
     if (m === 'orig_ua') m = 'orig_loc';
 
+    
     if (m !== 'off' && m !== 'orig' && m !== 'loc' && m !== 'orig_loc') m = 'orig';
 
     return m;
   }
 
+  
   var old = Lampa.Storage.get('interface_mod_new_en_data');
   if (typeof old !== 'undefined') return getBool('interface_mod_new_en_data', true) ? 'orig' : 'off';
 
+  
   var older = Lampa.Storage.get('interface_mod_new_english_data');
   if (typeof older !== 'undefined') return getBool('interface_mod_new_english_data', false) ? 'orig' : 'off';
 
@@ -400,6 +425,7 @@ function getTitleMode() {
     icon_only: getBool('interface_mod_new_icon_only', false),
     colored_buttons: getBool('interface_mod_new_colored_buttons', false),
 
+    
     tor_frame: getBool('interface_mod_new_tor_frame', true),
     tor_bitrate: getBool('interface_mod_new_tor_bitrate', true),
     tor_seeds: getBool('interface_mod_new_tor_seeds', true),
@@ -419,7 +445,6 @@ function getTitleMode() {
     nodes: null
   };
 
-
   function injectFallbackCss() {
     if (document.getElementById('ifx_fallback_css')) return;
     var st = document.createElement('style');
@@ -430,7 +455,6 @@ function getTitleMode() {
     `;
     document.head.appendChild(st);
   }
-
 
   function ensureStylesPriority(ids) {
     var head = document.head;
@@ -510,6 +534,33 @@ var css = `
     st.textContent = css;
     document.head.appendChild(st);
   })();
+
+  function injectMobilePosterCss(){
+  if (document.getElementById('ifx_mobile_poster_css')) return;
+
+  var st = document.createElement('style');
+  st.id = 'ifx_mobile_poster_css';
+  st.textContent =
+    '@media screen and (max-width: 400px) {' +
+      '.full-start-new__img{' +
+        '-webkit-mask-image:-webkit-gradient(linear,left top,left bottom,color-stop(40%,white),to(rgba(255,255,255,0)));' +
+        '-webkit-mask-image:-webkit-linear-gradient(top,white 40%,rgba(255,255,255,0) 100%);' +
+        'mask-image:-webkit-gradient(linear,left top,left bottom,color-stop(40%,white),to(rgba(255,255,255,0)));' +
+        'mask-image:linear-gradient(to bottom,white 40%,rgba(255,255,255,0) 100%);' +
+      '}' +
+      '.full-start-new__right{' +
+        'background:-webkit-gradient(linear,left top,left bottom,from(rgba(0,0,0,0.5)),to(rgba(0,0,0,0)));' +
+        'background:-webkit-linear-gradient(top,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0) 100%);' +
+        'background:-moz-linear-gradient(top,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0) 100%);' +
+        'background:-o-linear-gradient(top,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0) 100%);' +
+        'background:linear-gradient(to bottom,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0) 100%);' +
+        '-webkit-backdrop-filter:blur(1em);' +
+        'backdrop-filter:blur(1em);' +
+      '}' +
+    '}';
+
+  document.head.appendChild(st);
+}
 
   function applyTheme(theme) {
     var old = document.getElementById('interface_mod_theme');
@@ -709,7 +760,6 @@ add({
   }
 });
 
-    // Всі кнопки + Іконки без тексту
     add({
       component: 'interface_mod_new',
       param: {
@@ -833,9 +883,8 @@ add({
       Lampa.Storage.set = function (key, val) {
         var res = _set.apply(this, arguments);
 
-
         if (typeof key === 'string' && key.indexOf('interface_mod_new_') === 0) {
-
+          
           switch (key) {
             case 'interface_mod_new_info_panel':
               settings.info_panel = getBool(key, true);
@@ -864,23 +913,15 @@ add({
 
             case 'interface_mod_new_mono_mode':
               settings.mono_mode = getBool(key, false);
-
               rebuildInfoPanelActive();
-
               if (settings.colored_status) applyStatusOnceIn(document);
               if (settings.colored_age) applyAgeOnceIn(document);
               break;
               
             case 'interface_mod_new_theme_select':
-              settings.theme = (val || 'default'); 
+              settings.theme = (val || 'default');
               applyTheme(settings.theme);
               break;
-              
-            /*case 'interface_mod_new_en_data':
-            case 'interface_mod_new_english_data': // Handle fallback
-              settings.en_data = getOriginalTitleEnabled(); // This function already checks both keys
-              applyOriginalTitleToggle();
-              break;*/
               
             case 'interface_mod_new_all_buttons_v1':
               settings.all_buttons = getBool(key, false);
@@ -918,12 +959,9 @@ case 'interface_mod_new_title_mode_v1':
 
 case 'interface_mod_new_title_size':
   applyTitleSizeNow();
-
   applyOriginalTitleToggle();
   break;
-
-
-           
+ 
           }
         }
         return res;
@@ -1063,7 +1101,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     );
   }
 
-
   if (isTvShow && movie.next_episode_to_air && movie.next_episode_to_air.air_date) {
     var nextDate = new Date(movie.next_episode_to_air.air_date), today = new Date();
     nextDate.setHours(0, 0, 0, 0);
@@ -1079,7 +1116,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
       $('<span>').text(txt).css(badgeCss(colors.next.bg, colors.next.text))
     );
   }
-
 
   if (!isTvShow && movie.runtime > 0) {
     var mins = movie.runtime, h = Math.floor(mins / 60), m = mins % 60;
@@ -1097,7 +1133,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         .css(badgeCss(colors.duration.bg, colors.duration.text))
     );
   }
-
 
   var seasonsCount = (movie.season_count || movie.number_of_seasons || (movie.seasons ? movie.seasons.filter(function (s) {
     return s.season_number !== 0;
@@ -1164,7 +1199,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         __ifx_last.originalHTML = details.html();
         __ifx_last.fullRoot = $(data.object.activity.render());
 
-
         if (!getBool('interface_mod_new_info_panel', true)) return;
 
         details.empty();
@@ -1209,7 +1243,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     });
   }
 
-  var __voteObserverDebounce = null; 
+  var __voteObserverDebounce = null;
   function setupVoteColorsObserver() {
     setTimeout(function () {
       if (getBool('interface_mod_new_colored_ratings', false)) updateVoteColors();
@@ -1217,9 +1251,8 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
 
     var obs = new MutationObserver(function () {
       if (getBool('interface_mod_new_colored_ratings', false)) {
-
         if (__voteObserverDebounce) clearTimeout(__voteObserverDebounce);
-        __voteObserverDebounce = setTimeout(updateVoteColors, 200); 
+        __voteObserverDebounce = setTimeout(updateVoteColors, 200);
       }
     });
     obs.observe(document.body, {
@@ -1284,7 +1317,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
-
         '}';
     } else {
       st.id = idDis;
@@ -1300,7 +1332,6 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     }
     document.head.appendChild(st);
   }
-
 
   var __statusObserver = null;
   var __statusFollowReady = false;
@@ -1344,7 +1375,6 @@ function applyStatusOnceIn(elRoot) {
     el.classList.remove('ifx-status-fallback');
 
     if (!key) {
-
       el.classList.add('ifx-status-fallback');
       el.style.setProperty('border-width', '1px', 'important');
       el.style.setProperty('border-style', 'solid', 'important');
@@ -1355,7 +1385,6 @@ function applyStatusOnceIn(elRoot) {
     }
 
     if (mono) {
-
       applyMonoBadgeStyle(el);
       el.style.setProperty('display', 'inline-block', 'important');
       return;
@@ -1452,7 +1481,7 @@ function applyStatusOnceIn(elRoot) {
       text: 'white'
     }
   };
-
+  
     function ageCategoryFor(text) {
     var t = (text || '').trim();
 
@@ -1461,7 +1490,7 @@ function applyStatusOnceIn(elRoot) {
       var n = parseInt(mm[2], 10);
       if (n >= 18) return 'adult';
       if (n >= 17) return 'almostAdult';
-      if (n >= 13) return 'teens'; 
+      if (n >= 13) return 'teens';
       if (n >= 6)  return 'children';
       return 'kids';
     }
@@ -1514,7 +1543,7 @@ function applyAgeOnceIn(elRoot) {
 
       if (mono) {
         applyMonoBadgeStyle(el);
-        el.style.display = 'inline-block'; 
+        el.style.display = 'inline-block';
         return;
       }
 
@@ -1526,7 +1555,6 @@ function applyAgeOnceIn(elRoot) {
       });
       el.style.display = 'inline-block';
     } else {
-
       el.classList.add('ifx-age-fallback');
       el.style.setProperty('border-width', '1px', 'important');
       el.style.setProperty('border-style', 'solid', 'important');
@@ -1646,7 +1674,6 @@ function setOriginalTitle(fullRoot, movie) {
       render(loc || uiLoc || original);
     });
   }
-
 
   return getLocalizedTitleAsync(movie, function (loc) {
     loc = String(loc || uiLoc || '').trim();
@@ -1820,6 +1847,7 @@ function applyOriginalTitleToggle() {
     styleId: 'interface_mod_colored_buttons'
   };
 
+
   function injectColoredButtonsCss() {
     if (document.getElementById(__ifx_colbtn.styleId)) return;
 var css = `
@@ -1833,16 +1861,14 @@ var css = `
     transform: scale(0.98) !important;
   }
 
-
   .full-start__button.ifx-bandera-online svg path,
   .full-start__button.ifx-bandera-online svg rect {
     fill: unset !important;
   }
 
   :root{
-    --ifx-bazarnet-play-color: #8b5cf6; /* <-- ЗМІНИ ТУТ, якщо треба інший фіолетовий */
+    --ifx-bazarnet-play-color: #8b5cf6;
   }
-
 
   .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg path{
     fill: var(--ifx-bazarnet-play-color) !important;
@@ -1851,7 +1877,6 @@ var css = `
   .full-start__button.view--online.lampac--button[data-subtitle*="BazarNetUA"] svg{
     color: var(--ifx-bazarnet-play-color) !important;
   }
-
 
   .full-start__button.view--online:not(.ifx-bandera-online):not(.lampac--button) svg path {
     fill: #2196f3 !important;
@@ -1996,6 +2021,7 @@ function replaceIconsIn($root) {
   });
 }
 
+
   function applyColoredButtonsIn(root) {
     injectColoredButtonsCss();
     replaceIconsIn(root);
@@ -2059,13 +2085,12 @@ function replaceIconsIn($root) {
   (function observeTorrents() {
     var obs = new MutationObserver(function (muts) {
       if (typeof window.runTorrentStyleRefresh === 'function') {
-
         clearTimeout(window.__ifx_tor_debounce);
         window.__ifx_tor_debounce = setTimeout(function () {
           try {
             window.runTorrentStyleRefresh();
           } catch (e) {}
-        }, 200); 
+        }, 200);
       }
     });
     try {
@@ -2077,7 +2102,11 @@ function replaceIconsIn($root) {
   })();
 
   function startPlugin() {
+    window.lampa_settings = window.lampa_settings || {};
+    window.lampa_settings.blur_poster = false;
+    
     injectFallbackCss();
+    injectMobilePosterCss();
     initInterfaceModSettingsUI();
     newInfoPanel();
     setupVoteColorsObserver();
@@ -2213,22 +2242,20 @@ function replaceIconsIn($root) {
           }
       `;
 
-
 const STYLES = {
-
           '.torrent-item__seeds span.low-seeds': { 
-            'color': '#ff9696', 
-            'background': 'rgba(255, 150, 150, 0.10)', 
-            'border': '1.4px solid rgba(255, 150, 150, 0.5)',
-            'text-shadow': '0 0 5px rgba(255, 150, 150, 0.4)',
-            'box-shadow': '0 0 8px rgba(255, 150, 150, 0.2)'
+          'color': '#ff5f6d',
+          'background': 'rgba(255, 95, 109, 0.10)',
+          'border': '1.4px solid rgba(255, 95, 109, 0.5)',
+          'text-shadow': '0 0 5px rgba(255, 95, 109, 0.4)',
+          'box-shadow': '0 0 8px rgba(255, 95, 109, 0.2)'
           },
           '.torrent-item__seeds span.medium-seeds': { 
-            'color': '#fbcb79', 
-            'background': 'rgba(251, 203, 121, 0.10)', 
-            'border': '1.4px solid rgba(251, 203, 121, 0.5)',
-            'text-shadow': '0 0 5px rgba(251, 203, 121, 0.4)',
-            'box-shadow': '0 0 8px rgba(251, 203, 121, 0.2)'
+          'color': '#ffc371',
+          'background': 'rgba(255, 195, 113, 0.10)',
+          'border': '1.4px solid rgba(255, 195, 113, 0.5)',
+          'text-shadow': '0 0 5px rgba(255, 195, 113, 0.4)',
+          'box-shadow': '0 0 8px rgba(255, 195, 113, 0.2)'
           },
           '.torrent-item__seeds span.high-seeds': { 
             'color': '#77cdb2', 
@@ -2237,13 +2264,12 @@ const STYLES = {
             'text-shadow': '0 0 5px rgba(119, 205, 178, 0.4)',
             'box-shadow': '0 0 8px rgba(119, 205, 178, 0.2)'
           },
-
           '.torrent-item__bitrate span.low-bitrate': { 
-            'color': '#fbcb79', 
-            'background': 'rgba(251, 203, 121, 0.10)', 
-            'border': '1.4px solid rgba(251, 203, 121, 0.5)',
-            'text-shadow': '0 0 5px rgba(251, 203, 121, 0.4)',
-            'box-shadow': '0 0 8px rgba(251, 203, 121, 0.2)'
+          'color': '#ffc371',
+          'background': 'rgba(255, 195, 113, 0.10)',
+          'border': '1.4px solid rgba(255, 195, 113, 0.5)',
+          'text-shadow': '0 0 5px rgba(255, 195, 113, 0.4)',
+          'box-shadow': '0 0 8px rgba(255, 195, 113, 0.2)'
           },
           '.torrent-item__bitrate span.medium-bitrate': { 
             'color': '#77cdb2', 
@@ -2253,29 +2279,41 @@ const STYLES = {
             'box-shadow': '0 0 8px rgba(119, 205, 178, 0.2)'
           },
           '.torrent-item__bitrate span.high-bitrate': { 
-            'color': '#ff9696', 
-            'background': 'rgba(255, 150, 150, 0.10)', 
-            'border': '1.4px solid rgba(255, 150, 150, 0.5)',
-            'text-shadow': '0 0 5px rgba(255, 150, 150, 0.4)',
-            'box-shadow': '0 0 8px rgba(255, 150, 150, 0.2)'
+          'color': '#ff5f6d',
+          'background': 'rgba(255, 95, 109, 0.10)',
+          'border': '1.4px solid rgba(255, 95, 109, 0.5)',
+          'text-shadow': '0 0 5px rgba(255, 95, 109, 0.4)',
+          'box-shadow': '0 0 8px rgba(255, 95, 109, 0.2)'
           },
-
+          '.torrent-item__grabs span.grabs': {
+          'color': '#4db6ff',
+          'background': 'rgba(77, 182, 255, 0.12)',
+          'border': '1.4px solid rgba(77, 182, 255, 0.5)',
+          'text-shadow': '0 0 5px rgba(77, 182, 255, 0.35)',
+          'box-shadow': '0 0 8px rgba(77, 182, 255, 0.18)'
+          },
+          '.torrent-item__grabs span.high-grabs': {
+          'color': '#4db6ff',
+          'background': 'rgba(77, 182, 255, 0.16)',
+          'border': '1.4px solid rgba(77, 182, 255, 0.7)',
+          'text-shadow': '0 0 5px rgba(77, 182, 255, 0.4)',
+          'box-shadow': '0 0 8px rgba(77, 182, 255, 0.22)'
+          },
           '.torrent-item.low-seeds': { 
-            'border': '2px solid rgba(255, 150, 150, 0.45)', 
-            'border-radius': '6px',
-            'box-sizing': 'border-box'
+          'border': '2px solid rgba(255, 95, 109, 0.45)',
+          'border-radius': '6px',
+          'box-sizing': 'border-box'
           },
           '.torrent-item.medium-seeds': { 
-            'border': '2px solid rgba(251, 203, 121, 0.45)', 
-            'border-radius': '6px',
-            'box-sizing': 'border-box'
+          'border': '2px solid rgba(255, 195, 113, 0.45)',
+          'border-radius': '6px',
+          'box-sizing': 'border-box'
           },
           '.torrent-item.high-seeds': { 
             'border': '2px solid rgba(119, 205, 178, 0.45)', 
             'border-radius': '6px',
             'box-sizing': 'border-box'
           },
-
           '.torrent-item__tracker.utopia': { 'color': '#9b59b6', 'font-weight': 'bold' },
           '.torrent-item__tracker.toloka': { 'color': '#3498db', 'font-weight': 'bold' },
           '.torrent-item__tracker.mazepa': { 'color': '#C9A0DC', 'font-weight': 'bold' }
@@ -2336,7 +2374,6 @@ const STYLES = {
                   filter.classList.add('ua-voice-processed');
 
                   filter.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
-                  //filter.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2396,7 +2433,6 @@ const STYLES = {
                   element.classList.add('ua-flag-processed');
 
                   element.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
-                  //element.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2425,11 +2461,11 @@ const STYLES = {
             processVoiceFilters();
           }
         }
-
         function updateTorrentStyles() {
           const visibleElements = {
             seeds: document.querySelectorAll('.torrent-item__seeds span:not([style*="display: none"])'),
             bitrate: document.querySelectorAll('.torrent-item__bitrate span:not([style*="display: none"])'),
+            grabs: document.querySelectorAll('.torrent-item__grabs span:not([style*="display: none"])'),
             tracker: document.querySelectorAll('.torrent-item__tracker:not([style*="display: none"])')
           };
 
@@ -2443,10 +2479,10 @@ const STYLES = {
                 torrentItem.classList.remove('low-seeds', 'medium-seeds', 'high-seeds');
               }
 
-              if (seeds <= 4) {
+              if (seeds <= 5) {
                 span.classList.add('low-seeds');
                 if (torrentItem) torrentItem.classList.add('low-seeds');
-              } else if (seeds <= 14) {
+              } else if (seeds <= 19) {
                 span.classList.add('medium-seeds');
                 if (torrentItem) torrentItem.classList.add('medium-seeds');
               } else {
@@ -2463,11 +2499,19 @@ const STYLES = {
 
               if (bitrate <= 10) {
                 span.classList.add('low-bitrate');
-              } else if (bitrate <= 40) {
+              } else if (bitrate <= 60) {
                 span.classList.add('medium-bitrate');
               } else {
                 span.classList.add('high-bitrate');
               }
+            });
+          }
+          if (visibleElements.grabs.length > 0) {
+            visibleElements.grabs.forEach(span => {
+              const grabs = parseInt(span.textContent) || 0;
+              span.classList.add('grabs');
+              span.classList.remove('high-grabs');
+              if (grabs > 10) span.classList.add('high-grabs');
             });
           }
 
@@ -2531,7 +2575,7 @@ const STYLES = {
       if (v == null) return def;
       return !!v;
     }
-
+    
 function apply() {
       var s = document.getElementById('torr_mod_overrides');
       if (!s) {
@@ -2562,9 +2606,8 @@ function apply() {
     }
     
     window.runTorrentStyleRefresh = apply;
-    setTimeout(apply, 0); 
+    setTimeout(apply, 0); // Перший запуск
   })();
-
 
 (function(){
 
@@ -2638,9 +2681,7 @@ function ensureCss(){
     var st = document.createElement('style');
     st.id = id;
     st.textContent = `
-      /* --- 1. БАЗОВІ СТИЛІ КАРТОК (Оригінальна логіка) --- */
       
-      /* Пігулка (як .card_vote) — наш власний бейдж року */
       .ifx-pill{
         background: rgba(0,0,0,.5);
         color:#fff; font-size:1.3em; font-weight:700;
@@ -2648,42 +2689,27 @@ function ensureCss(){
         white-space:nowrap;
       }
 
-      /* Стек у правому нижньому, мінімальна щілина */
       .ifx-corner-stack{
         position:absolute; right:.3em; bottom:.3em;
         display:flex; flex-direction:column; align-items:flex-end;
         gap:2px; z-index:10; pointer-events:none;
       }
       .ifx-corner-stack > *{ pointer-events:auto; }
-
-      /* Коли переносимо рейтинґ у стек — робимо його пігулкою без absolute */
       .ifx-corner-stack .card__vote, .ifx-corner-stack .card_vote{
         position:static !important; right:auto !important; bottom:auto !important; top:auto !important; left:auto !important;
         background: rgba(0,0,0,.5); color:#fff; font-size:1.3em; font-weight:700;
         padding:.2em .5em; border-radius:1em; line-height:1;
       }
-
-      /* Точки кріплення (для списків і епізодів) */
       .card .card__view{ position:relative; }
       .card-episode .full-episode{ position:relative; }
-
-      /* ALT mode: заголовок у ВЕРХНЬОМУ ЛІВОМУ куті */
       body.ifx-ep-alt .card-episode .full-episode .card__title{
         position:absolute; left:.7em; top:.7em; right:.7em; margin:0;
         z-index:2; text-shadow:0 1px 2px rgba(0,0,0,.35);
       }
-
-      /* ALT mode: ховаємо ВЕЛИКУ цифру та текстовий рік у тілі */
       body.ifx-ep-alt .card-episode .full-episode__num{ display:none !important; }
       body.ifx-ep-alt .card-episode .full-episode__body > .card__age{ display:none !important; }
-
-      /* NUM-ONLY: ховаємо велику цифру завжди (і для ALT, і для стандарту) */
       body.ifx-num-only .card-episode .full-episode__num{ display:none !important; }
-
-      /* ЛОКАЛЬНЕ ховання текстових років тільки для оброблених карток */
       .ifx-hide-age .card__age{ display:none !important; }
-
-      /* Ховаємо штатний рейтинг повністю, коли вимкнено */
       body.ifx-no-rate .card__view > .card__vote,
       body.ifx-no-rate .card__view > .card_vote,
       body.ifx-no-rate .ifx-corner-stack > .card__vote,
@@ -2691,10 +2717,9 @@ function ensureCss(){
         display: none !important;
       }
 
-      /* --- 2. ГЕОМЕТРІЯ ТОРРЕНТІВ ТА ФОКУС --- */
-      
-      /* Уніфікація розміру під стандартний блок ваги (.torrent-item__size) */
-      .torrent-item__bitrate span, .torrent-item__seeds span {
+      .torrent-item__bitrate span,
+      .torrent-item__seeds span,
+      .torrent-item__grabs span {
         border-radius: 0.3em !important;
         padding: 0.3em 0.5em !important;
         font-weight: bold !important;
@@ -2703,7 +2728,6 @@ function ensureCss(){
         transition: all 0.2s ease !important;
       }
 
-      /* Фокусна рамка торрента (біла) */
       .torrent-item.focus {
         outline: none !important;
         border: 3px solid #ffffff !important;
@@ -2724,7 +2748,7 @@ function ifxSyncAltBadgeThemeFromQuality(){
     var inner = q ? (q.querySelector('div') || q) : null;
 
     var bg = 'rgba(61,161,141,0.9)';
-    var fg = '#FFFFFF';              
+    var fg = '#FFFFFF';
 
     if (q){
       var csQ = getComputedStyle(q);
@@ -2743,23 +2767,17 @@ function ifxSyncAltBadgeThemeFromQuality(){
 
 function ensureAltBadgesCss(){
   var st = document.getElementById('ifx_alt_badges_css');
-
-
-  var RIGHT_OFFSET  = '.3em';   
-  var BOTTOM_OFFSET = '.50em';  
-  var RADIUS        = '0.3em';  
+  var RIGHT_OFFSET  = '.3em';
+  var BOTTOM_OFFSET = '.50em';
+  var RADIUS        = '0.3em';
   var FONT_FAMILY   = "'Roboto Condensed','Arial Narrow',Arial,sans-serif";
   var FONT_WEIGHT   = '700';
-  var FONT_SIZE     = '1.0em';  
-  var PAD_Y         = '.19em';  
-  var PAD_X         = '.39em';  
-  var UPPERCASE     = true;     
-
-
+  var FONT_SIZE     = '1.0em';
+  var PAD_Y         = '.19em';
+  var PAD_X         = '.39em';
+  var UPPERCASE     = true;
   var css = `
     body.ifx-alt-badges .card .card__view{ position:relative; }
-
-
     body.ifx-alt-badges .ifx-corner-stack{
       position:absolute; right:${RIGHT_OFFSET}; bottom:${BOTTOM_OFFSET};
       margin-right:0;
@@ -2767,7 +2785,6 @@ function ensureAltBadgesCss(){
       gap:0.5px; z-index:10; pointer-events:none;
     }
     body.ifx-alt-badges .ifx-corner-stack > *{ pointer-events:auto; }
-
     body.ifx-alt-badges .ifx-corner-stack .card__vote,
     body.ifx-alt-badges .ifx-corner-stack .card_vote,
     body.ifx-alt-badges .ifx-corner-stack .ifx-year-pill{
@@ -2775,10 +2792,10 @@ function ensureAltBadgesCss(){
       background: var(--ifx-badge-bg, rgba(61,161,141,0.9)) !important;
       color: var(--ifx-badge-color, #FFFFFF) !important;
       border-radius: ${RADIUS};
-      padding: ${PAD_Y} ${PAD_X} !important;         /* внутрішні відступи */
+      padding: ${PAD_Y} ${PAD_X} !important;         
       font-family: ${FONT_FAMILY};
       font-weight: ${FONT_WEIGHT};
-      font-size: ${FONT_SIZE} !important;            /* розмір шрифту */
+      font-size: ${FONT_SIZE} !important;            
       line-height: 1.2;
       ${ UPPERCASE ? 'text-transform: uppercase;' : '' }
       text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.3);
@@ -2786,7 +2803,6 @@ function ensureAltBadgesCss(){
       display: inline-flex; align-items: center;
       white-space: nowrap;
     }
-
 
     body.ifx-alt-badges .card__view > .card__vote,
     body.ifx-alt-badges .card__view > .card_vote{
@@ -2797,10 +2813,10 @@ function ensureAltBadgesCss(){
       background: var(--ifx-badge-bg, rgba(61,161,141,0.9)) !important;
       color: var(--ifx-badge-color, #FFFFFF) !important;
       border-radius: ${RADIUS};
-      padding: ${PAD_Y} ${PAD_X} !important;         /* внутрішні відступи */
+      padding: ${PAD_Y} ${PAD_X} !important;        
       font-family: ${FONT_FAMILY} !important;
       font-weight: ${FONT_WEIGHT} !important;
-      font-size: ${FONT_SIZE} !important;            /* розмір шрифту */
+      font-size: ${FONT_SIZE} !important;           
       line-height: 1.2;
       ${ UPPERCASE ? 'text-transform: uppercase;' : '' }
       text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.3);
@@ -2814,7 +2830,6 @@ function ensureAltBadgesCss(){
   if (st){ st.textContent = css; }
   else { st = document.createElement('style'); st.id = 'ifx_alt_badges_css'; st.textContent = css; document.head.appendChild(st); }
 }
-
   var tplEpisodeOriginal = null;
   var tplEpisodeAlt =
     '<div class="card-episode selector layer--visible layer--render">\
@@ -2847,7 +2862,6 @@ function ensureAltBadgesCss(){
     }
     Lampa.Template.add('card_episode', on ? tplEpisodeAlt : (tplEpisodeOriginal || tplEpisodeAlt));
     document.body.classList.toggle('ifx-ep-alt', !!on);
-    
     document.body.classList.toggle('ifx-num-only', S.num_only);
     
     try{ Lampa.Settings.update(); }catch(e){}
@@ -2858,43 +2872,37 @@ function ensureAltBadgesCss(){
     return code.indexOf('en')===0 ? 'Episode' : 'Серія';
   }
 
-
   var __ifx_yearCache = window.__ifx_yearCache || new WeakMap();
   window.__ifx_yearCache = __ifx_yearCache;
 
   function __ifx_getYear_orig($root){
     var d = $root.data() || {};
-    
-    var y = (d.first_air_date || '').slice(0,4) 
-         || (d.release_date || '').slice(0,4) 
-         || d.release_year 
-         || d.year; 
+    var y = (d.first_air_date || '').slice(0,4)
+         || (d.release_date || '').slice(0,4)
+         || d.release_year
+         || d.year;
     if (/^(19|20)\d{2}$/.test(String(y))) return String(y);
 
     var ageTxt = ($root.find('.card__age').first().text() || '').trim();
     var mAge = ageTxt.match(/(19|20)\d{2}/);
     if (mAge) return mAge[0];
-
     var title = ($root.find('.card__title').first().text() || '').trim();
     var mTitle =
       title.match(/[\[\(]\s*((?:19|20)\d{2})\s*[\]\)]\s*$/) ||
       title.match(/(?:[–—·\/-]\s*)((?:19|20)\d{2})\s*$/);
     if (mTitle) return mTitle[1];
-    
+   
     return '';
   }
 
   function getYear($root){
     try{
       var el = $root && $root[0];
-
       if (el && __ifx_yearCache.has(el)) return __ifx_yearCache.get(el);
-
       var y = __ifx_getYear_orig($root) || '';
       if (el) __ifx_yearCache.set(el, y);
       return y;
     }catch(e){
-
       return __ifx_getYear_orig($root);
     }
   }
@@ -2916,12 +2924,10 @@ function ensureAltBadgesCss(){
 
   function applyTitleYearHide($scope){
     $scope = $scope || $(document.body);
-
     var sel = '.ifx-hide-age .card__title';
 
     $(sel).each(function(){
       var $t = $(this);
-
       if ($t.find('.card__age').length){
         var saved = $t.data('ifx-title-orig');
         if (typeof saved === 'string'){ $t.text(saved); $t.removeData('ifx-title-orig'); }
@@ -2948,21 +2954,17 @@ function applyListCard($card){
   var $vote  = $view.find('.card__vote, .card_vote').first();
   var $stack = ensureStack($view);
 
-
 var hardHide = !S.show_rate || document.body.classList.contains('ifx-no-rate');
 
 if ($vote.length){
   if (hardHide){
-
     $vote.addClass('ifx-vote-hidden').hide();
   } else {
     $vote.removeClass('ifx-vote-hidden').show();
-
     var useStack = S.year_on || document.body.classList.contains('ifx-alt-badges');
     if (useStack && !$vote.parent().is($stack)) $stack.prepend($vote);
   }
 }
-
   if (S.year_on){
     if (!$stack.children('.ifx-year-pill').length){
       var y = getYear($card);
@@ -2994,7 +2996,7 @@ function injectAll($scope){
 
   $scope.find('.card').each(function(){
     var $c = $(this);
-    if ($c.closest('.full-start, .full-start-new, .full, .details').length) return; 
+    if ($c.closest('.full-start, .full-start-new, .full, .details').length) return;
     applyListCard($c);
   });
 
@@ -3014,12 +3016,9 @@ function injectAll($scope){
   applyTitleYearHide($scope);
 }   
   
-
   function applyNumberOnly($scope){
     $scope = $scope || $(document.body);
-
     var force = S.num_only;
-
     $scope.find('.card-episode .full-episode').each(function(){
       var $root = $(this);
       var $name = $root.find('.full-episode__name').first();
@@ -3044,15 +3043,13 @@ function injectAll($scope){
     });
   }
 
-
   var mo = null;
-  var moDebounce = null; 
+  var moDebounce = null;
   function enableObserver(){
     if (mo) return;
     mo = new MutationObserver(function(muts){
       for (var i=0;i<muts.length;i++){
         if (muts[i].addedNodes && muts[i].addedNodes.length){
-
           if (moDebounce) clearTimeout(moDebounce);
           moDebounce = setTimeout(function(){ injectAll($(document.body)); }, 200);
           break;
@@ -3062,6 +3059,7 @@ function injectAll($scope){
     try { mo.observe(document.body, {subtree:true, childList:true}); } catch(e){}
   }
   function disableObserver(){ if (mo){ try{ mo.disconnect(); }catch(e){} mo=null; } }
+
 
   if (!window.__ifx_storage_stable_final_v2){
     window.__ifx_storage_stable_final_v2 = true;
@@ -3078,7 +3076,6 @@ function injectAll($scope){
         if (k===KEY_ALT){
           S.alt_ep = (v===true || v==='true' || Lampa.Storage.get(KEY_ALT,'false')==='true');
           setEpisodeAlt(S.alt_ep);
-        
           setTimeout(function(){ injectAll($(document.body)); }, 50);
         }
         if (k===KEY_NUM){
@@ -3093,14 +3090,10 @@ function injectAll($scope){
         ensureAltBadgesCss();
         document.body.classList.toggle('ifx-alt-badges', on);
         if (on) ifxSyncAltBadgeThemeFromQuality();
-        
-
         }
         if (k===KEY_RATING){
           S.show_rate = (v===true || v==='true' || Lampa.Storage.get(KEY_RATING,'true')==='true');
-
           document.body.classList.toggle('ifx-no-rate', !S.show_rate);
-  
           injectAll($(document.body));
         }
 
@@ -3112,12 +3105,9 @@ function injectAll($scope){
   function boot(){
     ensureCss();
     setEpisodeAlt(S.alt_ep);
-    
-    enableObserver(); 
-    
+    enableObserver();
     injectAll($(document.body));
    
-
   ensureAltBadgesCss();
   var altOn = (Lampa.Storage.get('interface_mod_new_alt_badges', false)===true
             || Lampa.Storage.get('interface_mod_new_alt_badges','false')==='true');
