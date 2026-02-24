@@ -1,20 +1,12 @@
 /**
  * Lampa: Enhanced Ratings (MDBList + OMDb) + Poster Badges (like LME - Lampa Movie Enchancer)
- * --------------------------------------------------------
- * - Бере рейтинги з MDBList (+ OMDb для віку/нагород) і малює їх у деталці
- * - Додає опційні “стікери” (badges) рейтингів прямо на постери
+ * - Рейтинги, вік/нагороди
  * - Має секцію налаштувань “Рейтинги”, живе застосування стилів без перезавантаження
  */
 
 (function() {
   'use strict';
 
-  /*
-  |==========================================================================
-  | localStorage shim
-  | (Фолбек, якщо localStorage вимкнено або недоступний)
-  |==========================================================================
-  */
   (function() {
     var ok = true;
     try {
@@ -44,14 +36,8 @@
     }
   })();
 
-  /*
-  |==========================================================================
-  | Promise (мінімальний поліфіл)
-  | (Достатньо для then/catch/all)
-  |==========================================================================
-  */
   (function(global) {
-    if (global.Promise) return; // Вже є
+    if (global.Promise) return;
     var PENDING = 0,
       FULFILLED = 1,
       REJECTED = 2;
@@ -160,14 +146,8 @@
     global.Promise = MiniPromise;
   })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));
 
-  /*
-  |==========================================================================
-  | fetch polyfill
-  | (З урахуванням Lampa.Reguest для обходу CORS)
-  |==========================================================================
-  */
   (function(global) {
-    if (global.fetch) return; // Вже є
+    if (global.fetch) return;
 
     function Response(body, init) {
       this.status = init && init.status || 200;
@@ -193,7 +173,6 @@
       var headers = init.headers || {};
       var body = init.body || null;
 
-      // Якщо є Lampa.Reguest — використовуємо його (обхід CORS)
       if (global.Lampa && Lampa.Reguest) {
         return new Promise(function(resolve) {
           new Lampa.Reguest().native(
@@ -221,7 +200,6 @@
         });
       }
 
-      // Звичайний XMLHttpRequest-фолбек
       return new Promise(function(resolve, reject) {
         try {
           var xhr = new XMLHttpRequest();
@@ -251,14 +229,6 @@
 (function() {
   'use strict';
 
-  /*
-  |==========================================================================
-  | 1. ШИМИ / ПОЛІФІЛИ
-  | (Для старих Android Webview)
-  |==========================================================================
-  */
-
-  // NodeList.forEach
   if (window.NodeList && !NodeList.prototype.forEach) {
     NodeList.prototype.forEach = function(callback, thisArg) {
       thisArg = thisArg || window;
@@ -268,7 +238,6 @@
     };
   }
 
-  // Element.matches
   if (!Element.prototype.matches) {
     Element.prototype.matches =
       Element.prototype.msMatchesSelector ||
@@ -283,7 +252,6 @@
       };
   }
 
-  // Element.closest
   if (!Element.prototype.closest) {
     Element.prototype.closest = function(selector) {
       var el = this;
@@ -295,39 +263,26 @@
     };
   }
 
-  /*
-  |==========================================================================
-  | 2. КОНСТАНТИ ТА КОНФІГУРАЦІЯ
-  |==========================================================================
-  */
-
-  /**
-   * Конфігурація API ключів
-   */
   var LMP_ENH_CONFIG = {
     apiKeys: {
-      mdblist: '', // ✅ ключ до MDBList
-      omdb: '' // ✅ ключ до OMDb
+      mdblist: '',
+      omdb: '' 
     },
-    monochromeIcons: false /*✅ Вкл./Викл. Ч/Б рейтинги */
+
+    monochromeIcons: false
   };
 
   var BASE_ICON = 'https://raw.githubusercontent.com/ko3ik/LMP/main/wwwroot/';
 
   var ICONS = {
-
     total_star: BASE_ICON + 'star.png',
-
     imdb: BASE_ICON + 'imdb.png',
     tmdb: BASE_ICON + 'tmdb.png',
     metacritic: BASE_ICON + 'metacritic.png',
     metascore:  BASE_ICON + 'metascore.png',
-
     rotten_good: BASE_ICON + 'RottenTomatoes.png',
     rotten_bad: BASE_ICON + 'RottenBad.png',
-
     popcorn: BASE_ICON + 'PopcornGood.png',
-
     awards: BASE_ICON + 'awards.png',
     oscar: BASE_ICON + 'OscarGold.png',
     emmy: BASE_ICON + 'EmmyGold.png'
@@ -368,7 +323,6 @@
     }
   });
 
-
   var pluginStyles = "<style>" +
     ".loading-dots-container {" +
     "    display: flex;" +
@@ -399,7 +353,6 @@
     "    40% { transform: translateY(-0.5em); opacity: 1; }" +
     "}" +
 
-
     ":root{" +
     "  --lmp-h-imdb:22px;" +
     "  --lmp-h-mc:22px;" +
@@ -416,7 +369,6 @@
     "    color: gold;" +
     "}" +
 
-
     "body.lmp-enh--mono .rate--oscars," +
     "body.lmp-enh--mono .rate--emmy," +
     "body.lmp-enh--mono .rate--awards," +
@@ -429,12 +381,10 @@
     "    color: inherit !important;" +
     "}" +
 
-
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--green  { color: #2ecc71; }" + /* ≥ 8.0  */
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--blue   { color: #60a5fa; }" + /* 6.0–7.9 */
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--orange { color: #f59e0b; }" + /* 4.0–5.9 */
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--red    { color: #ef4444; }" + /* < 4.0   */
-
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--green  { color: #2ecc71; }" + 
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--blue   { color: #60a5fa; }" + 
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--orange { color: #f59e0b; }" + 
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--red    { color: #ef4444; }" + 
 
     ".full-start-new__rate-line .full-start__rate {" +
     "    margin-right: 0.3em !important;" +
@@ -443,14 +393,12 @@
     "    margin-right: 0 !important;" +
     "}" +
 
-
     ".full-start-new__rate-line.lmp-is-loading-ratings > :not(#lmp-search-loader)," +
     ".full-start__rate-line.lmp-is-loading-ratings > :not(#lmp-search-loader) {" +
     "    opacity: 0 !important;" +
     "    pointer-events: none !important;" +
     "    transition: opacity 0.15s;" +
     "}" +
-
 
     ".lmp-award-icon{" +
     "  display:inline-flex;" +
@@ -470,7 +418,6 @@
     ".lmp-award-icon--oscar img{height:var(--lmp-h-oscar);}" +
     ".lmp-award-icon--emmy  img{height:var(--lmp-h-emmy);}" +
 
-
     ".rate--imdb    .source--name img{height:var(--lmp-h-imdb);}" +
     ".rate--mc      .source--name img{height:var(--lmp-h-mc);}" +
     ".rate--rt      .source--name img{height:var(--lmp-h-rt);}" +
@@ -479,16 +426,13 @@
     ".rate--awards  .source--name img{height:var(--lmp-h-awards);}" +
     ".rate--avg     .source--name img{height:var(--lmp-h-avg);}" +
 
-
     ".full-start__rate .source--name{" +
     "  display:inline-flex;" +
     "  align-items:center;" +
     "  justify-content:center;" +
     "}" +
 
-
     ".settings-param__descr,.settings-param__subtitle{white-space:pre-line;}" +
-
 
     "@media (max-width: 600px){" +
     "  .full-start-new__rate-line{flex-wrap:wrap;}" +
@@ -507,7 +451,6 @@
     "  .lmp-award-icon{height:16px;}" +
     "}" +
 
-
     "@media (max-width: 360px){" +
     "  .full-start__rate{font-size:14px;}" +
     "  :root{" +
@@ -518,24 +461,19 @@
     "  .lmp-award-icon{height:12px;}" +
     "}" +
 
-
     "body.lmp-enh--rate-border .full-start__rate{" +
     "  border: 1px solid rgba(255, 255, 255, 0.45);" +
     "  border-radius: 0.3em;" +
     "  box-sizing: border-box;" +
     "}" +
-
     "body.lmp-enh--rate-border .full-start-new__rate-line, " +
     "body.lmp-enh--rate-border .full-start__rate-line{" +
     "}"
     "</style>";
 
-
-  var CACHE_TIME = 3 * 24 * 60 * 60 * 1000; // 3 дні
-  // var CACHE_TIME = 60 * 60 * 1000; // ✅ 1 година для перевірок
-  var RATING_CACHE_KEY = 'lmp_enh_rating_cache'; // Кеш рейтингів
-  var ID_MAPPING_CACHE = 'lmp_rating_id_cache'; // Кеш TMDB -> IMDb ID
-
+  var CACHE_TIME = 3 * 24 * 60 * 60 * 1000;
+  var RATING_CACHE_KEY = 'lmp_enh_rating_cache';
+  var ID_MAPPING_CACHE = 'lmp_rating_id_cache';
 
   var AGE_RATINGS = {
     'G': '3+',
@@ -551,7 +489,6 @@
     'TV-MA': '17+'
   };
 
-
   var RCFG_DEFAULT = {
     ratings_omdb_key: (LMP_ENH_CONFIG.apiKeys.omdb || ''),
     ratings_mdblist_key: (LMP_ENH_CONFIG.apiKeys.mdblist || ''),
@@ -563,8 +500,7 @@
     ratings_badge_alpha: 0.15,
     ratings_badge_tone: 0,
     ratings_gap_step: 0,
-    // Нові тумблери
-    ratings_colorize_all: false, 
+    ratings_colorize_all: false,
     ratings_enable_imdb: true,
     ratings_enable_tmdb: true,
     ratings_enable_mc: true,
@@ -574,18 +510,15 @@
     ratings_rate_border: false,
   };
 
-
-  var __lmpRateLineObs = null; // Спостерігач за DOM (для лоадера)
-  var currentRatingsData = null; // Кеш рейтингів для поточної картки
-  var __lmpLastReqToken = null; // Токен останнього запиту (для уникнення гонки)
-
+  var __lmpRateLineObs = null; 
+  var currentRatingsData = null; 
+  var __lmpLastReqToken = null;
 
   function getCardType(card) {
     var type = card.media_type || card.type;
     if (type === 'movie' || type === 'tv') return type;
     return card.name || card.original_name ? 'tv' : 'movie';
   }
-
 
   (function() {
     try {
@@ -595,21 +528,18 @@
     } catch (e) {}
   })();
 
-
   function getRatingClass(rating) {
     var r = parseFloat(rating);
     if (isNaN(r)) return 'rating--red';
-    if (r >= 8.0) return 'rating--green'; // ≥ 8.0
-    if (r >= 6.0) return 'rating--blue'; // 6.0–7.9
-    if (r >= 4.0) return 'rating--orange'; // 4.0–5.9
-    return 'rating--red'; // < 4.0
+    if (r >= 8.0) return 'rating--green'; 
+    if (r >= 6.0) return 'rating--blue';
+    if (r >= 4.0) return 'rating--orange';
+    return 'rating--red';
   }
-
 
   function posterCacheKeyForCard(card) {
     return 'poster_' + (card.type || getCardType(card)) + '_' + (card.imdb_id || card.id);
   }
-
 
   function lmpRawVal(it) {
     if (!it || typeof it !== 'object') return null;
@@ -620,7 +550,6 @@
     if (v == null && typeof it.display === 'string') v = it.display;
     return v == null ? null : v;
   }
-
 
   function filterMdblistLike(arr) {
     if (!Array.isArray(arr)) return [];
@@ -638,13 +567,10 @@
     });
   }
 
-
   function buildMdblistLikeArray(data) {
-
     if (data && Array.isArray(data._mdblist_ratings) && data._mdblist_ratings.length) {
       return data._mdblist_ratings.slice();
     }
-
     var a = [],
       d = data || {};
     if (d.imdb_display) a.push({
@@ -673,7 +599,6 @@
     });
     return a;
   }
-
 
   function ensurePosterBadgeStylesOnce() {
     if (document.getElementById('lmp-poster-badges-css')) return;
@@ -717,22 +642,18 @@
       'src="' + url + '" alt="' + (alt || '') + '">';
   }
 
-
   function emmyIconInline() {
     return '<span class="lmp-award-icon lmp-award-icon--emmy"><img src="' + ICONS.emmy + '" alt="Emmy"></span>';
   }
-
 
   function oscarIconInline() {
     return '<span class="lmp-award-icon lmp-award-icon--oscar"><img src="' + ICONS.oscar + '" alt="Oscar"></span>';
   }
 
-
   function dimRateLine(rateLine) {
     if (!rateLine || !rateLine.length) return;
     rateLine.addClass('lmp-is-loading-ratings');
   }
-
 
   function undimRateLine(rateLine) {
     if (!rateLine || !rateLine.length) return;
@@ -742,10 +663,8 @@
   function getPrimaryRateLine(render){
   if (!render || !render.length) return $();
 
-
   var $left = $('.cardify__left .full-start-new__rate-line.rate-fix:not([data-lmp-fake]), .cardify__left .full-start__rate-line.rate-fix:not([data-lmp-fake])', render).first();
   if ($left.length) return $left;
-
 
   var $any = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render)
     .filter(function(){
@@ -756,7 +675,6 @@
   return $any;
 }
 
-
 function cleanupRtgInjected(render){
   if (!render || !render.length) return;
   render.find(
@@ -765,12 +683,11 @@ function cleanupRtgInjected(render){
   ).remove();
 }
   
-
   function addLoadingAnimation() {
     var render = Lampa.Activity.active().activity.render();
     if (!render || !render[0]) return;
 
-    if ($('#lmp-search-loader', render).length) return; // Вже є
+    if ($('#lmp-search-loader', render).length) return;
 
     var loaderHtml =
       '<div id="lmp-search-loader" class="loading-dots-container">' +
@@ -780,7 +697,6 @@ function cleanupRtgInjected(render){
       '<div class="loading-dots__dot"></div>' +
       '</div>';
 
-
     var realSel = '.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])';
     var rateLine = getPrimaryRateLine(render);
 
@@ -789,7 +705,6 @@ function cleanupRtgInjected(render){
       dimRateLine(rateLine);
       return;
     }
-
 
     var fake = $(
       '<div class="full-start-new__rate-line" ' +
@@ -802,7 +717,6 @@ function cleanupRtgInjected(render){
     else $(render).append(fake);
 
     fake.append(loaderHtml);
-
 
     try {
       if (__lmpRateLineObs) __lmpRateLineObs.disconnect();
@@ -825,7 +739,6 @@ function cleanupRtgInjected(render){
       subtree: true
     });
 
-
     setTimeout(function() {
       if (__lmpRateLineObs) {
         try {
@@ -836,7 +749,6 @@ function cleanupRtgInjected(render){
     }, 6000);
   }
 
-
   function removeLoadingAnimation() {
     var render = Lampa.Activity.active().activity.render();
     if (!render || !render[0]) return;
@@ -845,7 +757,6 @@ function cleanupRtgInjected(render){
     $('#lmp-loader-fake', render).remove();
 
     var rl = getPrimaryRateLine(render);
-    //var rl = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render).first();
     if (rl.length) undimRateLine(rl);
 
     try {
@@ -854,7 +765,6 @@ function cleanupRtgInjected(render){
     __lmpRateLineObs = null;
   }
 
-
   function getCachedRatings(key) {
     var cache = Lampa.Storage.get(RATING_CACHE_KEY) || {};
     var item = cache[key];
@@ -862,7 +772,6 @@ function cleanupRtgInjected(render){
     if (Date.now() - item.timestamp > CACHE_TIME) return null;
     return item.data || null;
   }
-
 
   function saveCachedRatings(key, data) {
     if (!data) return;
@@ -873,7 +782,6 @@ function cleanupRtgInjected(render){
     };
     Lampa.Storage.set(RATING_CACHE_KEY, cache);
   }
-
 
   function parseAwards(awardsText) {
     if (typeof awardsText !== 'string') return {
@@ -908,12 +816,10 @@ function cleanupRtgInjected(render){
     return result;
   }
 
-
   (function() {
     function fixTenIn(el) {
-      // Нормалізуємо пробіли (у т.ч. нерозривні)
+
       var t = (el.textContent || '').replace(/\u00A0/g, ' ').trim();
-      // 10 з будь-якою кількістю нульових десяткових: 10.0, 10.00, 10., 10,0
       if (/^10(?:[.,]0+)?$/.test(t)) {
         el.textContent = '10';
       }
@@ -926,7 +832,6 @@ function cleanupRtgInjected(render){
       } catch (e) {}
     }
 
-
     window.__lmpTenFixStart = function() {
       try {
         var render = Lampa && Lampa.Activity && Lampa.Activity.active() &&
@@ -937,19 +842,14 @@ function cleanupRtgInjected(render){
         var target =
           render[0].querySelector('.full-start-new__rate-line, .full-start__rate-line') ||
           render[0];
-
-
         scan(target);
 
         var MObs = window.MutationObserver || window.WebKitMutationObserver;
         if (!MObs) return;
-
-
         if (window.__lmpTenObs) {
           window.__lmpTenObs.disconnect();
           window.__lmpTenObs = null;
         }
-
 
         var obs = new MObs(function(muts) {
           for (var i = 0; i < muts.length; i++) {
@@ -982,7 +882,6 @@ function cleanupRtgInjected(render){
     };
   })();
 
-
   function lmpToast(msg) {
     try {
       if (Lampa && typeof Lampa.Noty === 'function') {
@@ -1009,10 +908,8 @@ function cleanupRtgInjected(render){
     }, 1300);
   }
 
-
   function lmpRatingsClearCache() {
     try {
-      // RATING_CACHE_KEY та ID_MAPPING_CACHE визначені у Секції 2
       Lampa.Storage.set(RATING_CACHE_KEY, {});
       Lampa.Storage.set(ID_MAPPING_CACHE, {});
       lmpToast('Кеш рейтингів очищено');
@@ -1021,7 +918,6 @@ function cleanupRtgInjected(render){
       lmpToast('Помилка очищення кешу');
     }
   }
-
   function getImdbIdFromTmdb(tmdbId, type, callback) {
     if (!tmdbId) return callback(null);
 
@@ -1041,13 +937,9 @@ function cleanupRtgInjected(render){
 
     var keyPreferred = preferredType + '_' + tmdbId;
     var keyAlt = altType + '_' + tmdbId;
-
-
     var cachedId = fromCache(keyPreferred) || fromCache(keyAlt);
     if (cachedId) return callback(cachedId);
-
     var tmdbKey = Lampa.TMDB.key();
-
     var queue = [
       'https://api.themoviedb.org/3/' + preferredType + '/' + tmdbId + '/external_ids?api_key=' + tmdbKey,
       'https://api.themoviedb.org/3/' + preferredType + '/' + tmdbId + '?api_key=' + tmdbKey + '&append_to_response=external_ids',
@@ -1082,7 +974,6 @@ function cleanupRtgInjected(render){
     }
 
     function saveAndReturn(id) {
-
       var payload = {
         imdb_id: id,
         timestamp: Date.now()
@@ -1107,7 +998,6 @@ function cleanupRtgInjected(render){
     })();
   }
 
-
   function fetchMdbListRatings(card, callback) {
     var key = LMP_ENH_CONFIG.apiKeys.mdblist;
     if (!key) {
@@ -1118,11 +1008,7 @@ function cleanupRtgInjected(render){
     var typeSegment = (card.type === 'tv') ? 'show' : card.type;
     var url = 'https://api.mdblist.com/tmdb/' + typeSegment + '/' + card.id +
       '?apikey=' + encodeURIComponent(key);
-
-
     new Lampa.Reguest().silent(url, handleSuccess, handleFail);
-
-
     function handleFail() {
       new Lampa.Reguest().native(
         url,
@@ -1141,7 +1027,6 @@ function cleanupRtgInjected(render){
         }
       );
     }
-
 
     function handleSuccess(response) {
       if (!response || !response.ratings || !response.ratings.length) {
@@ -1194,7 +1079,6 @@ function cleanupRtgInjected(render){
         var val = parseRawScore(r.value);
         if (val === null || isNaN(val)) return;
 
-
         if (src.indexOf('tmdb') !== -1) {
           var tmdb10 = val > 10 ? (val / 10) : val;
           res.tmdb_display = tmdb10.toFixed(1);
@@ -1231,13 +1115,11 @@ function cleanupRtgInjected(render){
         }
       });
 
-
       res._mdblist_ratings = Array.isArray(response.ratings) ? response.ratings.slice() : [];
 
       callback(res);
     }
   }
-
 
   function fetchOmdbRatings(card, callback) {
     var key = LMP_ENH_CONFIG.apiKeys.omdb;
@@ -1303,7 +1185,6 @@ function cleanupRtgInjected(render){
     });
   }
 
-
   function mergeRatings(mdb, omdb) {
     mdb = mdb || {};
     omdb = omdb || {};
@@ -1327,17 +1208,12 @@ function cleanupRtgInjected(render){
       tmdb_for_avg: mdb.tmdb_for_avg || null,
       imdb_display: mdb.imdb_display || omdb.imdb_display || null,
       imdb_for_avg: mdb.imdb_for_avg || omdb.imdb_for_avg || null,
-
-
       mc_user_display:   mdb.mc_user_display   || null,
       mc_user_for_avg:   (typeof mdb.mc_user_for_avg   === 'number' ? mdb.mc_user_for_avg   : null),
       mc_critic_display: mdb.mc_critic_display || omdb.mc_critic_display || null,
       mc_critic_for_avg: (typeof mdb.mc_critic_for_avg === 'number' ? mdb.mc_critic_for_avg : (typeof omdb.mc_critic_for_avg === 'number' ? omdb.mc_critic_for_avg : null)),
-
-
       mc_display: mc_display || null,
       mc_for_avg: (typeof mc_for_avg === 'number' ? mc_for_avg : null),
-
       rt_display: mdb.rt_display || omdb.rt_display || null,
       rt_for_avg: mdb.rt_for_avg || omdb.rt_for_avg || null,
       rt_fresh: (mdb.rt_display || omdb.rt_display) ?
@@ -1349,13 +1225,11 @@ function cleanupRtgInjected(render){
       oscars: omdb.oscars || 0,
       emmy: omdb.emmy || 0,
       awards: omdb.awards || 0,
-
       _mdblist_ratings: Array.isArray(mdb._mdblist_ratings) ? mdb._mdblist_ratings.slice() : []
     };
 
     return merged;
   }
-
 
   function removePosterBadges(root) {
     var host = (root || document).querySelectorAll('.card__lmerating');
@@ -1363,7 +1237,6 @@ function cleanupRtgInjected(render){
       x.parentNode && x.parentNode.removeChild(x);
     });
   }
-
 
   function renderPosterBadgesOnDetails(data, renderRoot) {
     var cfg = getCfg();
@@ -1375,22 +1248,14 @@ function cleanupRtgInjected(render){
 
     var $render = renderRoot || (Lampa.Activity.active().activity.render && Lampa.Activity.active().activity.render());
     if (!$render || !$render.length) return;
-
-
     var $poster = $('.full-start-new__poster, .full-start__poster', $render).first();
     if (!$poster.length) return;
-
-
     $poster.find('.card__lmerating').remove();
-
-
     var raw = buildMdblistLikeArray(data);
     var items = filterMdblistLike(raw);
     if (!items.length) return;
-
-
-    var topStartEm = 0.8; // Початковий відступ зверху
-    var stepEm = 2.0; // Крок між бейджами
+    var topStartEm = 0.8;
+    var stepEm = 2.0;
     items.forEach(function(it, i) {
       var $b = $('<div class="card__lmerating"></div>');
       $b.css('top', 'calc(' + topStartEm + 'em + ' + (i * stepEm) + 'em)');
@@ -1398,7 +1263,6 @@ function cleanupRtgInjected(render){
       $poster.append($b);
     });
   }
-
 
   function renderPosterBadgesFromRaw(rawRatings, $cardView) {
     if (!$cardView || !$cardView.length) return;
@@ -1419,16 +1283,12 @@ function cleanupRtgInjected(render){
 
       var $b = $('<div class="card__lmerating"></div>');
       $b.css('top', 'calc(' + topStartEm + 'em + ' + (i * stepEm) + 'em)').text(txt);
-      $cardView.append($b); // $poster не визначено тут, міняємо на $cardView
+      $cardView.append($b);
     });
   }
-
-
   function updateHiddenElements(data) {
     var render = Lampa.Activity.active().activity.render();
     if (!render || !render[0]) return;
-
-
     var pgElement = $('.full-start__pg.hide', render);
     if (pgElement.length && data.ageRating) {
       var invalidRatings = ['N/A', 'Not Rated', 'Unrated'];
@@ -1438,8 +1298,6 @@ function cleanupRtgInjected(render){
         pgElement.removeClass('hide').text(localized);
       }
     }
-
-
     var imdbContainer = $('.rate--imdb', render);
     if (imdbContainer.length) {
       var cfg = getCfg();
@@ -1459,8 +1317,6 @@ function cleanupRtgInjected(render){
         }
       }
     }
-
-
     var tmdbContainer = $('.rate--tmdb', render);
     if (tmdbContainer.length) {
       var cfg = getCfg();
@@ -1480,8 +1336,6 @@ function cleanupRtgInjected(render){
       }
     }
   }
-
-
   function applyAwardsColor(rateLine, cfg) {
     var $tiles = rateLine.find('.rate--awards, .rate--oscars, .rate--emmy');
     $tiles.removeClass('rating--green rating--blue rating--orange rating--red');
@@ -1493,7 +1347,6 @@ function cleanupRtgInjected(render){
     }
   }
 
-
   function insertRatings(data) {
     var render = Lampa.Activity.active().activity.render();
     if (!render) return;
@@ -1501,9 +1354,6 @@ function cleanupRtgInjected(render){
     cleanupRtgInjected(render);
     var rateLine = getPrimaryRateLine(render);
     if (!rateLine.length) return;
-    //var rateLine = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render);
-    //if (!rateLine.length) return;
-
     var cfg = (typeof getCfg === 'function') ? getCfg() : {
       enableImdb: true,
       enableTmdb: true,
@@ -1513,7 +1363,6 @@ function cleanupRtgInjected(render){
       mcMode: 'meta',
       colorizeAll: false
     };
-
 
     (function() {
       var cont = $('.rate--mc', rateLine);
@@ -1540,13 +1389,8 @@ function cleanupRtgInjected(render){
       }
 
       var mcText = mcVal.toFixed(1);
-
-
-
       var usedIsUser   = (data.mc_user_for_avg && !isNaN(data.mc_user_for_avg)) && Math.abs(mcVal - parseFloat(data.mc_user_for_avg)) < 0.051;
       var usedIsCritic = !usedIsUser && (data.mc_critic_for_avg && !isNaN(data.mc_critic_for_avg)) && Math.abs(mcVal - parseFloat(data.mc_critic_for_avg)) < 0.051;
-
-
       var mcIconUrl = ICONS.metascore;
       if (usedIsUser) mcIconUrl = ICONS.metacritic;
       if (usedIsCritic) mcIconUrl = ICONS.metascore;
@@ -1571,8 +1415,6 @@ function cleanupRtgInjected(render){
       cont.removeClass('rating--green rating--blue rating--orange rating--red');
       if (cfg.colorizeAll) cont.addClass(getRatingClass(mcVal));
     })();
-
-
 
     (function() {
       var cont = $('.rate--rt', rateLine);
@@ -1622,7 +1464,6 @@ function cleanupRtgInjected(render){
       if (cfg.colorizeAll) cont.addClass(getRatingClass(rtVal));
     })();
 
-
     (function() {
       var cont = $('.rate--popcorn', rateLine);
       if (!cfg.enablePop) {
@@ -1665,7 +1506,6 @@ function cleanupRtgInjected(render){
       if (cfg.colorizeAll) cont.addClass(getRatingClass(pcVal));
     })();
 
-
     if (data.awards && data.awards > 0 && !$('.rate--awards', rateLine).length) {
       var awardsElement = $(
         '<div class="full-start__rate rate--awards rate--gold">' +
@@ -1704,13 +1544,10 @@ function cleanupRtgInjected(render){
         .attr('title', Lampa.Lang.translate('oscars_label'));
       rateLine.prepend(oscarsElement);
     }
-
-
     try {
       applyAwardsColor(rateLine, cfg);
     } catch (e) {}
   }
-
 
   function calculateAverageRating(data) {
     var render = Lampa.Activity.active().activity.render();
@@ -1718,9 +1555,6 @@ function cleanupRtgInjected(render){
 
     var rateLine = getPrimaryRateLine(render);
     if (!rateLine.length) return;
-    //var rateLine = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render);
-    //if (!rateLine.length) return;
-
     var cfg = (typeof getCfg === 'function') ? getCfg() : {
       enableImdb: true,
       enableTmdb: true,
@@ -1791,11 +1625,9 @@ function cleanupRtgInjected(render){
     undimRateLine(rateLine);
   }
 
-
   function fetchAdditionalRatings(card) {
     var render = Lampa.Activity.active().activity.render();
     if (!render) return;
-
 
     refreshConfigFromStorage();
 
@@ -1806,16 +1638,14 @@ function cleanupRtgInjected(render){
       original_title: card.original_title || card.original_name || '',
       type: getCardType(card),
       release_date: card.release_date || card.first_air_date || '',
-      vote: card.vote_average || card.vote || null 
+      vote: card.vote_average || card.vote || null
     };
 
     var cardKeyForToken = (normalizedCard.type || getCardType(normalizedCard)) + '_' + (normalizedCard.imdb_id || normalizedCard.id || '');
     var reqToken = cardKeyForToken + '_' + Date.now();
     __lmpLastReqToken = reqToken;
-
-
     function renderAll() {
-      if (reqToken !== __lmpLastReqToken) return; // Запит застарів
+      if (reqToken !== __lmpLastReqToken) return;
       if (!currentRatingsData) {
         removeLoadingAnimation();
         return;
@@ -1824,34 +1654,23 @@ function cleanupRtgInjected(render){
       updateHiddenElements(currentRatingsData);
       insertRatings(currentRatingsData);
       calculateAverageRating(currentRatingsData);
-
-
       try {
         renderPosterBadgesOnDetails(currentRatingsData);
       } catch (e) {}
-
-
       applyStylesToAll();
     }
 
-
     function proceedWithImdbId() {
-
       var cacheKeyBase = normalizedCard.imdb_id || normalizedCard.id;
       var cacheKey = cacheKeyBase ? (normalizedCard.type + '_' + cacheKeyBase) : null;
-
-
       var cached = cacheKey ? getCachedRatings(cacheKey) : null;
       if (cached) {
         currentRatingsData = cached;
-        renderAll(); // Малюємо одразу, БЕЗ лоадера
+        renderAll();
         return;
       }
 
-
       addLoadingAnimation();
-
-
       var pending = 2;
       var mdbRes = null;
       var omdbRes = null;
@@ -1860,9 +1679,7 @@ function cleanupRtgInjected(render){
         pending--;
         if (pending !== 0) return;
 
-
         currentRatingsData = mergeRatings(mdbRes, omdbRes);
-
 
         if (
           (!currentRatingsData.tmdb_display || !currentRatingsData.tmdb_for_avg) &&
@@ -1877,7 +1694,6 @@ function cleanupRtgInjected(render){
             currentRatingsData.tmdb_display = tm.toFixed(1);
           }
         }
-
 
         if (
           cacheKey &&
@@ -1895,7 +1711,6 @@ function cleanupRtgInjected(render){
           saveCachedRatings(cacheKey, currentRatingsData);
         }
 
-
         renderAll();
       }
 
@@ -1909,18 +1724,15 @@ function cleanupRtgInjected(render){
       });
     }
 
-
     if (!normalizedCard.imdb_id) {
       getImdbIdFromTmdb(normalizedCard.id, normalizedCard.type, function(imdb_id) {
         normalizedCard.imdb_id = imdb_id;
         proceedWithImdbId();
       });
     } else {
-
       proceedWithImdbId();
     }
   }
-
 
   function getCfg() {
     var omdbKey = Lampa.Storage.get('ratings_omdb_key', RCFG_DEFAULT.ratings_omdb_key);
@@ -1973,13 +1785,11 @@ function cleanupRtgInjected(render){
     };
   }
 
-
   function refreshConfigFromStorage() {
     var cfg = getCfg();
     LMP_ENH_CONFIG.apiKeys.omdb = cfg.omdbKey || '';
     LMP_ENH_CONFIG.apiKeys.mdblist = cfg.mdblistKey || '';
     LMP_ENH_CONFIG.monochromeIcons = cfg.bwLogos;
-    // Оновлюємо клас на body
     if (cfg.bwLogos) {
       $('body').addClass('lmp-enh--mono');
     } else {
@@ -1988,7 +1798,6 @@ function cleanupRtgInjected(render){
     return cfg;
   }
 
-
   function toggleAwards(showAwards) {
     var nodes = document.querySelectorAll('.rate--oscars, .rate--emmy, .rate--awards');
     nodes.forEach(function(n) {
@@ -1996,14 +1805,12 @@ function cleanupRtgInjected(render){
     });
   }
 
-
   function toggleAverage(showAverage) {
     var nodes = document.querySelectorAll('.rate--avg');
     nodes.forEach(function(n) {
       n.style.display = showAverage ? '' : 'none';
     });
   }
-
 
   function tuneRatingFont(offsetPx) {
     var off = parseFloat(offsetPx) || 0;
@@ -2017,8 +1824,6 @@ function cleanupRtgInjected(render){
       tile.style.fontSize = finalPx + 'px';
     });
   }
-
-
   function tuneLogos(offsetPx) {
     var REF_BASE = 28;
     var scale = (REF_BASE + (parseFloat(offsetPx) || 0)) / REF_BASE;
@@ -2053,14 +1858,13 @@ function cleanupRtgInjected(render){
         varName = '--lmp-h-emmy';
 
       var baseH = cssVarPx(varName);
-      if (!baseH || baseH <= 0) baseH = 24; // Фолбек
+      if (!baseH || baseH <= 0) baseH = 24;
 
       var finalH = Math.max(1, baseH * scale);
       img.style.height = finalH + 'px';
       img.style.maxHeight = finalH + 'px';
     });
   }
-
 
   function tuneBadgeBackground(tone, alpha) {
     var rgba = 'rgba(' + tone + ',' + tone + ',' + tone + ',' + alpha + ')';
@@ -2074,10 +1878,9 @@ function cleanupRtgInjected(render){
     });
   }
 
-
   function tuneGap(gapStep) {
     var lines = document.querySelectorAll('.full-start-new__rate-line');
-    var totalEm = (0.3 + gapStep * 0.1); // 0.3 базово
+    var totalEm = (0.3 + gapStep * 0.1);
     lines.forEach(function(line) {
       var kids = line.children;
       for (var i = 0; i < kids.length; i++) {
@@ -2089,8 +1892,6 @@ function cleanupRtgInjected(render){
       }
     });
   }
-
-
   function applyBwLogos(enabled) {
     var logos = document.querySelectorAll(
       '.full-start__rate .source--name img,' +
@@ -2104,16 +1905,13 @@ function cleanupRtgInjected(render){
     });
   }
 
-
   function applyStylesToAll() {
     var cfg = getCfg();
-    // Оновлюємо body клас
     if (cfg.bwLogos) {
       $('body').addClass('lmp-enh--mono');
     } else {
       $('body').removeClass('lmp-enh--mono');
     }
-    // Рамка навколо плиток рейтингів
     if (cfg.rateBorder) $('body').addClass('lmp-enh--rate-border');
     else $('body').removeClass('lmp-enh--rate-border');
     
@@ -2125,7 +1923,6 @@ function cleanupRtgInjected(render){
     tuneGap(cfg.gapStep);
     applyBwLogos(cfg.bwLogos);
   }
-
 
   function patchStorageSetOnce() {
     if (window.__lmpRatingsPatchedStorage) return;
@@ -2143,7 +1940,6 @@ function cleanupRtgInjected(render){
     };
   }
 
-
   var reapplyOnResize = (function() {
     var t;
     return function() {
@@ -2154,7 +1950,6 @@ function cleanupRtgInjected(render){
     };
   })();
 
-
   function ensureDefaultToggles() {
     if (typeof Lampa.Storage.get('ratings_show_awards') === 'undefined') {
       Lampa.Storage.set('ratings_show_awards', true);
@@ -2164,14 +1959,12 @@ function cleanupRtgInjected(render){
     }
   }
 
-
   function attachLiveSettingsHandlers() {
     var scheduleApply = (function() {
       var t;
       return function() {
         clearTimeout(t);
         t = setTimeout(function() {
-
           try {
             if (typeof currentRatingsData === 'object' && currentRatingsData) {
               updateHiddenElements(currentRatingsData);
@@ -2179,9 +1972,7 @@ function cleanupRtgInjected(render){
               calculateAverageRating(currentRatingsData);
             }
           } catch (e) {}
-
           applyStylesToAll();
-
           try {
             refreshPosterBadgesGrid();
           } catch (e) {}
@@ -2213,7 +2004,6 @@ function cleanupRtgInjected(render){
     } catch (_) {}
   }
 
-
   function refreshPosterBadgesGrid() {
     $('.card__view .card__lmerating').remove();
     var cfg = getCfg();
@@ -2235,15 +2025,12 @@ function cleanupRtgInjected(render){
       }
     });
   }
-
-
   function wirePosterBadgesListener() {
     Lampa.Listener.follow('line', function(e) {
       if (e.type !== 'append') return;
 
       var cfg = getCfg();
       if (!cfg.enablePosterBadges) {
-        // Вимкнули -> знімаємо з усіх
         e.items.forEach(function(it) {
           try {
             it.card.find('.card__view .card__lmerating').remove();
@@ -2264,13 +2051,11 @@ function cleanupRtgInjected(render){
           imdb_id: data.imdb_id
         });
 
-
         var cached = getCachedRatings(key);
         if (cached && cached._mdblist_ratings) {
           renderPosterBadgesFromRaw(cached._mdblist_ratings, $view);
           return;
         }
-
 
         fetchMdbListRatings({
           id: data.id,
@@ -2286,8 +2071,6 @@ function cleanupRtgInjected(render){
       });
     });
   }
-
-
   function addSettingsSection() {
     if (window.lmp_ratings_add_param_ready) return;
     window.lmp_ratings_add_param_ready = true;
@@ -2469,7 +2252,6 @@ function cleanupRtgInjected(render){
       onRender: function(item) {}
     });
 
-
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2556,7 +2338,6 @@ function cleanupRtgInjected(render){
       },
     });
 
-
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2573,53 +2354,37 @@ function cleanupRtgInjected(render){
 
   }
 
-
   function initRatingsPluginUI() {
-    ensureDefaultToggles(); 
-    addSettingsSection(); 
-    patchStorageSetOnce(); 
-    attachLiveSettingsHandlers(); 
-
+    ensureDefaultToggles();
+    addSettingsSection();
+    patchStorageSetOnce();
+    attachLiveSettingsHandlers();
     window.LampaRatings = window.LampaRatings || {};
     window.LampaRatings.applyStyles = applyStylesToAll;
     window.LampaRatings.getConfig = getCfg;
-    // Слухач для стікерів на постерах у грідах
     try {
       wirePosterBadgesListener();
     } catch (e) {}
-    // Одразу застосувати стилі
     applyStylesToAll();
   }
-
-
   function startPlugin() {
     window.combined_ratings_plugin = true;
     Lampa.Listener.follow('full', function(e) {
       if (e.type === 'complite') {
         setTimeout(function() {
           fetchAdditionalRatings(e.data.movie || e.object || {});
-          __lmpTenFixStart(); // Запускаємо "фікс 10.0"
+          __lmpTenFixStart();
         }, 500);
       }
     });
   }
 
-
-
   Lampa.Template.add('lmp_enh_styles', pluginStyles);
   $('body').append(Lampa.Template.get('lmp_enh_styles', {}, true));
-
-
   initRatingsPluginUI();
-
-
   refreshConfigFromStorage();
-
-
   window.addEventListener('resize', reapplyOnResize);
   window.addEventListener('orientationchange', reapplyOnResize);
-
-
   if (!window.combined_ratings_plugin) {
     startPlugin();
   }
