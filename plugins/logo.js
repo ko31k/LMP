@@ -9,8 +9,6 @@
 		var MORPH_HEIGHT = 400;
 		var FADE_IN_IMG = 400;
 
-		var TARGET_WIDTH = "7em";
-
 		var PADDING_TOP_EM = 0;
 		var PADDING_BOTTOM_EM = 0.2;
 
@@ -54,53 +52,7 @@
 			return "logo_cache_width_based_v1_" + type + "_" + id + "_" + lang;
 		}
 
-function applyFinalStyles(img, container, has_tagline, text_height) {
-    if (container) {
-        container.style.height = "";
-        container.style.overflow = "";
-        container.style.display = "";
-        container.style.transition = "none";
-        container.style.boxSizing = "";
-    }
-
-    img.style.marginTop = "0.2em";
-    img.style.marginLeft = "0";
-    img.style.paddingTop = PADDING_TOP_EM + "em";
-
-    var pb = PADDING_BOTTOM_EM;
-    if (window.innerWidth < 768 && has_tagline) pb = 0.5;
-    img.style.paddingBottom = pb + "em";
-
-    var use_text_height = Lampa.Storage.get("logo_use_text_height", false);
-
-    if (use_text_height && text_height) {
-        // Тут ми ставимо 1.0 за замовчуванням
-        var factor = parseFloat(Lampa.Storage.get("logo_height_factor", "1.0"));
-        img.style.height = (text_height * factor) + "px";
-        img.style.width = "auto";
-    } else {
-        // Тут беремо ширину з налаштувань
-        var custom_width = Lampa.Storage.get("logo_custom_width", "7"); 
-        if (window.innerWidth < 768) {
-            img.style.width = "100%";
-        } else {
-            img.style.width = custom_width + "em";
-        }
-        img.style.height = "auto";
-    }
-
-    img.style.maxWidth = "100%";
-    img.style.maxHeight = "none";
-    img.style.boxSizing = "border-box";
-    img.style.display = "block";
-    img.style.objectFit = "contain";
-    img.style.objectPosition = "left bottom";
-    img.style.opacity = "1";
-    img.style.transition = "none";
-}
-		
-		
-		/*function applyFinalStyles(img, container, has_tagline, text_height) {
+		function applyFinalStyles(img, container, has_tagline, text_height) {
 			if (container) {
 				container.style.height = "";
 				container.style.overflow = "";
@@ -109,48 +61,73 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 				container.style.boxSizing = "";
 			}
 
+			var is_mobile = window.innerWidth < 768;
+			var center_mobile = Lampa.Storage.get("logo_center_mobile", false);
+
 			img.style.marginTop = "0.2em";
-			img.style.marginLeft = "0";
+			
+			if (is_mobile && center_mobile) {
+				img.style.marginLeft = "auto";
+				img.style.marginRight = "auto";
+			} else {
+				img.style.marginLeft = "0";
+				img.style.marginRight = "0";
+			}
 
 			img.style.paddingTop = PADDING_TOP_EM + "em";
 
 			var pb = PADDING_BOTTOM_EM;
-			if (window.innerWidth < 768 && has_tagline) pb = 0.5;
+			if (is_mobile && has_tagline) pb = 0.5;
 			img.style.paddingBottom = pb + "em";
 
 			var use_text_height = Lampa.Storage.get("logo_use_text_height", false);
 
 			if (use_text_height && text_height) {
-				img.style.height = text_height + "px";
+				var factor = parseFloat(Lampa.Storage.get("logo_height_factor", "1.0"));
+				img.style.height = (text_height * factor) + "px";
 				img.style.width = "auto";
-				img.style.maxWidth = "100%";
-				img.style.maxHeight = "none";
 			} else {
-				if (window.innerWidth < 768) {
+				var custom_width = Lampa.Storage.get("logo_custom_width", "7"); 
+				if (is_mobile) {
 					img.style.width = "100%";
-					img.style.height = "auto";
-					img.style.maxWidth = "100%";
-					img.style.maxHeight = "none";
 				} else {
-					img.style.width = TARGET_WIDTH;
-					img.style.height = "auto";
-
-					img.style.maxHeight = "none";
-					img.style.maxWidth = "100%";
+					img.style.width = custom_width + "em";
 				}
+				img.style.height = "auto";
 			}
 
+			img.style.maxWidth = "100%";
+			img.style.maxHeight = "none";
 			img.style.boxSizing = "border-box";
 			img.style.display = "block";
 			img.style.objectFit = "contain";
-			img.style.objectPosition = "left bottom";
+			
+			if (is_mobile && center_mobile) {
+				img.style.objectPosition = "center bottom";
+			} else {
+				img.style.objectPosition = "left bottom";
+			}
 
 			img.style.opacity = "1";
 			img.style.transition = "none";
-		}*/
+		}
 
 		Lampa.Listener.follow("full", function (e) {
 			if (e.type == "complite" && Lampa.Storage.get("logo_glav") != "1") {
+				
+				var is_mobile = window.innerWidth < 768;
+				var align_top = Lampa.Storage.get("logo_align_top", false);
+				
+				// Знаходимо саме ліву колонку з постером
+				var full_start_left = e.object.activity.render().find(".full-start-new__left");
+				
+				if (align_top && !is_mobile && full_start_left.length) {
+					// Змушуємо лише ліву колонку прилипнути до верху батьківського контейнера
+					full_start_left.css("align-self", "flex-start");
+					// Якщо потрібно трохи опустити постер, щоб він був ідеально на лінії з текстом, розкоментуй рядок нижче:
+					// full_start_left.css("margin-top", "1em");
+				}
+
 				var data = e.data.movie;
 				var type = data.name ? "tv" : "movie";
 
@@ -175,28 +152,6 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 				var size = Lampa.Storage.get("logo_size", "original");
 
 				var cache_key = getCacheKey(type, data.id, target_lang);
-
-				function moveHeadToDetails() {
-					if (!head_elem.length || !details_elem.length) return;
-					if (details_elem.find(".logo-moved-head").length > 0) return;
-
-					var content = head_elem.html();
-					if (!content) return;
-
-					var new_item = $(
-						'<span class="logo-moved-head">' + content + "</span>"
-					);
-					var separator = $(
-						'<span class="full-start-new__split logo-moved-separator">●</span>'
-					);
-
-					head_elem.css({ opacity: "0", transition: "none" });
-					if (details_elem.children().length > 0)
-						details_elem.append(separator);
-					details_elem.append(new_item);
-				}
-
-				//moveHeadToDetails();
 
 				function startLogoAnimation(img_url, save_to_cache) {
 					if (save_to_cache && !DISABLE_CACHE)
@@ -399,34 +354,21 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 
 	var LOGO_COMPONENT = "logo_settings_nested";
 
-	Lampa.Settings.listener.follow("open", function (e) {
-		if (e.name == "main") {
-			var render = Lampa.Settings.main().render();
-			if (
-				render.find('[data-component="' + LOGO_COMPONENT + '"]').length == 0
-			) {
-				Lampa.SettingsApi.addComponent({
-					component: LOGO_COMPONENT,
-					name: "Логотипи"
-				});
-			}
-			Lampa.Settings.main().update();
-			render.find('[data-component="' + LOGO_COMPONENT + '"]').addClass("hide");
-		}
-	});
+	Lampa.Template.add("settings_" + LOGO_COMPONENT, "<div></div>");
 
 	Lampa.SettingsApi.addParam({
-		component: "interface",
-		param: { name: "logo_settings_entry", type: "static" },
-		field: { name: "Логотипи", description: "Налаштування відображення логотипів" },
-		onRender: function (item) {
-			item.on("hover:enter", function () {
-				Lampa.Settings.create(LOGO_COMPONENT);
-				Lampa.Controller.enabled().controller.back = function () {
-					Lampa.Settings.create("interface");
-				};
-			});
-		}
+	  component: "interface",
+	  param: { type: "button" },
+	  field: {
+		name: "Логотипи",
+		description: "Налаштування відображення логотипів"
+	  },
+	  onChange: function () {
+		Lampa.Settings.create(LOGO_COMPONENT);
+		Lampa.Controller.enabled().controller.back = function () {
+		  Lampa.Settings.create("interface");
+		};
+	  }
 	});
 
 	Lampa.SettingsApi.addParam({
@@ -453,6 +395,7 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 			description: "Відображає логотипи фільмів замість тексту"
 		}
 	});
+
 	Lampa.SettingsApi.addParam({
 		component: LOGO_COMPONENT,
 		param: {
@@ -478,6 +421,7 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 			description: "Пріоритетна мова для пошуку логотипу"
 		}
 	});
+
 	Lampa.SettingsApi.addParam({
 		component: LOGO_COMPONENT,
 		param: {
@@ -492,10 +436,11 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 			default: "original"
 		},
 		field: {
-			name: "Размір логотипу",
-			description: "Разширення завантажуваного зображення"
+			name: "Розмір логотипу",
+			description: "Роздільна здатність завантажуваного зображення"
 		}
 	});
+
 	Lampa.SettingsApi.addParam({
 		component: LOGO_COMPONENT,
 		param: {
@@ -509,60 +454,68 @@ function applyFinalStyles(img, container, has_tagline, text_height) {
 			description: "Спосіб анімації логотипів"
 		}
 	});
+
 	Lampa.SettingsApi.addParam({
 		component: LOGO_COMPONENT,
 		param: { name: "logo_use_text_height", type: "trigger", default: false },
 		field: {
 			name: "Логотип по висоті тексту",
-			description: "Розмір логотипи рівний висоті тексту"
+			description: "Розмір логотипа формується відносно висоти тексту"
 		}
 	});
 
-Lampa.SettingsApi.addParam({
-    component: LOGO_COMPONENT,
-    param: {
-        name: "logo_height_factor",
-        type: "select",
-        values: {
-            "1.0": "1.0",
-            "1.1": "1.1",
-            "1.2": "1.2",
-            "1.3": "1.3",
-            "1.4": "1.4",
-            "1.5": "1.5",
-            "1.6": "1.6"
-        },
-        default: "1.0"
-    },
-    field: {
-        name: "Коефіцієнт висоти",
-        description: "Працює, якщо увімкнено підлаштування під текст"
-    }
-});
+	Lampa.SettingsApi.addParam({
+		component: LOGO_COMPONENT,
+		param: { name: "logo_center_mobile", type: "trigger", default: false },
+		field: {
+			name: "По центру на телефоні",
+			description: "Центрує логотип по горизонталі на мобільних пристроях"
+		}
+	});
 
-Lampa.SettingsApi.addParam({
-    component: LOGO_COMPONENT,
-    param: {
-        name: "logo_custom_width",
-        type: "select",
-        values: {
-            "3": "3em",
-            "4": "4em",
-            "5": "5em",
-            "6": "6em",
-            "7": "7em",
-            "8": "8em",
-            "9": "9em"
-        },
-        default: "7"
-    },
-    field: {
-        name: "Ширина логотипа",
-        description: "Працює, коли вимкнено підлаштування під текст"
-    }
-});
+	Lampa.SettingsApi.addParam({
+		component: LOGO_COMPONENT,
+		param: { name: "logo_align_top", type: "trigger", default: false },
+		field: {
+			name: "Постер завжди зверху",
+			description: "Вирівнює постер по верхньому краю (TV/PC)"
+		}
+	});
 
+	Lampa.SettingsApi.addParam({
+		component: LOGO_COMPONENT,
+		param: {
+			name: "logo_height_factor",
+			type: "select",
+			values: {
+				"1.0": "1.0", "1.1": "1.1", "1.2": "1.2", "1.3": "1.3",
+				"1.4": "1.4", "1.5": "1.5", "1.6": "1.6", "1.7": "1.7",
+				"1.8": "1.8", "1.9": "1.9", "2.0": "2.0"
+			},
+			default: "1.0"
+		},
+		field: {
+			name: "Коефіцієнт висоти",
+			description: "Працює для налатшування 'по висоті тексту'"
+		}
+	});
 
+	Lampa.SettingsApi.addParam({
+		component: LOGO_COMPONENT,
+		param: {
+			name: "logo_custom_width",
+			type: "select",
+			values: {
+				"2": "2em", "3": "3em", "4": "4em", "5": "5em", "6": "6em",
+				"7": "7em", "8": "8em", "9": "9em", "10": "10em"
+			},
+			default: "7"
+		},
+		field: {
+			name: "Ширина логотипа",
+			description: "Коли вимкнено налаштування 'по висоті тексту'"
+		}
+	});
 	
 	Lampa.SettingsApi.addParam({
 		component: LOGO_COMPONENT,
