@@ -2,9 +2,6 @@
 (function () {
   'use strict';
 
-  /* =========================
-   * 1) Локалізація
-   * ========================= */
   function translate() {
     Lampa.Lang.add({
       bat_parser: {
@@ -105,7 +102,6 @@
         zh: '未检查'
       },
 
-      // SEARCH (2 стани)
       bat_status_checking_search: {
         ru: 'Проверка поиска…',
         en: 'Checking search…',
@@ -128,10 +124,6 @@
   }
 
   var Lang = { translate: translate };
-
-  /* =========================
-   * 2) Список парсерів
-   * ========================= */
   var parsersInfo = [
     {
       base: 'lampa_ua',
@@ -173,19 +165,12 @@
     
   ];
 
-  /* =========================
-   * 3) Константи/хелпери
-   * ========================= */
   var STORAGE_KEY = 'bat_url_two';
   var NO_PARSER = 'no_parser';
-
-  // Кольори
   var COLOR_OK = '#1aff00';
   var COLOR_BAD = '#ff2e36';
   var COLOR_WARN = '#f3d900';
   var COLOR_UNKNOWN = '#8c8c8c';
-
-  // Кеш: health 30 сек, search 15 хв
   var cache = {
     data: {},
     ttlHealth: 30 * 1000,
@@ -247,16 +232,10 @@
     $('.bat-parser-selected').text(text);
   }
 
-  // Протоколи: якщо протокол вже заданий у url — лише ""
   function protocolCandidatesFor(url) {
     if (/^https?:\/\//i.test(url)) return [''];
-    return ['https://', 'http://']; // спочатку https
+    return ['https://', 'http://'];
   }
-
-  // Послідовно пробуємо URL і повертаємо перший результат:
-  // - ok=true для 2xx
-  // - ok=false, network=false якщо server відповів кодом (401/403/404/500…)
-  // - ok=false, network=true якщо status 0/timeout на всіх спробах
   function ajaxTryUrls(urls, timeout) {
     return new Promise(function (resolve) {
       var idx = 0;
@@ -288,11 +267,6 @@
     });
   }
 
-  /* =========================
-   * 4) Перевірки
-   * ========================= */
-
-  // HEALTH candidates
   function healthUrlCandidates(parser) {
     var key = encodeURIComponent(parser.settings.key || '');
     var type = parser.settings.parser_torrent_type || 'jackett';
@@ -307,12 +281,8 @@
     return protos.map(function (p) { return p + url + path; });
   }
 
-  // HEALTH 3-статуси:
-  // - OK (зелений): 2xx (endpoint реально відпрацював)
-  // - WARN (жовтий): сервер відповів HTTP, але не 2xx (401/403/404/5xx) -> “сервер відповідає, але є проблема”
-  // - BAD (червоний): network/timeout (status 0) -> сервер недоступний
   function runHealthChecks(parsers) {
-    var map = {}; // base -> {color,labelKey}
+    var map = {};
 
     var requests = parsers.map(function (parser) {
       return new Promise(function (resolve) {
@@ -347,7 +317,6 @@
     return Promise.all(requests).then(function () { return map; });
   }
 
-  // SEARCH candidates (2 стани)
   function deepSearchUrlCandidates(parser, query) {
     var key = encodeURIComponent(parser.settings.key || '');
     var q = encodeURIComponent(query);
@@ -365,11 +334,9 @@
   }
 
   function runDeepSearchChecks(parsers) {
-    var map = {}; // base -> {color,labelKey}
-
+    var map = {}; 
     var SAFE_QUERIES = ['1080p', 'bluray', 'x264', '2022'];
     var query = SAFE_QUERIES[Math.floor(Math.random() * SAFE_QUERIES.length)];
-
     var requests = parsers.map(function (parser) {
       return new Promise(function (resolve) {
         var urls = deepSearchUrlCandidates(parser, query);
@@ -396,10 +363,6 @@
 
     return Promise.all(requests).then(function () { return map; });
   }
-
-  /* =========================
-   * 5) Модалка (UI) + “лампочка”
-   * ========================= */
 
   function injectStyleOnce() {
     if (window.__bat_parser_modal_style__) return;
@@ -486,8 +449,6 @@
     updateCurrentLabel(modal, selected);
 
     var list = modal.find('.bat-parser-modal__list');
-
-    // "Не вибрано"
     var noneItem = buildParserItem(NO_PARSER, Lampa.Lang.translate('bat_parser_none'));
     noneItem.on('hover:enter', function () {
       Lampa.Storage.set(STORAGE_KEY, NO_PARSER);
@@ -497,7 +458,6 @@
     });
     list.append(noneItem);
 
-    // Парсери
     parsersInfo.forEach(function (p) {
       var item = buildParserItem(p.base, p.name);
 
@@ -514,12 +474,10 @@
 
     applySelection(list, selected);
 
-    // Кнопки
-    var actions = modal.find('.bat-parser-modal__actions');
 
+    var actions = modal.find('.bat-parser-modal__actions');
     var btnHealth = $("<div class='bat-parser-modal__action selector'></div>");
     btnHealth.text(Lampa.Lang.translate('bat_check_parsers'));
-
     var btnSearch = $("<div class='bat-parser-modal__action selector'></div>");
     btnSearch.text(Lampa.Lang.translate('bat_check_search'));
 
@@ -545,7 +503,6 @@
       });
     }
 
-    // HEALTH UI
     function runHealthUI() {
       list.find('.bat-parser-modal__item').each(function () {
         var it = $(this);
@@ -560,7 +517,6 @@
       });
     }
 
-    // SEARCH UI (для всіх)
     function runSearchUI() {
       list.find('.bat-parser-modal__item').each(function () {
         var it = $(this);
@@ -583,7 +539,6 @@
       runSearchUI();
     });
 
-    // Відкрити модалку
     var firstSelectable = list.find('.bat-parser-modal__item').first();
 
     Lampa.Modal.open({
@@ -598,13 +553,9 @@
       }
     });
 
-    // Авто: тільки HEALTH при відкритті
     runHealthUI();
   }
 
-  /* =========================
-   * 6) Інтеграція в Налаштування → Парсер
-   * ========================= */
   function parserSetting() {
     applySelectedParser(getSelectedBase());
 
@@ -625,7 +576,6 @@
           if (Lampa.Storage.field('parser_use')) item.show();
           else item.hide();
 
-          // жовтий колір
           $('.settings-param__name', item).css('color', COLOR_WARN);
 
           updateSelectedLabelInSettings();
@@ -639,9 +589,6 @@
 
   var Parser = { parserSetting: parserSetting };
 
-  /* =========================
-   * 7) Запуск плагіна
-   * ========================= */
   Lampa.Platform.tv();
 
   function add() {
@@ -661,6 +608,5 @@
   }
 
   if (!window.plugin_batpublictorr_ready) startPlugin();
-
 
 })();
