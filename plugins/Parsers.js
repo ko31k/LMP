@@ -146,9 +146,9 @@
       settings: { url: 'jacred.pro', key: '', parser_torrent_type: 'jackett' }
     },
     {
-      base: 'jacred_xyz',
-      name: 'Jacred.xyz',
-      settings: { url: 'jacred.xyz', key: '', parser_torrent_type: 'jackett' }
+      base: 'jac_red',
+      name: 'Jac.red',
+      settings: { url: 'jac.red', key: '', parser_torrent_type: 'jackett' }
     },
     {
       base: 'maxvol_pro',
