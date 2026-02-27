@@ -308,8 +308,8 @@
         "    .card--season-progress div {\n" +
         "        text-transform: uppercase;\n" +
         "        font-family: 'Roboto Condensed', 'Arial Narrow', Arial, sans-serif;  \n" +
-        "        font-weight: 700;\n" +
-        "        font-size: 1.0em;\n" +
+        "        font-weight: 600;\n" +
+        "        font-size: 0.9em;\n" +
         "        padding: 0.39em 0.39em;\n" +
         "        white-space: nowrap;\n" +
         "        display: flex;\n" +
@@ -334,7 +334,7 @@
         "    @media (max-width: 768px) {\n" +
         "        .card--season-complete div,\n" +
         "        .card--season-progress div {\n" +
-        "            font-size: 0.95em;\n" +
+        "            font-size: 0.8em;\n" +
         "            padding: 0.35em 0.40em;\n" +
         "        }\n" +
         "    }\n";
