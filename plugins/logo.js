@@ -84,8 +84,17 @@
 
 			if (use_text_height && text_height) {
 				var factor = parseFloat(Lampa.Storage.get("logo_height_factor", "1.0"));
-				img.style.height = (text_height * factor) + "px";
-				img.style.width = "auto";
+				var calc_height = text_height * factor;
+
+				if (is_mobile) {
+					img.style.maxHeight = calc_height + "px";
+					img.style.height = "auto";
+					img.style.width = "100%";
+				} else {
+					img.style.height = calc_height + "px";
+					img.style.width = "auto";
+					img.style.maxHeight = "none";
+				}
 			} else {
 				var custom_width = Lampa.Storage.get("logo_custom_width", "7"); 
 				if (is_mobile) {
@@ -94,10 +103,10 @@
 					img.style.width = custom_width + "em";
 				}
 				img.style.height = "auto";
+				img.style.maxHeight = "none";
 			}
 
 			img.style.maxWidth = "100%";
-			img.style.maxHeight = "none";
 			img.style.boxSizing = "border-box";
 			img.style.display = "block";
 			img.style.objectFit = "contain";
@@ -111,18 +120,15 @@
 			img.style.opacity = "1";
 			img.style.transition = "none";
 		}
-
+		
 		Lampa.Listener.follow("full", function (e) {
 			if (e.type == "complite" && Lampa.Storage.get("logo_glav") != "1") {
 				
 				var is_mobile = window.innerWidth < 768;
 				var align_top = Lampa.Storage.get("logo_align_top", false);
-				
-				// Знаходимо саме ліву колонку з постером
 				var full_start_left = e.object.activity.render().find(".full-start-new__left");
 				
 				if (align_top && !is_mobile && full_start_left.length) {
-					// Змушуємо лише ліву колонку прилипнути до верху батьківського контейнера
 					full_start_left.css("align-self", "flex-start");
 					// Якщо потрібно трохи опустити постер, щоб він був ідеально на лінії з текстом, розкоментуй рядок нижче:
 					// full_start_left.css("margin-top", "1em");
@@ -488,9 +494,13 @@
 			name: "logo_height_factor",
 			type: "select",
 			values: {
+				"0.6": "0.6", "0.7": "0.7", "0.8": "0.8", "0.9": "0.9",
 				"1.0": "1.0", "1.1": "1.1", "1.2": "1.2", "1.3": "1.3",
 				"1.4": "1.4", "1.5": "1.5", "1.6": "1.6", "1.7": "1.7",
-				"1.8": "1.8", "1.9": "1.9", "2.0": "2.0"
+				"1.8": "1.8", "1.9": "1.9", "2.0": "2.0", "2.1": "2.1",
+				"2.2": "2.2", "2.3": "2.3", "2.4": "2.4", "2.5": "2.5",
+				"2.6": "2.6", "2.7": "2.7", "2.8": "2.8", "2.9": "2.9",
+				"3.0": "3.0"
 			},
 			default: "1.0"
 		},
