@@ -2,9 +2,9 @@
   'use strict';
 
   var IFX_TITLE_SIZE_DEFAULT = 0.75;
-  var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 2;
-  var IFX_TMDB_UA_CACHE_PREFIX = 'ifx_tmdb_ua_title_v1.1:';
-
+  var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 2; // 2 дні
+  var IFX_TMDB_UA_CACHE_PREFIX = 'ifx_tmdb_ua_title_v1.6:'; // + type:id
+  
   if (!String.prototype.startsWith) {
     String.prototype.startsWith = function (searchString, position) {
       position = position || 0;
@@ -148,6 +148,15 @@ function isMonoEnabled() {
       uk: 'Кольорова та перефразована інформаційна панель'
     },
 
+    interface_mod_new_colored_bookmarks: {
+      en: 'Colored bookmark icons',
+      uk: 'Кольорові іконки закладок'
+    },
+    interface_mod_new_colored_bookmarks_desc: {
+      en: 'Colorize icons for Bookmarks, History, and Likes on cards',
+      uk: 'Підсвічувати кольорами іконки (Закладки, Історія, Пізніше)'
+    },
+        
     interface_mod_new_colored_ratings: {
       en: 'Colored rating',
       uk: 'Кольоровий рейтинг'
@@ -204,26 +213,24 @@ function isMonoEnabled() {
       uk: 'Aurora'
     },
 
-interface_mod_new_title_mode: {
-  en: 'Titles under header',
-  uk: 'Назви під заголовком'
-},
+    interface_mod_new_title_mode: {
+      en: 'Titles under header',
+      uk: 'Назви під заголовком'
+    },
+        
+    interface_mod_new_title_mode_desc: {
+      en: 'Show original title, localized title, both, or hide',
+      uk: 'Показувати оригінальну, локалізовану, обидві або вимкнути'
+    },
     
-interface_mod_new_title_mode_desc: {
-  en: 'Show original title, localized title, both, or hide',
-  uk: 'Показувати оригінальну, локалізовану, обидві або вимкнути'
-},
+    interface_mod_new_title_mode_off:  { en: 'No', uk: 'Ні' },
+    interface_mod_new_title_mode_orig: { en: 'Original title', uk: 'Оригінальна назва' },
+    interface_mod_new_title_mode_loc:  { en: 'Localized title', uk: 'Локалізована назва' },
+    interface_mod_new_title_mode_orig_loc: { en: 'Original / Localized', uk: 'Оригінальна / Локалізована назва' },
+    
+    interface_mod_new_title_size_name: { en: 'Title size', uk: 'Розмір назви' },
+    interface_mod_new_title_size_desc: { en: 'Font size (default 0.75)', uk: 'Розмір шрифту (за замовч. 0.75)' },
 
-interface_mod_new_title_mode_off:  { en: 'No', uk: 'Ні' },
-interface_mod_new_title_mode_orig: { en: 'Original title', uk: 'Оригінальна назва' },
-interface_mod_new_title_mode_loc:  { en: 'Localized title', uk: 'Локалізована назва' },
-interface_mod_new_title_mode_orig_loc: { en: 'Original / Localized', uk: 'Оригінальна / Локалізована назва' },
-
-interface_mod_new_title_size_name: { en: 'Title size', uk: 'Розмір назви' },
-interface_mod_new_title_size_desc: { en: 'Font size (default 0.75)', uk: 'Розмір шрифту (за замовч. 0.75)' },
-
-
-    // КНОПКИ
     interface_mod_new_all_buttons_v1: {
       en: 'All buttons in card',
       uk: 'Всі кнопки в картці'
@@ -298,6 +305,28 @@ function pickUaFromTranslations(res, type){
     var tr = res && res.translations && res.translations.translations;
     if (!tr || !tr.length) return '';
 
+    // TMDB: iso_639_1 === 'uk' (інколи ще iso_3166_1 === 'UA')
+    var ua = null;
+    for (var i=0;i<tr.length;i++){
+      var t = tr[i];
+      if (!t) continue;
+      if (String(t.iso_639_1 || '').toLowerCase() === 'uk') { ua = t; break; }
+      
+    }
+    if (!ua || !ua.data) return '';
+
+    var s = (type === 'tv') ? (ua.data.name || ua.data.title) : (ua.data.title || ua.data.name);
+    return String(s || '').trim();
+  }catch(e){
+    return '';
+  }
+}
+
+
+function pickUaFromTranslations(res, type){
+  try{
+    var tr = res && res.translations && res.translations.translations;
+    if (!tr || !tr.length) return '';
 
     var ua = null;
     for (var i=0;i<tr.length;i++){
@@ -314,7 +343,7 @@ function pickUaFromTranslations(res, type){
     return '';
   }
 }
-
+  
 function fetchTmdbUaTitle(movie, cb) {
   try {
     if (!movie) return cb('');
@@ -330,16 +359,14 @@ function fetchTmdbUaTitle(movie, cb) {
       if (hit) return cb(hit);
     }
 
-
     if (Lampa.Api && typeof Lampa.Api.tmdb === 'function') {
       var bust = Date.now();
       return Lampa.Api.tmdb(type + '/' + id, { language: 'uk-UA', append_to_response: 'translations', _ifx: bust }, function (res) {
-        var title = pickUaFromTranslations(res, type)
-                 || String((res && (res.title || res.name)) || '').trim();
+        var title = pickUaFromTranslations(res, type);
+                 
         if (title && key) cacheSet(key, title);
         cb(title || '');
       }, function() { 
-
         fallbackTMDB(); 
       });
     } else {
@@ -349,8 +376,8 @@ function fetchTmdbUaTitle(movie, cb) {
     function fallbackTMDB() {
       if (Lampa.TMDB && typeof Lampa.TMDB.get === 'function') {
         Lampa.TMDB.get(type, id, { language: 'uk-UA', append_to_response: 'translations' }, function (res) {
-          var title = pickUaFromTranslations(res, type)
-                   || String((res && (res.title || res.name)) || '').trim();
+          var title = pickUaFromTranslations(res, type);
+                   
           if (title && key) cacheSet(key, title);
           cb(title || '');
         });
@@ -376,36 +403,30 @@ function getLocalizedTitleAsync(movie, cb) {
         cb(uiLoc);
     });
 }
-
   
   function getOriginalTitleEnabled() {
     var rawNew = Lampa.Storage.get('interface_mod_new_en_data');
     if (typeof rawNew !== 'undefined') return getBool('interface_mod_new_en_data', true);
-
+    // Fallback до старого ключа
     return getBool('interface_mod_new_english_data', false);
   }
 
 
 function getTitleMode() {
-
   var m = Lampa.Storage.get('interface_mod_new_title_mode_v1');
   if (typeof m !== 'undefined' && m !== null && m !== '') {
     m = String(m);
 
-
     if (m === 'orig_ua') m = 'orig_loc';
 
-    
     if (m !== 'off' && m !== 'orig' && m !== 'loc' && m !== 'orig_loc') m = 'orig';
 
     return m;
   }
 
-  
   var old = Lampa.Storage.get('interface_mod_new_en_data');
   if (typeof old !== 'undefined') return getBool('interface_mod_new_en_data', true) ? 'orig' : 'off';
 
-  
   var older = Lampa.Storage.get('interface_mod_new_english_data');
   if (typeof older !== 'undefined') return getBool('interface_mod_new_english_data', false) ? 'orig' : 'off';
 
@@ -425,7 +446,7 @@ function getTitleMode() {
     icon_only: getBool('interface_mod_new_icon_only', false),
     colored_buttons: getBool('interface_mod_new_colored_buttons', false),
 
-    
+    // Налаштування для torrents+mod
     tor_frame: getBool('interface_mod_new_tor_frame', true),
     tor_bitrate: getBool('interface_mod_new_tor_bitrate', true),
     tor_seeds: getBool('interface_mod_new_tor_seeds', true),
@@ -504,7 +525,6 @@ var css = `
     flex-grow: 0;
   }
 
-  /* ОРИГІНАЛЬНА НАЗВА — сірий, −25%, з лівою лінією */
   .ifx-original-title{
     color:#aaa;
     font-size: var(--ifx-title-size, 0.75em);
@@ -514,7 +534,6 @@ var css = `
     padding-left: 8px;
   }
 
-  /* Іконки без тексту */
   .ifx-btn-icon-only .full-start__button span,
   .ifx-btn-icon-only .full-start__button .full-start__text{
     display:none !important;
@@ -561,6 +580,31 @@ var css = `
 
   document.head.appendChild(st);
 }
+
+  function injectBookmarksCss() {
+    if (document.getElementById('ifx_bookmarks_css')) return;
+    var st = document.createElement('style');
+    st.id = 'ifx_bookmarks_css';
+    st.textContent = `
+         
+      body.ifx-colored-bookmarks .card__icon.icon--book {
+        filter: brightness(0) saturate(100%) invert(37%) sepia(94%) saturate(3583%) hue-rotate(204deg) brightness(102%) contrast(105%) !important;
+      }
+      
+      body.ifx-colored-bookmarks .card__icon.icon--history {
+        filter: brightness(0) saturate(100%) invert(59%) sepia(63%) saturate(452%) hue-rotate(80deg) brightness(97%) contrast(92%) !important;
+      }
+      
+      body.ifx-colored-bookmarks .card__icon.icon--like {
+        filter: brightness(0) saturate(100%) invert(12%) sepia(90%) saturate(6871%) hue-rotate(358deg) brightness(109%) contrast(113%) !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  function toggleBookmarksColor(enabled) {
+    document.body.classList.toggle('ifx-colored-bookmarks', enabled);
+  }
 
   function applyTheme(theme) {
     var old = document.getElementById('interface_mod_theme');
@@ -656,6 +700,20 @@ var css = `
     add({
       component: 'interface_mod_new',
       param: {
+        name: 'interface_mod_new_colored_bookmarks',
+        type: 'trigger',
+        values: true,
+        default: true
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_colored_bookmarks'),
+        description: Lampa.Lang.translate('interface_mod_new_colored_bookmarks_desc')
+      }
+    });
+    
+    add({
+      component: 'interface_mod_new',
+      param: {
         name: 'interface_mod_new_colored_ratings',
         type: 'trigger',
         values: true,
@@ -746,20 +804,21 @@ var css = `
       }
     });
 
-add({
-  component: 'interface_mod_new',
-  param: {
-    name: 'interface_mod_new_title_size',
-    type: 'input',
-    values: true,
-    default: '0.75'
-  },
-  field: {
-    name: Lampa.Lang.translate('interface_mod_new_title_size_name'),
-    description: Lampa.Lang.translate('interface_mod_new_title_size_desc')
-  }
-});
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_title_size',
+        type: 'input',
+        values: true,
+        default: '0.75'
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_title_size_name'),
+        description: Lampa.Lang.translate('interface_mod_new_title_size_desc')
+      }
+    });
 
+    
     add({
       component: 'interface_mod_new',
       param: {
@@ -884,11 +943,15 @@ add({
         var res = _set.apply(this, arguments);
 
         if (typeof key === 'string' && key.indexOf('interface_mod_new_') === 0) {
-          
+
           switch (key) {
             case 'interface_mod_new_info_panel':
               settings.info_panel = getBool(key, true);
               rebuildInfoPanelActive();
+              break;
+
+            case 'interface_mod_new_colored_bookmarks':
+              toggleBookmarksColor(getBool(key, true));
               break;
               
             case 'interface_mod_new_colored_ratings':
@@ -921,6 +984,7 @@ add({
             case 'interface_mod_new_theme_select':
               settings.theme = (val || 'default');
               applyTheme(settings.theme);
+              //closeOpenSelects();
               break;
               
             case 'interface_mod_new_all_buttons_v1':
@@ -953,21 +1017,22 @@ add({
               if (window.runTorrentStyleRefresh) window.runTorrentStyleRefresh();
               break;
 
-case 'interface_mod_new_title_mode_v1':
-  applyOriginalTitleToggle();
-  break;
+            case 'interface_mod_new_title_mode_v1':
+              applyOriginalTitleToggle();
+              break;
+            
+            case 'interface_mod_new_title_size':
+              applyTitleSizeNow();
+              applyOriginalTitleToggle();
+              break;
+             
+                      }
+                    }
+                    return res;
+                  };
+                }
+              }
 
-case 'interface_mod_new_title_size':
-  applyTitleSizeNow();
-  applyOriginalTitleToggle();
-  break;
- 
-          }
-        }
-        return res;
-      };
-    }
-  }
 
 function buildInfoPanel(details, movie, isTvShow, originalDetails) {
   var mono = isMonoFor('interface_mod_new_info_panel');
@@ -1193,11 +1258,13 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
           movie.type === 'tv' || movie.type === 'serial'
         ));
 
+
         __ifx_last.details = details;
         __ifx_last.movie = movie;
         __ifx_last.isTv = isTvShow;
         __ifx_last.originalHTML = details.html();
         __ifx_last.fullRoot = $(data.object.activity.render());
+
 
         if (!getBool('interface_mod_new_info_panel', true)) return;
 
@@ -1328,6 +1395,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
+        /* БЕЗ display тут! */
         '}';
     }
     document.head.appendChild(st);
@@ -1383,6 +1451,7 @@ function applyStatusOnceIn(elRoot) {
       el.style.setProperty('color', 'inherit', 'important');
       return;
     }
+
 
     if (mono) {
       applyMonoBadgeStyle(el);
@@ -1481,16 +1550,18 @@ function applyStatusOnceIn(elRoot) {
       text: 'white'
     }
   };
+
   
     function ageCategoryFor(text) {
     var t = (text || '').trim();
+
 
     var mm = t.match(/(^|\D)(\d{1,2})\s*\+(?=\D|$)/);
     if (mm) {
       var n = parseInt(mm[2], 10);
       if (n >= 18) return 'adult';
       if (n >= 17) return 'almostAdult';
-      if (n >= 13) return 'teens';
+      if (n >= 13) return 'teens';      
       if (n >= 6)  return 'children';
       return 'kids';
     }
@@ -1540,7 +1611,6 @@ function applyAgeOnceIn(elRoot) {
     var g = ageCategoryFor(t);
 
     if (g) {
-
       if (mono) {
         applyMonoBadgeStyle(el);
         el.style.display = 'inline-block';
@@ -1653,7 +1723,7 @@ function setOriginalTitle(fullRoot, movie) {
 
   head.find('.ifx-original-title').remove();
 
-  var mode = getTitleMode();
+  var mode = getTitleMode(); // off | orig | loc | orig_loc
   if (mode === 'off') return;
 
   var original = String(movie.original_title || movie.original_name || movie.original || '').trim();
@@ -1675,6 +1745,7 @@ function setOriginalTitle(fullRoot, movie) {
     });
   }
 
+  // orig_loc
   return getLocalizedTitleAsync(movie, function (loc) {
     loc = String(loc || uiLoc || '').trim();
     var a = original || '';
@@ -1682,7 +1753,6 @@ function setOriginalTitle(fullRoot, movie) {
 
     if (!a && b) return render(b);
     if (a && !b) return render(a);
-
     if (a && b && a.toLowerCase() === b.toLowerCase()) return render(a);
 
     render(a + ' / ' + b);
@@ -1698,7 +1768,7 @@ function applyOriginalTitleToggle() {
   if (getTitleMode() !== 'off') setOriginalTitle(__ifx_last.fullRoot, __ifx_last.movie || {});
 }
 
-  function isPlayBtn($b) {
+ function isPlayBtn($b) {
     var cls = ($b.attr('class') || '').toLowerCase();
     var act = String($b.data('action') || '').toLowerCase();
     var txt = ($b.text() || '').trim().toLowerCase();
@@ -1847,7 +1917,6 @@ function applyOriginalTitleToggle() {
     styleId: 'interface_mod_colored_buttons'
   };
 
-
   function injectColoredButtonsCss() {
     if (document.getElementById(__ifx_colbtn.styleId)) return;
 var css = `
@@ -1860,6 +1929,7 @@ var css = `
   .full-start__button:active {
     transform: scale(0.98) !important;
   }
+
 
   .full-start__button.ifx-bandera-online svg path,
   .full-start__button.ifx-bandera-online svg rect {
@@ -1881,11 +1951,6 @@ var css = `
   .full-start__button.view--online:not(.ifx-bandera-online):not(.lampac--button) svg path {
     fill: #2196f3 !important;
   }
-
-  /*.full-start__button.view--online:not(.ifx-bandera-online)*/
-  /*.lampac--button:not([data-subtitle*="BazarNetUA"]) svg path {*/
-  /*  fill: #2196f3 !important;*/
-  /*}*/
 
   .full-start__button.view--online.lampac--button:not(.ifx-bandera-online):not([data-subtitle*="BazarNetUA"]) svg path{
   fill:#2196f3 !important;
@@ -2110,6 +2175,9 @@ function replaceIconsIn($root) {
     initInterfaceModSettingsUI();
     newInfoPanel();
     setupVoteColorsObserver();
+
+    injectBookmarksCss();
+    toggleBookmarksColor(getBool('interface_mod_new_colored_bookmarks', true));
     
     if (settings.colored_ratings) updateVoteColors();
 
@@ -2144,6 +2212,7 @@ function replaceIconsIn($root) {
   (function () {
     try {
       (function () {
+        //const UKRAINE_FLAG_SVG = '<svg viewBox="0 0 20 15"><rect width="20" height="7.5" y="0" fill="#0057B7"/><rect width="20" height="7.5" y="7.5" fill="#FFD700"/></svg>';
 
         const UKRAINE_FLAG_SVG =
         '<svg class="ua-flag-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 15" aria-hidden="true" focusable="false">' +
@@ -2374,6 +2443,7 @@ const STYLES = {
                   filter.classList.add('ua-voice-processed');
 
                   filter.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
+                  //filter.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2433,6 +2503,7 @@ const STYLES = {
                   element.classList.add('ua-flag-processed');
 
                   element.querySelectorAll('svg.ua-flag-svg').forEach(svg => {
+                  //element.querySelectorAll('svg').forEach(svg => {
                     if (!svg.closest('.flag-container')) {
                       svg.classList.add('flag-svg');
                       const wrapper = document.createElement('span');
@@ -2461,6 +2532,7 @@ const STYLES = {
             processVoiceFilters();
           }
         }
+
         function updateTorrentStyles() {
           const visibleElements = {
             seeds: document.querySelectorAll('.torrent-item__seeds span:not([style*="display: none"])'),
@@ -2509,7 +2581,9 @@ const STYLES = {
           if (visibleElements.grabs.length > 0) {
             visibleElements.grabs.forEach(span => {
               const grabs = parseInt(span.textContent) || 0;
+
               span.classList.add('grabs');
+
               span.classList.remove('high-grabs');
               if (grabs > 10) span.classList.add('high-grabs');
             });
@@ -2545,7 +2619,7 @@ const STYLES = {
 
           if (hasImportantChanges) {
             clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(updateAll, 250);
+            updateTimeout = setTimeout(updateAll, 250); // OPTIMIZATION: Was 150ms
           }
         });
 
@@ -2606,7 +2680,7 @@ function apply() {
     }
     
     window.runTorrentStyleRefresh = apply;
-    setTimeout(apply, 0); // Перший запуск
+    setTimeout(apply, 0);
   })();
 
 (function(){
@@ -2681,7 +2755,7 @@ function ensureCss(){
     var st = document.createElement('style');
     st.id = id;
     st.textContent = `
-      
+
       .ifx-pill{
         background: rgba(0,0,0,.5);
         color:#fff; font-size:1.3em; font-weight:700;
@@ -2695,21 +2769,28 @@ function ensureCss(){
         gap:2px; z-index:10; pointer-events:none;
       }
       .ifx-corner-stack > *{ pointer-events:auto; }
+
       .ifx-corner-stack .card__vote, .ifx-corner-stack .card_vote{
         position:static !important; right:auto !important; bottom:auto !important; top:auto !important; left:auto !important;
         background: rgba(0,0,0,.5); color:#fff; font-size:1.3em; font-weight:700;
         padding:.2em .5em; border-radius:1em; line-height:1;
       }
+
       .card .card__view{ position:relative; }
       .card-episode .full-episode{ position:relative; }
+
       body.ifx-ep-alt .card-episode .full-episode .card__title{
         position:absolute; left:.7em; top:.7em; right:.7em; margin:0;
         z-index:2; text-shadow:0 1px 2px rgba(0,0,0,.35);
       }
+
       body.ifx-ep-alt .card-episode .full-episode__num{ display:none !important; }
       body.ifx-ep-alt .card-episode .full-episode__body > .card__age{ display:none !important; }
+
       body.ifx-num-only .card-episode .full-episode__num{ display:none !important; }
+
       .ifx-hide-age .card__age{ display:none !important; }
+
       body.ifx-no-rate .card__view > .card__vote,
       body.ifx-no-rate .card__view > .card_vote,
       body.ifx-no-rate .ifx-corner-stack > .card__vote,
@@ -2742,13 +2823,12 @@ function ensureCss(){
 
 function ifxSyncAltBadgeThemeFromQuality(){
   try{
-
     var q = document.querySelector('.card--season-complete, .card--season-progress')
          || document.querySelector('.card__quality');
     var inner = q ? (q.querySelector('div') || q) : null;
 
     var bg = 'rgba(61,161,141,0.9)';
-    var fg = '#FFFFFF';
+    var fg = '#FFFFFF';              
 
     if (q){
       var csQ = getComputedStyle(q);
@@ -2767,17 +2847,20 @@ function ifxSyncAltBadgeThemeFromQuality(){
 
 function ensureAltBadgesCss(){
   var st = document.getElementById('ifx_alt_badges_css');
-  var RIGHT_OFFSET  = '.3em';
-  var BOTTOM_OFFSET = '.50em';
-  var RADIUS        = '0.3em';
+
+  var RIGHT_OFFSET  = '.3em';   
+  var BOTTOM_OFFSET = '.50em';  
+  var RADIUS        = '0.3em';  
   var FONT_FAMILY   = "'Roboto Condensed','Arial Narrow',Arial,sans-serif";
   var FONT_WEIGHT   = '700';
-  var FONT_SIZE     = '1.0em';
-  var PAD_Y         = '.19em';
-  var PAD_X         = '.39em';
+  var FONT_SIZE     = '1.0em';  
+  var PAD_Y         = '.19em';  
+  var PAD_X         = '.39em';  
   var UPPERCASE     = true;
+
   var css = `
     body.ifx-alt-badges .card .card__view{ position:relative; }
+
     body.ifx-alt-badges .ifx-corner-stack{
       position:absolute; right:${RIGHT_OFFSET}; bottom:${BOTTOM_OFFSET};
       margin-right:0;
@@ -2785,6 +2868,7 @@ function ensureAltBadgesCss(){
       gap:0.5px; z-index:10; pointer-events:none;
     }
     body.ifx-alt-badges .ifx-corner-stack > *{ pointer-events:auto; }
+
     body.ifx-alt-badges .ifx-corner-stack .card__vote,
     body.ifx-alt-badges .ifx-corner-stack .card_vote,
     body.ifx-alt-badges .ifx-corner-stack .ifx-year-pill{
@@ -2795,7 +2879,7 @@ function ensureAltBadgesCss(){
       padding: ${PAD_Y} ${PAD_X} !important;         
       font-family: ${FONT_FAMILY};
       font-weight: ${FONT_WEIGHT};
-      font-size: ${FONT_SIZE} !important;            
+      font-size: ${FONT_SIZE} !important;           
       line-height: 1.2;
       ${ UPPERCASE ? 'text-transform: uppercase;' : '' }
       text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.3);
@@ -2813,10 +2897,10 @@ function ensureAltBadgesCss(){
       background: var(--ifx-badge-bg, rgba(61,161,141,0.9)) !important;
       color: var(--ifx-badge-color, #FFFFFF) !important;
       border-radius: ${RADIUS};
-      padding: ${PAD_Y} ${PAD_X} !important;        
+      padding: ${PAD_Y} ${PAD_X} !important;         
       font-family: ${FONT_FAMILY} !important;
       font-weight: ${FONT_WEIGHT} !important;
-      font-size: ${FONT_SIZE} !important;           
+      font-size: ${FONT_SIZE} !important;            
       line-height: 1.2;
       ${ UPPERCASE ? 'text-transform: uppercase;' : '' }
       text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.3);
@@ -2830,6 +2914,7 @@ function ensureAltBadgesCss(){
   if (st){ st.textContent = css; }
   else { st = document.createElement('style'); st.id = 'ifx_alt_badges_css'; st.textContent = css; document.head.appendChild(st); }
 }
+
   var tplEpisodeOriginal = null;
   var tplEpisodeAlt =
     '<div class="card-episode selector layer--visible layer--render">\
@@ -2862,6 +2947,7 @@ function ensureAltBadgesCss(){
     }
     Lampa.Template.add('card_episode', on ? tplEpisodeAlt : (tplEpisodeOriginal || tplEpisodeAlt));
     document.body.classList.toggle('ifx-ep-alt', !!on);
+    
     document.body.classList.toggle('ifx-num-only', S.num_only);
     
     try{ Lampa.Settings.update(); }catch(e){}
@@ -2877,21 +2963,23 @@ function ensureAltBadgesCss(){
 
   function __ifx_getYear_orig($root){
     var d = $root.data() || {};
+    
     var y = (d.first_air_date || '').slice(0,4)
-         || (d.release_date || '').slice(0,4)
-         || d.release_year
+         || (d.release_date || '').slice(0,4) 
+         || d.release_year 
          || d.year;
     if (/^(19|20)\d{2}$/.test(String(y))) return String(y);
 
     var ageTxt = ($root.find('.card__age').first().text() || '').trim();
     var mAge = ageTxt.match(/(19|20)\d{2}/);
     if (mAge) return mAge[0];
+
     var title = ($root.find('.card__title').first().text() || '').trim();
     var mTitle =
       title.match(/[\[\(]\s*((?:19|20)\d{2})\s*[\]\)]\s*$/) ||
       title.match(/(?:[–—·\/-]\s*)((?:19|20)\d{2})\s*$/);
     if (mTitle) return mTitle[1];
-   
+    
     return '';
   }
 
@@ -2899,10 +2987,12 @@ function ensureAltBadgesCss(){
     try{
       var el = $root && $root[0];
       if (el && __ifx_yearCache.has(el)) return __ifx_yearCache.get(el);
+
       var y = __ifx_getYear_orig($root) || '';
       if (el) __ifx_yearCache.set(el, y);
       return y;
     }catch(e){
+
       return __ifx_getYear_orig($root);
     }
   }
@@ -2928,6 +3018,7 @@ function ensureAltBadgesCss(){
 
     $(sel).each(function(){
       var $t = $(this);
+
       if ($t.find('.card__age').length){
         var saved = $t.data('ifx-title-orig');
         if (typeof saved === 'string'){ $t.text(saved); $t.removeData('ifx-title-orig'); }
@@ -2961,10 +3052,12 @@ if ($vote.length){
     $vote.addClass('ifx-vote-hidden').hide();
   } else {
     $vote.removeClass('ifx-vote-hidden').show();
+
     var useStack = S.year_on || document.body.classList.contains('ifx-alt-badges');
     if (useStack && !$vote.parent().is($stack)) $stack.prepend($vote);
   }
 }
+
   if (S.year_on){
     if (!$stack.children('.ifx-year-pill').length){
       var y = getYear($card);
@@ -3018,7 +3111,9 @@ function injectAll($scope){
   
   function applyNumberOnly($scope){
     $scope = $scope || $(document.body);
+    
     var force = S.num_only;
+
     $scope.find('.card-episode .full-episode').each(function(){
       var $root = $(this);
       var $name = $root.find('.full-episode__name').first();
@@ -3050,6 +3145,7 @@ function injectAll($scope){
     mo = new MutationObserver(function(muts){
       for (var i=0;i<muts.length;i++){
         if (muts[i].addedNodes && muts[i].addedNodes.length){
+          // OPTIMIZATION: Debounce
           if (moDebounce) clearTimeout(moDebounce);
           moDebounce = setTimeout(function(){ injectAll($(document.body)); }, 200);
           break;
@@ -3059,7 +3155,6 @@ function injectAll($scope){
     try { mo.observe(document.body, {subtree:true, childList:true}); } catch(e){}
   }
   function disableObserver(){ if (mo){ try{ mo.disconnect(); }catch(e){} mo=null; } }
-
 
   if (!window.__ifx_storage_stable_final_v2){
     window.__ifx_storage_stable_final_v2 = true;
@@ -3071,11 +3166,12 @@ function injectAll($scope){
           S.year_on = (v===true || v==='true' || Lampa.Storage.get(KEY_YEAR,'false')==='true');
           ensureCss();
           injectAll($(document.body));
-
+          
         }
         if (k===KEY_ALT){
           S.alt_ep = (v===true || v==='true' || Lampa.Storage.get(KEY_ALT,'false')==='true');
           setEpisodeAlt(S.alt_ep);
+          
           setTimeout(function(){ injectAll($(document.body)); }, 50);
         }
         if (k===KEY_NUM){
@@ -3090,10 +3186,15 @@ function injectAll($scope){
         ensureAltBadgesCss();
         document.body.classList.toggle('ifx-alt-badges', on);
         if (on) ifxSyncAltBadgeThemeFromQuality();
+        
+
         }
         if (k===KEY_RATING){
           S.show_rate = (v===true || v==='true' || Lampa.Storage.get(KEY_RATING,'true')==='true');
+
           document.body.classList.toggle('ifx-no-rate', !S.show_rate);
+
+
           injectAll($(document.body));
         }
 
@@ -3102,12 +3203,14 @@ function injectAll($scope){
     };
   }
 
+
   function boot(){
     ensureCss();
     setEpisodeAlt(S.alt_ep);
-    enableObserver();
+    enableObserver();     
     injectAll($(document.body));
    
+
   ensureAltBadgesCss();
   var altOn = (Lampa.Storage.get('interface_mod_new_alt_badges', false)===true
             || Lampa.Storage.get('interface_mod_new_alt_badges','false')==='true');
