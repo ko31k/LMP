@@ -598,6 +598,9 @@ var css = `
       body.ifx-colored-bookmarks .card__icon.icon--like {
         filter: brightness(0) saturate(100%) invert(12%) sepia(90%) saturate(6871%) hue-rotate(358deg) brightness(109%) contrast(113%) !important;
       }
+      body.ifx-colored-bookmarks .card__icon.icon--wath {
+        filter: brightness(0) saturate(100%) invert(63%) sepia(83%) saturate(2274%) hue-rotate(354deg) brightness(101%) contrast(104%) !important;
+      }
     `;
     document.head.appendChild(st);
   }
