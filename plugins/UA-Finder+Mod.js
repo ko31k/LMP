@@ -20,7 +20,7 @@
         SHOW_FOR_TV: true,
         CACHE_VERSION: 4,
         CACHE_KEY: 'lampa_ukr_tracks_cache',
-        CACHE_VALID_TIME_MS: 48 * 60 * 60 * 1000,
+        CACHE_VALID_TIME_MS: 72 * 60 * 60 * 1000,
         CACHE_REFRESH_THRESHOLD_MS: 24 * 60 * 60 * 1000,
         LOGGING_GENERAL: true,
         LOGGING_TRACKS: false,
