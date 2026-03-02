@@ -26,7 +26,7 @@
         LOGGING_TRACKS: false,
         LOGGING_CARDLIST: true,
         JACRED_PROTOCOL: 'http://', 
-        JACRED_URL: 'jacred.xyz',
+        JACRED_URL: 'jac.red',
         PROXY_LIST: [ // Список проксі-серверів для обходу CORS-обмежень.
             'https://api.allorigins.win/raw?url=',
             'https://cors.bwa.workers.dev/'
