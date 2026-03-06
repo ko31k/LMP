@@ -37,7 +37,7 @@
   })();
 
   (function(global) {
-    if (global.Promise) return;
+    if (global.Promise) return; // Вже є
     var PENDING = 0,
       FULFILLED = 1,
       REJECTED = 2;
@@ -101,6 +101,7 @@
           h.reject(e);
         }
       }
+      
       this.then = function(onFulfilled, onRejected) {
         return new MiniPromise(function(resolve, reject) {
           handle({
@@ -111,31 +112,36 @@
           });
         });
       };
+      
       this.catch = function(onRejected) {
         return this.then(null, onRejected);
       };
+      
       try {
         executor(resolve, reject);
       } catch (e) {
         reject(e);
       }
     }
+    
     MiniPromise.resolve = function(v) {
       return new MiniPromise(function(res) {
         res(v);
       });
     };
+    
     MiniPromise.reject = function(r) {
       return new MiniPromise(function(_, rej) {
         rej(r);
       });
     };
+    
     MiniPromise.all = function(arr) {
       return new MiniPromise(function(resolve, reject) {
         if (!arr || !arr.length) return resolve([]);
         var out = new Array(arr.length),
           left = arr.length;
-        for (var i = 0; i < arr.length; i++)(function(i) {
+        for (var i = 0; i < arr.length; i++) (function(i) {
           MiniPromise.resolve(arr[i]).then(function(v) {
             out[i] = v;
             if (--left === 0) resolve(out);
@@ -155,10 +161,12 @@
       this._body = body == null ? '' : String(body);
       this.headers = (init && init.headers) || {};
     }
+    
     Response.prototype.text = function() {
       var self = this;
       return Promise.resolve(self._body);
     };
+    
     Response.prototype.json = function() {
       var self = this;
       return Promise.resolve().then(function() {
@@ -190,7 +198,8 @@
                 headers: headers
               }));
             },
-            false, {
+            false, 
+            {
               dataType: 'text',
               method: method,
               headers: headers,
@@ -268,7 +277,6 @@
       mdblist: '',
       omdb: '' 
     },
-
     monochromeIcons: false
   };
 
@@ -276,51 +284,29 @@
 
   var ICONS = {
     total_star: BASE_ICON + 'star.png',
-    imdb: BASE_ICON + 'imdb.png',
-    tmdb: BASE_ICON + 'tmdb.png',
+    imdb:       BASE_ICON + 'imdb.png',
+    tmdb:       BASE_ICON + 'tmdb.png',
     metacritic: BASE_ICON + 'metacritic.png',
     metascore:  BASE_ICON + 'metascore.png',
     rotten_good: BASE_ICON + 'RottenTomatoes.png',
-    rotten_bad: BASE_ICON + 'RottenBad.png',
-    popcorn: BASE_ICON + 'PopcornGood.png',
-    awards: BASE_ICON + 'awards.png',
-    oscar: BASE_ICON + 'OscarGold.png',
-    emmy: BASE_ICON + 'EmmyGold.png'
+    rotten_bad:  BASE_ICON + 'RottenBad.png',
+    popcorn:     BASE_ICON + 'PopcornGood.png',
+    popcorn_bad: BASE_ICON + 'PopcornBad.png',
+    trakt:       BASE_ICON + 'trakt.png',
+    awards:      BASE_ICON + 'awards.png',
+    oscar:       BASE_ICON + 'OscarGold.png',
+    emmy:        BASE_ICON + 'EmmyGold.png'
   };
 
   Lampa.Lang.add({
-    oscars_label: {
-      uk: 'Оскар'
-    },
-    emmy_label: {
-      uk: 'Еммі'
-    },
-    awards_other_label: {
-      uk: 'Нагороди'
-    },
-    popcorn_label: {
-      uk: 'Глядачі'
-    },
-    source_tmdb: {
-      ru: 'TMDB',
-      en: 'TMDB',
-      uk: 'TMDB'
-    },
-    source_imdb: {
-      ru: 'IMDb',
-      en: 'IMDb',
-      uk: 'IMDb'
-    },
-    source_mc: {
-      ru: 'Metacritic',
-      en: 'Metacritic',
-      uk: 'Metacritic'
-    },
-    source_rt: {
-      ru: 'Rotten',
-      en: 'Rotten',
-      uk: 'Rotten'
-    }
+    oscars_label:       { uk: 'Оскар' },
+    emmy_label:         { uk: 'Еммі' },
+    awards_other_label: { uk: 'Нагороди' },
+    popcorn_label:      { uk: 'Глядачі' },
+    source_tmdb:        { ru: 'TMDB', en: 'TMDB', uk: 'TMDB' },
+    source_imdb:        { ru: 'IMDb', en: 'IMDb', uk: 'IMDb' },
+    source_mc:          { ru: 'Metacritic', en: 'Metacritic', uk: 'Metacritic' },
+    source_rt:          { ru: 'Rotten', en: 'Rotten', uk: 'Rotten' }
   });
 
   var pluginStyles = "<style>" +
@@ -342,27 +328,24 @@
     "    background-color: currentColor;" +
     "    animation: loading-dots-bounce 1.4s infinite ease-in-out both;" +
     "}" +
-    ".loading-dots__dot:nth-child(1) {" +
-    "    animation-delay: -0.32s;" +
-    "}" +
-    ".loading-dots__dot:nth-child(2) {" +
-    "    animation-delay: -0.16s;" +
-    "}" +
+    ".loading-dots__dot:nth-child(1) { animation-delay: -0.32s; }" +
+    ".loading-dots__dot:nth-child(2) { animation-delay: -0.16s; }" +
     "@keyframes loading-dots-bounce {" +
     "    0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }" +
     "    40% { transform: translateY(-0.5em); opacity: 1; }" +
     "}" +
 
-    ":root{" +
-    "  --lmp-h-imdb:22px;" +
-    "  --lmp-h-mc:22px;" +
-    "  --lmp-h-rt:24px;" +
-    "  --lmp-h-popcorn:24px;" +
-    "  --lmp-h-tmdb:24px;" +
-    "  --lmp-h-awards:18px;" + 
-    "  --lmp-h-avg:18px;" + 
-    "  --lmp-h-oscar:20px;" + 
-    "  --lmp-h-emmy:22px;" + 
+    ":root {" +
+    "  --lmp-h-imdb: 22px;" +
+    "  --lmp-h-mc: 22px;" +
+    "  --lmp-h-rt: 24px;" +
+    "  --lmp-h-popcorn: 24px;" +
+    "  --lmp-h-tmdb: 24px;" +
+    "  --lmp-h-awards: 18px;" +
+    "  --lmp-h-avg: 18px;" +
+    "  --lmp-h-oscar: 20px;" +
+    "  --lmp-h-emmy: 22px;" +   
+    "  --lmp-h-trakt: 24px;" +  
     "}" +
 
     ".rate--oscars, .rate--emmy, .rate--awards, .rate--gold {" +
@@ -381,10 +364,10 @@
     "    color: inherit !important;" +
     "}" +
 
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--green  { color: #2ecc71; }" + 
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--blue   { color: #60a5fa; }" + 
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--orange { color: #f59e0b; }" + 
-    "body:not(.lmp-enh--mono) .full-start__rate.rating--red    { color: #ef4444; }" + 
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--green  { color: #2ecc71; }" + /* ≥ 8.0  */
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--blue   { color: #60a5fa; }" + /* 6.0–7.9 */
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--orange { color: #f59e0b; }" + /* 4.0–5.9 */
+    "body:not(.lmp-enh--mono) .full-start__rate.rating--red    { color: #ef4444; }" + /* < 4.0   */
 
     ".full-start-new__rate-line .full-start__rate {" +
     "    margin-right: 0.3em !important;" +
@@ -400,79 +383,81 @@
     "    transition: opacity 0.15s;" +
     "}" +
 
-    ".lmp-award-icon{" +
-    "  display:inline-flex;" +
-    "  align-items:center;" +
-    "  justify-content:center;" +
-    "  line-height:1;" +
-    "  height:auto;" +
-    "  width:auto;" +
-    "  flex-shrink:0;" +
+    ".lmp-award-icon {" +
+    "  display: inline-flex;" +
+    "  align-items: center;" +
+    "  justify-content: center;" +
+    "  line-height: 1;" +
+    "  height: auto;" +
+    "  width: auto;" +
+    "  flex-shrink: 0;" +
     "}" +
-    ".lmp-award-icon img{" +
-    "  height:auto;" +
-    "  width:auto;" +
-    "  display:block;" +
-    "  object-fit:contain;" +
+    ".lmp-award-icon img {" +
+    "  height: auto;" +
+    "  width: auto;" +
+    "  display: block;" +
+    "  object-fit: contain;" +
     "}" +
-    ".lmp-award-icon--oscar img{height:var(--lmp-h-oscar);}" +
-    ".lmp-award-icon--emmy  img{height:var(--lmp-h-emmy);}" +
+    ".lmp-award-icon--oscar img { height: var(--lmp-h-oscar); }" +
+    ".lmp-award-icon--emmy  img { height: var(--lmp-h-emmy); }" +
 
-    ".rate--imdb    .source--name img{height:var(--lmp-h-imdb);}" +
-    ".rate--mc      .source--name img{height:var(--lmp-h-mc);}" +
-    ".rate--rt      .source--name img{height:var(--lmp-h-rt);}" +
-    ".rate--popcorn .source--name img{height:var(--lmp-h-popcorn);}" +
-    ".rate--tmdb    .source--name img{height:var(--lmp-h-tmdb);}" +
-    ".rate--awards  .source--name img{height:var(--lmp-h-awards);}" +
-    ".rate--avg     .source--name img{height:var(--lmp-h-avg);}" +
+    ".rate--imdb    .source--name img { height: var(--lmp-h-imdb); }" +
+    ".rate--mc      .source--name img { height: var(--lmp-h-mc); }" +
+    ".rate--rt      .source--name img { height: var(--lmp-h-rt); }" +
+    ".rate--popcorn .source--name img { height: var(--lmp-h-popcorn); }" +
+    ".rate--tmdb    .source--name img { height: var(--lmp-h-tmdb); }" +
+    ".rate--awards  .source--name img { height: var(--lmp-h-awards); }" +
+    ".rate--avg     .source--name img { height: var(--lmp-h-avg); }" +
+    ".rate--trakt   .source--name img { height: var(--lmp-h-trakt); }" + 
 
-    ".full-start__rate .source--name{" +
-    "  display:inline-flex;" +
-    "  align-items:center;" +
-    "  justify-content:center;" +
+    ".full-start__rate .source--name {" +
+    "  display: inline-flex;" +
+    "  align-items: center;" +
+    "  justify-content: center;" +
     "}" +
 
-    ".settings-param__descr,.settings-param__subtitle{white-space:pre-line;}" +
+    ".settings-param__descr, .settings-param__subtitle { white-space: pre-line; }" +
 
-    "@media (max-width: 600px){" +
-    "  .full-start-new__rate-line{flex-wrap:wrap;}" +
-    "  .full-start__rate{" +
-    "    margin-right:.25em !important;" +
-    "    margin-bottom:.25em;" +
-    "    font-size:16px;" +
-    "    min-width:unset;" +
+    "@media (max-width: 600px) {" +
+    "  .full-start-new__rate-line { flex-wrap: wrap; }" +
+    "  .full-start__rate {" +
+    "    margin-right: .25em !important;" +
+    "    margin-bottom: .25em;" +
+    "    font-size: 16px;" +
+    "    min-width: unset;" +
     "  }" +
-    "  :root{" +
-    "    --lmp-h-imdb:14px; --lmp-h-mc:14px; --lmp-h-rt:16px;" +
-    "    --lmp-h-popcorn:16px; --lmp-h-tmdb:16px; --lmp-h-awards:14px;" +
-    "    --lmp-h-avg:14px; --lmp-h-oscar:14px; --lmp-h-emmy:16px;" +
+    "  :root {" +
+    "    --lmp-h-imdb: 14px; --lmp-h-mc: 14px; --lmp-h-rt: 16px;" +
+    "    --lmp-h-popcorn: 16px; --lmp-h-trakt: 16px; --lmp-h-tmdb: 16px; --lmp-h-awards: 14px;" +
+    "    --lmp-h-avg: 14px; --lmp-h-oscar: 14px; --lmp-h-emmy: 16px;" +
     "  }" +
-    "  .loading-dots-container{font-size:.8em; padding:.4em .8em;}" +
-    "  .lmp-award-icon{height:16px;}" +
+    "  .loading-dots-container { font-size: .8em; padding: .4em .8em; }" +
+    "  .lmp-award-icon { height: 16px; }" +
     "}" +
 
-    "@media (max-width: 360px){" +
-    "  .full-start__rate{font-size:14px;}" +
-    "  :root{" +
-    "    --lmp-h-imdb:12px; --lmp-h-mc:12px; --lmp-h-rt:14px;" +
-    "    --lmp-h-popcorn:14px; --lmp-h-tmdb:14px; --lmp-h-awards:12px;" +
-    "    --lmp-h-avg:12px; --lmp-h-oscar:12px; --lmp-h-emmy:14px;" +
+    "@media (max-width: 360px) {" +
+    "  .full-start__rate { font-size: 14px; }" +
+    "  :root {" +
+    "    --lmp-h-imdb: 12px; --lmp-h-mc: 12px; --lmp-h-rt: 14px;" +
+    "    --lmp-h-popcorn: 14px; --lmp-h-trakt: 14px; --lmp-h-tmdb: 14px; --lmp-h-awards: 12px;" +
+    "    --lmp-h-avg: 12px; --lmp-h-oscar: 12px; --lmp-h-emmy: 14px;" +
     "  }" +
-    "  .lmp-award-icon{height:12px;}" +
+    "  .lmp-award-icon { height: 12px; }" +
     "}" +
 
-    "body.lmp-enh--rate-border .full-start__rate{" +
+    "body.lmp-enh--rate-border .full-start__rate {" +
     "  border: 1px solid rgba(255, 255, 255, 0.45);" +
     "  border-radius: 0.3em;" +
     "  box-sizing: border-box;" +
     "}" +
+
     "body.lmp-enh--rate-border .full-start-new__rate-line, " +
-    "body.lmp-enh--rate-border .full-start__rate-line{" +
-    "}"
+    "body.lmp-enh--rate-border .full-start__rate-line {" +
+    "}" +
     "</style>";
 
   var CACHE_TIME = 3 * 24 * 60 * 60 * 1000;
-  var RATING_CACHE_KEY = 'lmp_enh_rating_cache';
+  var RATING_CACHE_KEY = 'lmp_enh_rating_cache_v1';
   var ID_MAPPING_CACHE = 'lmp_rating_id_cache';
 
   var AGE_RATINGS = {
@@ -508,10 +493,11 @@
     ratings_enable_popcorn: true,
     ratings_poster_badges: false,
     ratings_rate_border: false,
+    ratings_enable_trakt: true,  
   };
 
-  var __lmpRateLineObs = null; 
-  var currentRatingsData = null; 
+  var __lmpRateLineObs = null;
+  var currentRatingsData = null;
   var __lmpLastReqToken = null;
 
   function getCardType(card) {
@@ -531,7 +517,7 @@
   function getRatingClass(rating) {
     var r = parseFloat(rating);
     if (isNaN(r)) return 'rating--red';
-    if (r >= 8.0) return 'rating--green'; 
+    if (r >= 8.0) return 'rating--green';
     if (r >= 6.0) return 'rating--blue';
     if (r >= 4.0) return 'rating--orange';
     return 'rating--red';
@@ -573,30 +559,12 @@
     }
     var a = [],
       d = data || {};
-    if (d.imdb_display) a.push({
-      source: 'imdb',
-      value: d.imdb_display
-    });
-    if (d.mc_critic_display) a.push({
-      source: 'metacritic',
-      value: d.mc_critic_display
-    });
-    if (d.mc_user_display) a.push({
-      source: 'metacritic_user',
-      value: d.mc_user_display
-    });
-    if (d.rt_display) a.push({
-      source: 'rottentomatoes',
-      value: d.rt_display
-    });
-    if (d.popcorn_display) a.push({
-      source: 'popcorn',
-      value: d.popcorn_display
-    });
-    if (d.tmdb_display) a.push({
-      source: 'tmdb',
-      value: d.tmdb_display
-    });
+    if (d.imdb_display) a.push({ source: 'imdb', value: d.imdb_display });
+    if (d.mc_critic_display) a.push({ source: 'metacritic', value: d.mc_critic_display });
+    if (d.mc_user_display) a.push({ source: 'metacritic_user', value: d.mc_user_display });
+    if (d.rt_display) a.push({ source: 'rottentomatoes', value: d.rt_display });
+    if (d.popcorn_display) a.push({ source: 'popcorn', value: d.popcorn_display });
+    if (d.tmdb_display) a.push({ source: 'tmdb', value: d.tmdb_display });
     return a;
   }
 
@@ -604,26 +572,25 @@
     if (document.getElementById('lmp-poster-badges-css')) return;
 
     var css = `
-    /* === Бейдж одного рейтингу на постері === */
-    .card__lmerating{
-      position:absolute;
-      right:-0.8em;                     
-      padding:0.40em 0.60em;            
-      background:linear-gradient(90deg,#2c2c2c,#1a1a1a); 
-      color:#fff;
-      border-radius:0.35em;             
-      text-transform:uppercase;
-      font-size:0.80em;                 
-      line-height:1;
-      box-shadow:0 2px 6px rgba(0,0,0,.35); 
-      z-index:5;
-      pointer-events:none;
+    .card__lmerating {
+      position: absolute;
+      right: -0.8em;
+      padding: 0.40em 0.60em;
+      background: linear-gradient(90deg, #2c2c2c, #1a1a1a);
+      color: #fff;
+      border-radius: 0.35em;
+      text-transform: uppercase;
+      font-size: 0.80em;
+      line-height: 1;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      z-index: 5;
+      pointer-events: none;
     }
-    @media (max-width:768px){
-      .card__lmerating{ right:.2em; font-size:.74em; }
+    @media (max-width: 768px) {
+      .card__lmerating { right: .2em; font-size: .74em; }
     }
-    @media (max-width:480px){
-      .card__lmerating{ right:.2em; font-size:.66em; }
+    @media (max-width: 480px) {
+      .card__lmerating { right: .2em; font-size: .66em; }
     }
     `.trim();
 
@@ -660,34 +627,34 @@
     rateLine.removeClass('lmp-is-loading-ratings');
   }
 
-  function getPrimaryRateLine(render){
-  if (!render || !render.length) return $();
+  function getPrimaryRateLine(render) {
+    if (!render || !render.length) return $();
 
-  var $left = $('.cardify__left .full-start-new__rate-line.rate-fix:not([data-lmp-fake]), .cardify__left .full-start__rate-line.rate-fix:not([data-lmp-fake])', render).first();
-  if ($left.length) return $left;
+    var $left = $('.cardify__left .full-start-new__rate-line.rate-fix:not([data-lmp-fake]), .cardify__left .full-start__rate-line.rate-fix:not([data-lmp-fake])', render).first();
+    if ($left.length) return $left;
 
-  var $any = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render)
-    .filter(function(){
-      return !$(this).closest('.cardify__right').length;
-    })
-    .first();
+    var $any = $('.full-start-new__rate-line:not([data-lmp-fake]), .full-start__rate-line:not([data-lmp-fake])', render)
+      .filter(function() {
+        return !$(this).closest('.cardify__right').length;
+      })
+      .first();
 
-  return $any;
-}
+    return $any;
+  }
 
-function cleanupRtgInjected(render){
-  if (!render || !render.length) return;
-  render.find(
-    '.rate--mc, .rate--rt, .rate--popcorn, .rate--avg,' +
-    '.rate--awards, .rate--emmy, .rate--oscars'
-  ).remove();
-}
+  function cleanupRtgInjected(render) {
+    if (!render || !render.length) return;
+    render.find(
+      '.rate--mc, .rate--rt, .rate--popcorn, .rate--trakt, .rate--avg,' +
+      '.rate--awards, .rate--emmy, .rate--oscars'
+    ).remove();
+  }
   
   function addLoadingAnimation() {
     var render = Lampa.Activity.active().activity.render();
     if (!render || !render[0]) return;
 
-    if ($('#lmp-search-loader', render).length) return;
+    if ($('#lmp-search-loader', render).length) return; // Вже є
 
     var loaderHtml =
       '<div id="lmp-search-loader" class="loading-dots-container">' +
@@ -721,6 +688,7 @@ function cleanupRtgInjected(render){
     try {
       if (__lmpRateLineObs) __lmpRateLineObs.disconnect();
     } catch (_) {}
+    
     __lmpRateLineObs = new MutationObserver(function() {
       var rl = getPrimaryRateLine(render);
       var loader = $('#lmp-search-loader', render);
@@ -734,6 +702,7 @@ function cleanupRtgInjected(render){
         __lmpRateLineObs = null;
       }
     });
+    
     __lmpRateLineObs.observe(render[0], {
       childList: true,
       subtree: true
@@ -784,17 +753,10 @@ function cleanupRtgInjected(render){
   }
 
   function parseAwards(awardsText) {
-    if (typeof awardsText !== 'string') return {
-      oscars: 0,
-      emmy: 0,
-      awards: 0
-    };
+    if (typeof awardsText !== 'string') return { oscars: 0, emmy: 0, awards: 0 };
 
-    var result = {
-      oscars: 0,
-      emmy: 0,
-      awards: 0
-    };
+    var result = { oscars: 0, emmy: 0, awards: 0 };
+    
     var oscarMatch = awardsText.match(/Won (\d+) Oscars?/i);
     if (oscarMatch && oscarMatch[1]) {
       result.oscars = parseInt(oscarMatch[1], 10);
@@ -818,7 +780,6 @@ function cleanupRtgInjected(render){
 
   (function() {
     function fixTenIn(el) {
-
       var t = (el.textContent || '').replace(/\u00A0/g, ' ').trim();
       if (/^10(?:[.,]0+)?$/.test(t)) {
         el.textContent = '10';
@@ -846,6 +807,7 @@ function cleanupRtgInjected(render){
 
         var MObs = window.MutationObserver || window.WebKitMutationObserver;
         if (!MObs) return;
+
         if (window.__lmpTenObs) {
           window.__lmpTenObs.disconnect();
           window.__lmpTenObs = null;
@@ -893,6 +855,7 @@ function cleanupRtgInjected(render){
         return;
       }
     } catch (e) {}
+    
     var id = 'lmp_toast';
     var el = document.getElementById(id);
     if (!el) {
@@ -918,6 +881,7 @@ function cleanupRtgInjected(render){
       lmpToast('Помилка очищення кешу');
     }
   }
+
   function getImdbIdFromTmdb(tmdbId, type, callback) {
     if (!tmdbId) return callback(null);
 
@@ -937,8 +901,10 @@ function cleanupRtgInjected(render){
 
     var keyPreferred = preferredType + '_' + tmdbId;
     var keyAlt = altType + '_' + tmdbId;
+
     var cachedId = fromCache(keyPreferred) || fromCache(keyAlt);
     if (cachedId) return callback(cachedId);
+
     var tmdbKey = Lampa.TMDB.key();
     var queue = [
       'https://api.themoviedb.org/3/' + preferredType + '/' + tmdbId + '/external_ids?api_key=' + tmdbKey,
@@ -959,7 +925,8 @@ function cleanupRtgInjected(render){
             }
           },
           error,
-          false, {
+          false, 
+          {
             dataType: 'json'
           }
         );
@@ -1008,7 +975,9 @@ function cleanupRtgInjected(render){
     var typeSegment = (card.type === 'tv') ? 'show' : card.type;
     var url = 'https://api.mdblist.com/tmdb/' + typeSegment + '/' + card.id +
       '?apikey=' + encodeURIComponent(key);
+
     new Lampa.Reguest().silent(url, handleSuccess, handleFail);
+
     function handleFail() {
       new Lampa.Reguest().native(
         url,
@@ -1022,7 +991,8 @@ function cleanupRtgInjected(render){
         function() {
           callback(null);
         },
-        false, {
+        false, 
+        {
           dataType: 'json'
         }
       );
@@ -1047,7 +1017,9 @@ function cleanupRtgInjected(render){
         rt_for_avg: null,
         rt_fresh: null,
         popcorn_display: null,
-        popcorn_for_avg: null
+        popcorn_for_avg: null,
+        trakt_display: null,
+        trakt_for_avg: null
       };
 
       function parseRawScore(rawVal) {
@@ -1084,35 +1056,35 @@ function cleanupRtgInjected(render){
           res.tmdb_display = tmdb10.toFixed(1);
           res.tmdb_for_avg = tmdb10;
         }
-
         if (src.indexOf('imdb') !== -1) {
           var imdb10 = val > 10 ? (val / 10) : val;
           res.imdb_display = imdb10.toFixed(1);
           res.imdb_for_avg = imdb10;
         }
-
         if (src.indexOf('metacritic') !== -1 && isUserSource(src)) {
           var user10 = val > 10 ? (val / 10) : val;
           res.mc_user_display = user10.toFixed(1);
           res.mc_user_for_avg = user10;
         }
-
         if (src.indexOf('metacritic') !== -1 && !isUserSource(src)) {
           var critic10 = val > 10 ? (val / 10) : val;
           res.mc_critic_display = critic10.toFixed(1);
           res.mc_critic_for_avg = critic10;
         }
-
         if (src.indexOf('rotten') !== -1 || src.indexOf('tomato') !== -1) {
           res.rt_display = String(Math.round(val));
           res.rt_for_avg = val / 10;
           res.rt_fresh = val >= 60;
         }
-
         if (src.indexOf('popcorn') !== -1 || src.indexOf('audience') !== -1) {
           res.popcorn_display = String(Math.round(val));
           res.popcorn_for_avg = val / 10;
         }
+        if (src.indexOf('trakt') !== -1) {
+          var trakt10 = val > 10 ? (val / 10) : val;
+          res.trakt_display = trakt10.toFixed(1);
+          res.trakt_for_avg = trakt10;
+        }        
       });
 
       res._mdblist_ratings = Array.isArray(response.ratings) ? response.ratings.slice() : [];
@@ -1221,6 +1193,8 @@ function cleanupRtgInjected(render){
         null,
       popcorn_display: mdb.popcorn_display || null,
       popcorn_for_avg: mdb.popcorn_for_avg || null,
+      trakt_display: mdb.trakt_display || null,
+      trakt_for_avg: mdb.trakt_for_avg || null,
       ageRating: omdb.ageRating || null,
       oscars: omdb.oscars || 0,
       emmy: omdb.emmy || 0,
@@ -1254,8 +1228,8 @@ function cleanupRtgInjected(render){
     var raw = buildMdblistLikeArray(data);
     var items = filterMdblistLike(raw);
     if (!items.length) return;
-    var topStartEm = 0.8;
-    var stepEm = 2.0;
+    var topStartEm = 0.8; 
+    var stepEm = 2.0;     
     items.forEach(function(it, i) {
       var $b = $('<div class="card__lmerating"></div>');
       $b.css('top', 'calc(' + topStartEm + 'em + ' + (i * stepEm) + 'em)');
@@ -1263,6 +1237,7 @@ function cleanupRtgInjected(render){
       $poster.append($b);
     });
   }
+
 
   function renderPosterBadgesFromRaw(rawRatings, $cardView) {
     if (!$cardView || !$cardView.length) return;
@@ -1286,9 +1261,11 @@ function cleanupRtgInjected(render){
       $cardView.append($b);
     });
   }
+
   function updateHiddenElements(data) {
     var render = Lampa.Activity.active().activity.render();
     if (!render || !render[0]) return;
+
     var pgElement = $('.full-start__pg.hide', render);
     if (pgElement.length && data.ageRating) {
       var invalidRatings = ['N/A', 'Not Rated', 'Unrated'];
@@ -1298,6 +1275,7 @@ function cleanupRtgInjected(render){
         pgElement.removeClass('hide').text(localized);
       }
     }
+
     var imdbContainer = $('.rate--imdb', render);
     if (imdbContainer.length) {
       var cfg = getCfg();
@@ -1317,6 +1295,7 @@ function cleanupRtgInjected(render){
         }
       }
     }
+
     var tmdbContainer = $('.rate--tmdb', render);
     if (tmdbContainer.length) {
       var cfg = getCfg();
@@ -1336,6 +1315,7 @@ function cleanupRtgInjected(render){
       }
     }
   }
+
   function applyAwardsColor(rateLine, cfg) {
     var $tiles = rateLine.find('.rate--awards, .rate--oscars, .rate--emmy');
     $tiles.removeClass('rating--green rating--blue rating--orange rating--red');
@@ -1354,12 +1334,14 @@ function cleanupRtgInjected(render){
     cleanupRtgInjected(render);
     var rateLine = getPrimaryRateLine(render);
     if (!rateLine.length) return;
+
     var cfg = (typeof getCfg === 'function') ? getCfg() : {
       enableImdb: true,
       enableTmdb: true,
       enableMc: true,
       enableRt: true,
       enablePop: true,
+      enableTrakt: true,
       mcMode: 'meta',
       colorizeAll: false
     };
@@ -1484,7 +1466,8 @@ function cleanupRtgInjected(render){
       }
 
       var pcText = pcVal.toFixed(1);
-
+      var pcIconUrl = pcVal >= 6.0 ? ICONS.popcorn : ICONS.popcorn_bad;
+      
       if (!cont.length) {
         cont = $(
           '<div class="full-start__rate rate--popcorn">' +
@@ -1492,18 +1475,60 @@ function cleanupRtgInjected(render){
           '<div class="source--name"></div>' +
           '</div>'
         );
-        cont.find('.source--name').html(iconImg(ICONS.popcorn, 'Audience', 22));
+        cont.find('.source--name').html(iconImg(pcIconUrl, 'Audience', 22)); // ЗМІНЕНО
 
         var anchors = rateLine.find('.rate--rt, .rate--mc, .rate--tmdb, .rate--imdb');
         if (anchors.length) cont.insertAfter(anchors.last());
         else rateLine.prepend(cont);
       } else {
         cont.find('> div').eq(0).text(pcText);
-        cont.find('.source--name').html(iconImg(ICONS.popcorn, 'Audience', 22));
+        cont.find('.source--name').html(iconImg(pcIconUrl, 'Audience', 22)); // ЗМІНЕНО
+      }
+        
+      cont.removeClass('rating--green rating--blue rating--orange rating--red');
+      if (cfg.colorizeAll) cont.addClass(getRatingClass(pcVal));
+    })();
+
+    (function() {
+      var cont = $('.rate--trakt', rateLine);
+      if (!cfg.enableTrakt) {
+        cont.remove();
+        return;
+      }
+
+      var trVal = null;
+      if (data.trakt_for_avg && !isNaN(data.trakt_for_avg)) trVal = parseFloat(data.trakt_for_avg);
+      else if (data.trakt_display && !isNaN(parseFloat(data.trakt_display))) {
+        var trd = parseFloat(data.trakt_display);
+        trVal = (trd > 10) ? (trd / 10) : trd;
+      }
+
+      if (trVal == null || isNaN(trVal)) {
+        cont.remove();
+        return;
+      }
+
+      var trText = trVal.toFixed(1);
+
+      if (!cont.length) {
+        cont = $(
+          '<div class="full-start__rate rate--trakt">' +
+          '<div>' + trText + '</div>' +
+          '<div class="source--name"></div>' +
+          '</div>'
+        );
+        cont.find('.source--name').html(iconImg(ICONS.trakt, 'Trakt', 22));
+
+        var anchors = rateLine.find('.rate--popcorn, .rate--rt, .rate--mc, .rate--tmdb, .rate--imdb');
+        if (anchors.length) cont.insertAfter(anchors.last());
+        else rateLine.prepend(cont);
+      } else {
+        cont.find('> div').eq(0).text(trText);
+        cont.find('.source--name').html(iconImg(ICONS.trakt, 'Trakt', 22));
       }
 
       cont.removeClass('rating--green rating--blue rating--orange rating--red');
-      if (cfg.colorizeAll) cont.addClass(getRatingClass(pcVal));
+      if (cfg.colorizeAll) cont.addClass(getRatingClass(trVal));
     })();
 
     if (data.awards && data.awards > 0 && !$('.rate--awards', rateLine).length) {
@@ -1544,6 +1569,7 @@ function cleanupRtgInjected(render){
         .attr('title', Lampa.Lang.translate('oscars_label'));
       rateLine.prepend(oscarsElement);
     }
+
     try {
       applyAwardsColor(rateLine, cfg);
     } catch (e) {}
@@ -1555,14 +1581,16 @@ function cleanupRtgInjected(render){
 
     var rateLine = getPrimaryRateLine(render);
     if (!rateLine.length) return;
+
     var cfg = (typeof getCfg === 'function') ? getCfg() : {
       enableImdb: true,
       enableTmdb: true,
       enableMc: true,
       enableRt: true,
       enablePop: true,
+      enableTrakt: true,
       colorizeAll: true,
-      showAverage: true
+      showAverage: true      
     };
 
     $('.rate--avg', rateLine).remove();
@@ -1591,7 +1619,7 @@ function cleanupRtgInjected(render){
 
     if (cfg.enableRt && data.rt_for_avg && !isNaN(data.rt_for_avg)) parts.push(parseFloat(data.rt_for_avg));
     if (cfg.enablePop && data.popcorn_for_avg && !isNaN(data.popcorn_for_avg)) parts.push(parseFloat(data.popcorn_for_avg));
-
+    if (cfg.enableTrakt && data.trakt_for_avg && !isNaN(data.trakt_for_avg)) parts.push(parseFloat(data.trakt_for_avg));
     if (!parts.length) {
       removeLoadingAnimation();
       undimRateLine(rateLine);
@@ -1644,6 +1672,7 @@ function cleanupRtgInjected(render){
     var cardKeyForToken = (normalizedCard.type || getCardType(normalizedCard)) + '_' + (normalizedCard.imdb_id || normalizedCard.id || '');
     var reqToken = cardKeyForToken + '_' + Date.now();
     __lmpLastReqToken = reqToken;
+
     function renderAll() {
       if (reqToken !== __lmpLastReqToken) return;
       if (!currentRatingsData) {
@@ -1654,9 +1683,11 @@ function cleanupRtgInjected(render){
       updateHiddenElements(currentRatingsData);
       insertRatings(currentRatingsData);
       calculateAverageRating(currentRatingsData);
+
       try {
         renderPosterBadgesOnDetails(currentRatingsData);
       } catch (e) {}
+
       applyStylesToAll();
     }
 
@@ -1666,11 +1697,12 @@ function cleanupRtgInjected(render){
       var cached = cacheKey ? getCachedRatings(cacheKey) : null;
       if (cached) {
         currentRatingsData = cached;
-        renderAll();
+        renderAll(); 
         return;
       }
 
       addLoadingAnimation();
+
       var pending = 2;
       var mdbRes = null;
       var omdbRes = null;
@@ -1678,9 +1710,7 @@ function cleanupRtgInjected(render){
       function oneDone() {
         pending--;
         if (pending !== 0) return;
-
         currentRatingsData = mergeRatings(mdbRes, omdbRes);
-
         if (
           (!currentRatingsData.tmdb_display || !currentRatingsData.tmdb_for_avg) &&
           normalizedCard.vote != null
@@ -1703,6 +1733,7 @@ function cleanupRtgInjected(render){
             currentRatingsData.mc_display ||
             currentRatingsData.rt_display ||
             currentRatingsData.popcorn_display ||
+            currentRatingsData.trakt_display ||
             currentRatingsData.oscars ||
             currentRatingsData.emmy ||
             currentRatingsData.awards
@@ -1740,26 +1771,33 @@ function cleanupRtgInjected(render){
     var bwLogos = !!Lampa.Storage.field('ratings_bw_logos', RCFG_DEFAULT.ratings_bw_logos);
     var showAwards = !!Lampa.Storage.field('ratings_show_awards', RCFG_DEFAULT.ratings_show_awards);
     var showAverage = !!Lampa.Storage.field('ratings_show_average', RCFG_DEFAULT.ratings_show_average);
+    
     var logoOffset = parseInt(Lampa.Storage.get('ratings_logo_offset', RCFG_DEFAULT.ratings_logo_offset), 10);
     if (isNaN(logoOffset)) logoOffset = 0;
+    
     var fontOffset = parseInt(Lampa.Storage.get('ratings_font_offset', RCFG_DEFAULT.ratings_font_offset), 10);
     if (isNaN(fontOffset)) fontOffset = 0;
+    
     var badgeAlpha = parseFloat(Lampa.Storage.get('ratings_badge_alpha', RCFG_DEFAULT.ratings_badge_alpha));
     if (isNaN(badgeAlpha)) badgeAlpha = RCFG_DEFAULT.ratings_badge_alpha;
     if (badgeAlpha < 0) badgeAlpha = 0;
     if (badgeAlpha > 1) badgeAlpha = 1;
+    
     var badgeTone = parseInt(Lampa.Storage.get('ratings_badge_tone', RCFG_DEFAULT.ratings_badge_tone), 10);
     if (isNaN(badgeTone)) badgeTone = RCFG_DEFAULT.ratings_badge_tone;
     if (badgeTone < 0) badgeTone = 0;
     if (badgeTone > 255) badgeTone = 255;
+    
     var gapStep = parseInt(Lampa.Storage.get('ratings_gap_step', RCFG_DEFAULT.ratings_gap_step), 10);
     if (isNaN(gapStep) || gapStep < 0) gapStep = 0;
+    
     var colorizeAll = !!Lampa.Storage.field('ratings_colorize_all', RCFG_DEFAULT.ratings_colorize_all);
     var enIMDB = !!Lampa.Storage.field('ratings_enable_imdb', RCFG_DEFAULT.ratings_enable_imdb);
     var enTMDB = !!Lampa.Storage.field('ratings_enable_tmdb', RCFG_DEFAULT.ratings_enable_tmdb);
     var enMC = !!Lampa.Storage.field('ratings_enable_mc', RCFG_DEFAULT.ratings_enable_mc);
     var enRT = !!Lampa.Storage.field('ratings_enable_rt', RCFG_DEFAULT.ratings_enable_rt);
     var enPopcorn = !!Lampa.Storage.field('ratings_enable_popcorn', RCFG_DEFAULT.ratings_enable_popcorn);
+    var enTrakt = !!Lampa.Storage.field('ratings_enable_trakt', RCFG_DEFAULT.ratings_enable_trakt);
     var posterBadges = !!Lampa.Storage.field('ratings_poster_badges', RCFG_DEFAULT.ratings_poster_badges);
     var rateBorder = !!Lampa.Storage.field('ratings_rate_border', RCFG_DEFAULT.ratings_rate_border);
     
@@ -1780,6 +1818,7 @@ function cleanupRtgInjected(render){
       enableMc: enMC,
       enableRt: enRT,
       enablePop: enPopcorn,
+      enableTrakt: enTrakt,
       enablePosterBadges: posterBadges,
       rateBorder: rateBorder
     };
@@ -1824,6 +1863,7 @@ function cleanupRtgInjected(render){
       tile.style.fontSize = finalPx + 'px';
     });
   }
+
   function tuneLogos(offsetPx) {
     var REF_BASE = 28;
     var scale = (REF_BASE + (parseFloat(offsetPx) || 0)) / REF_BASE;
@@ -1850,6 +1890,7 @@ function cleanupRtgInjected(render){
       else if (img.closest('.rate--mc')) varName = '--lmp-h-mc';
       else if (img.closest('.rate--rt')) varName = '--lmp-h-rt';
       else if (img.closest('.rate--popcorn')) varName = '--lmp-h-popcorn';
+      else if (img.closest('.rate--trakt')) varName = '--lmp-h-trakt';
       else if (img.closest('.rate--awards')) varName = '--lmp-h-awards';
       else if (img.closest('.rate--avg')) varName = '--lmp-h-avg';
       else if (img.closest('.rate--oscars') || img.closest('.lmp-award-icon--oscar'))
@@ -1858,7 +1899,7 @@ function cleanupRtgInjected(render){
         varName = '--lmp-h-emmy';
 
       var baseH = cssVarPx(varName);
-      if (!baseH || baseH <= 0) baseH = 24;
+      if (!baseH || baseH <= 0) baseH = 24; // Фолбек
 
       var finalH = Math.max(1, baseH * scale);
       img.style.height = finalH + 'px';
@@ -1892,6 +1933,7 @@ function cleanupRtgInjected(render){
       }
     });
   }
+
   function applyBwLogos(enabled) {
     var logos = document.querySelectorAll(
       '.full-start__rate .source--name img,' +
@@ -2025,6 +2067,7 @@ function cleanupRtgInjected(render){
       }
     });
   }
+
   function wirePosterBadgesListener() {
     Lampa.Listener.follow('line', function(e) {
       if (e.type !== 'append') return;
@@ -2071,6 +2114,7 @@ function cleanupRtgInjected(render){
       });
     });
   }
+
   function addSettingsSection() {
     if (window.lmp_ratings_add_param_ready) return;
     window.lmp_ratings_add_param_ready = true;
@@ -2146,7 +2190,6 @@ function cleanupRtgInjected(render){
       onRender: function() {}
     });
     
-
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2252,6 +2295,7 @@ function cleanupRtgInjected(render){
       onRender: function(item) {}
     });
 
+    // === Нові тумблери ===
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2265,6 +2309,7 @@ function cleanupRtgInjected(render){
       },
       onRender: function() {}
     });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2277,6 +2322,7 @@ function cleanupRtgInjected(render){
         description: 'Показувати/ховати джерело'
       }
     });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2289,6 +2335,7 @@ function cleanupRtgInjected(render){
         description: 'Показувати/ховати джерело'
       }
     });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2301,6 +2348,7 @@ function cleanupRtgInjected(render){
         description: 'Показувати/ховати джерело'
       }
     });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2313,6 +2361,7 @@ function cleanupRtgInjected(render){
         description: 'Показувати/ховати джерело'
       }
     });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2325,6 +2374,20 @@ function cleanupRtgInjected(render){
         description: 'Показувати/ховати джерело'
       }
     });
+    
+    Lampa.SettingsApi.addParam({
+      component: 'lmp_ratings',
+      param: {
+        name: 'ratings_enable_trakt',
+        type: 'trigger',
+        "default": RCFG_DEFAULT.ratings_enable_trakt
+      },
+      field: {
+        name: 'Trakt',
+        description: 'Показувати/ховати джерело'
+      }
+    });
+    
     Lampa.SettingsApi.addParam({
       component: 'lmp_ratings',
       param: {
@@ -2351,14 +2414,13 @@ function cleanupRtgInjected(render){
         lmpRatingsClearCache();
       }
     });
-
   }
 
   function initRatingsPluginUI() {
-    ensureDefaultToggles();
-    addSettingsSection();
-    patchStorageSetOnce();
-    attachLiveSettingsHandlers();
+    ensureDefaultToggles();       
+    addSettingsSection();         
+    patchStorageSetOnce();      
+    attachLiveSettingsHandlers(); 
     window.LampaRatings = window.LampaRatings || {};
     window.LampaRatings.applyStyles = applyStylesToAll;
     window.LampaRatings.getConfig = getCfg;
@@ -2367,6 +2429,7 @@ function cleanupRtgInjected(render){
     } catch (e) {}
     applyStylesToAll();
   }
+
   function startPlugin() {
     window.combined_ratings_plugin = true;
     Lampa.Listener.follow('full', function(e) {
