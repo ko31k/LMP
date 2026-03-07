@@ -155,6 +155,31 @@ function isMonoEnabled() {
       uk: 'Кольорова та перефразована інформаційна панель'
     },
 
+    interface_mod_new_margins_menu: { 
+      en: 'Configure panel margins', 
+      uk: 'Налаштувати відступи для панелі' 
+    },
+    interface_mod_new_margins_menu_desc: { 
+      en: 'Allows changing top and bottom margins for the info panel', 
+      uk: 'Дозволяє змінити відступ зверху чи знизу для інфо-панелі' 
+    },
+    interface_mod_new_mt: { 
+      en: 'Edit top margin', 
+      uk: 'Редагувати відступ зверху' 
+    },
+    interface_mod_new_mt_desc: { 
+      en: 'Default: -0.5. Supports "+" and "-" values.', 
+      uk: 'За замовчуванням -0.5. Можна вводити як додатні, так і від\'ємні значення.' 
+    },
+    interface_mod_new_mb: { 
+      en: 'Edit bottom margin', 
+      uk: 'Редагувати відступ знизу' 
+    },
+    interface_mod_new_mb_desc: { 
+      en: 'Default: 1. Supports "+" and "-" values.', 
+      uk: 'За замовчуванням 1. Можна вводити як додатні, так і від\'ємні значення.' 
+    },
+    
     interface_mod_new_colored_bookmarks: {
       en: 'Colored bookmark icons',
       uk: 'Кольорові іконки закладок'
@@ -315,6 +340,25 @@ function applyTitleSizeNow() {
     document.documentElement.style.setProperty('--ifx-title-size', n + 'em');
   } catch (e) {}
 }
+
+function applyMargins() {
+  var mt = String(Lampa.Storage.get('interface_mod_new_mt', '-0.5')).trim();
+  var mb = String(Lampa.Storage.get('interface_mod_new_mb', '1')).trim();
+
+  if (mt !== '' && !isNaN(mt)) mt += 'em';
+  if (mb !== '' && !isNaN(mb)) mb += 'em';
+
+  var id = 'ifx_margins_dynamic';
+  var st = document.getElementById(id);
+  if (!st) {
+    st = document.createElement('style');
+    st.id = id;
+    document.head.appendChild(st);
+  }
+  st.textContent = '.full-start-new__details, .full-start__details { margin-top: ' + mt + ' !important; margin-bottom: ' + mb + ' !important; }';
+}
+
+Lampa.Template.add('settings_ifx_margins', '<div></div>');
 
   
 function pickUaFromTranslations(res, type){
@@ -741,6 +785,55 @@ var css = `
       }
     });
 
+
+    add({
+      component: 'interface_mod_new',
+      param: {
+        type: 'button'
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_margins_menu'),
+        description: Lampa.Lang.translate('interface_mod_new_margins_menu_desc')
+      },
+      onChange: function () {
+        Lampa.Settings.create('ifx_margins', {
+          template: 'settings_ifx_margins',
+          onBack: function () {
+            Lampa.Settings.create('interface_mod_new');
+          }
+        });
+      }
+    });
+
+    add({
+      component: 'ifx_margins',
+      param: {
+        name: 'interface_mod_new_mt',
+        type: 'input',
+        values: true,
+        default: '-0.5'
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_mt'),
+        description: Lampa.Lang.translate('interface_mod_new_mt_desc')
+      }
+    });
+
+    add({
+      component: 'ifx_margins',
+      param: {
+        name: 'interface_mod_new_mb',
+        type: 'input',
+        values: true,
+        default: '1'
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_mb'),
+        description: Lampa.Lang.translate('interface_mod_new_mb_desc')
+      }
+    });
+
+    
     add({
       component: 'interface_mod_new',
       param: {
@@ -1076,6 +1169,11 @@ add({
 case 'interface_mod_new_title_mode_v2':
   applyOriginalTitleToggle();
   break;
+
+            case 'interface_mod_new_mt':
+            case 'interface_mod_new_mb':
+              applyMargins();
+              break;
 
 case 'interface_mod_new_title_size':
   applyTitleSizeNow();
@@ -2203,6 +2301,7 @@ function replaceIconsIn($root) {
     injectMobilePosterCss();
     initInterfaceModSettingsUI();
     newInfoPanel();
+    applyMargins();
     setupVoteColorsObserver();
 
     injectBookmarksCss();
