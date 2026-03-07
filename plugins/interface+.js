@@ -2973,7 +2973,7 @@ function ensureAltBadgesCss(){
       position:absolute; right:${RIGHT_OFFSET}; bottom:${BOTTOM_OFFSET};
       margin-right:0;
       display:flex; flex-direction:column; align-items:flex-end;
-      gap:0.04px; z-index:10; pointer-events:none;
+      gap:0.04em; z-index:10; pointer-events:none;
     }
     body.ifx-alt-badges .ifx-corner-stack > *{ pointer-events:auto; }
     body.ifx-alt-badges .ifx-corner-stack .card__vote,
