@@ -179,6 +179,24 @@ function isMonoEnabled() {
       en: 'Default: 1. Supports "+" and "-" values.', 
       uk: 'За замовчуванням 1. Можна вводити як додатні, так і від\'ємні значення.' 
     },
+
+    interface_mod_new_mobile_center: {
+      en: 'Mobile centering',
+      uk: 'Центрування на мобільних'
+    },
+    interface_mod_new_mobile_center_desc: {
+      en: 'Center title, info and buttons on portrait screens',
+      uk: 'Центрувати заголовок, інфо-панель та кнопки на вертикальних екранах'
+    },
+
+    interface_mod_new_hide_tagline: {
+      en: 'Hide tagline',
+      uk: 'Приховати слоган'
+    },
+    interface_mod_new_hide_tagline_desc: {
+      en: 'Hide the movie/series tagline under the title',
+      uk: 'Приховує слоган фільму/серіалу під головною назвою'
+    },
     
     interface_mod_new_colored_bookmarks: {
       en: 'Colored bookmark icons',
@@ -529,6 +547,8 @@ function getTitleMode() {
 
   var settings = {
     info_panel: getBool('interface_mod_new_info_panel', true),
+    mobile_center: getBool('interface_mod_new_mobile_center', false),
+    hide_tagline: getBool('interface_mod_new_hide_tagline', false),
     colored_ratings: getBool('interface_mod_new_colored_ratings', false),
     colored_status: getBool('interface_mod_new_colored_status', true),
     colored_age: getBool('interface_mod_new_colored_age', true),
@@ -642,6 +662,21 @@ var css = `
     document.head.appendChild(st);
   })();
 
+  function setTaglineHidden(hidden) {
+    var id = 'ifx_hide_tagline_css';
+    var el = document.getElementById(id);
+    if (el) el.remove();
+
+    if (hidden) {
+      // Ховаємо слоган і для нового, і для старого дизайну Lampa
+      var css = '.full-start-new__tagline, .full-start__tagline, .full--tagline { display: none !important; }';
+      var st = document.createElement('style');
+      st.id = id;
+      st.textContent = css;
+      document.head.appendChild(st);
+    }
+  }
+
   function injectMobilePosterCss(){
   if (document.getElementById('ifx_mobile_poster_css')) return;
 
@@ -668,6 +703,40 @@ var css = `
 
   document.head.appendChild(st);
 }
+
+function setMobileCenteringEnabled(enabled) {
+    var id = 'ifx_mobile_center_css';
+    var el = document.getElementById(id);
+    if (el) el.remove();
+
+    if (!enabled) return;
+
+    var css = `
+      @media (max-aspect-ratio: 1/1) {
+        /* Центруємо стандартну панель та її елементи */
+        .full-start-new__details, .full-start__details { justify-content: center !important; text-align: center !important; }
+        .full-start-new__details > div, .full-start__details > div { align-items: center !important; margin-left: 0 !important; margin-right: 0 !important; }
+        .full-start-new__details > div > div, .full-start__details > div > div { justify-content: center !important; }
+        
+        /* Центруємо кнопки */
+        .full-start-new__buttons, .full-start__buttons { justify-content: center !important; }
+        
+        /* Центруємо заголовок та оригінальну назву */
+        .full-start-new__head, .full-start__head { align-items: center !important; text-align: center !important; }
+        .ifx-original-title { border-left: none !important; padding-left: 0 !important; margin-left: auto !important; margin-right: auto !important; border-bottom: 2px solid #777; padding-bottom: 2px; }
+
+        /* Центруємо рядок рейтингів (стандартні + Enhanced Ratings) */
+        .full-start-new__rate-line, .full-start__rate-line { justify-content: center !important; flex-wrap: wrap !important; }
+
+        /* Центруємо бейджі плагіна Quality+Mod */
+        .quality-badges-under-rate, .quality-badges-after-details { justify-content: center !important; }
+      }
+    `;
+    var st = document.createElement('style');
+    st.id = id;
+    st.textContent = css;
+    document.head.appendChild(st);
+  }
 
   function injectBookmarksCss() {
     if (document.getElementById('ifx_bookmarks_css')) return;
@@ -833,6 +902,33 @@ var css = `
       }
     });
 
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_mobile_center',
+        type: 'trigger',
+        values: true,
+        default: false
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_mobile_center'),
+        description: Lampa.Lang.translate('interface_mod_new_mobile_center_desc')
+      }
+    });
+
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_hide_tagline',
+        type: 'trigger',
+        values: true,
+        default: false
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_hide_tagline'),
+        description: Lampa.Lang.translate('interface_mod_new_hide_tagline_desc')
+      }
+    });
     
     add({
       component: 'interface_mod_new',
@@ -1098,6 +1194,16 @@ add({
             case 'interface_mod_new_info_panel':
               settings.info_panel = getBool(key, true);
               rebuildInfoPanelActive();
+              break;
+
+            case 'interface_mod_new_mobile_center':
+              settings.mobile_center = getBool(key, false);
+              setMobileCenteringEnabled(settings.mobile_center);
+              break;
+
+            case 'interface_mod_new_hide_tagline':
+              settings.hide_tagline = getBool(key, false);
+              setTaglineHidden(settings.hide_tagline);
               break;
 
             case 'interface_mod_new_colored_bookmarks':
@@ -2303,6 +2409,7 @@ function replaceIconsIn($root) {
     newInfoPanel();
     applyMargins();
     setupVoteColorsObserver();
+    setTaglineHidden(settings.hide_tagline);
 
     injectBookmarksCss();
     toggleBookmarksColor(getBool('interface_mod_new_colored_bookmarks', true));
@@ -2316,6 +2423,8 @@ function replaceIconsIn($root) {
     setAgeBaseCssEnabled(settings.colored_age);
     if (settings.colored_age) enableAgeColoring();
     else disableAgeColoring(true);
+
+    setMobileCenteringEnabled(settings.mobile_center);
 
     if (settings.theme) applyTheme(settings.theme);
     
