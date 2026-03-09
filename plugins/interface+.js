@@ -704,7 +704,7 @@ var css = `
   document.head.appendChild(st);
 }
 
-function setMobileCenteringEnabled(enabled) {
+  function setMobileCenteringEnabled(enabled) {
     var id = 'ifx_mobile_center_css';
     var el = document.getElementById(id);
     if (el) el.remove();
@@ -713,22 +713,14 @@ function setMobileCenteringEnabled(enabled) {
 
     var css = `
       @media (max-aspect-ratio: 1/1) {
-        /* Центруємо стандартну панель та її елементи */
         .full-start-new__details, .full-start__details { justify-content: center !important; text-align: center !important; }
         .full-start-new__details > div, .full-start__details > div { align-items: center !important; margin-left: 0 !important; margin-right: 0 !important; }
         .full-start-new__details > div > div, .full-start__details > div > div { justify-content: center !important; }
-        
-        /* Центруємо кнопки */
         .full-start-new__buttons, .full-start__buttons { justify-content: center !important; }
-        
-        /* Центруємо заголовок та оригінальну назву */
         .full-start-new__head, .full-start__head { align-items: center !important; text-align: center !important; }
         .ifx-original-title { border-left: none !important; padding-left: 0 !important; margin-left: auto !important; margin-right: auto !important; border-bottom: 2px solid #777; padding-bottom: 2px; }
-
-        /* Центруємо рядок рейтингів (стандартні + Enhanced Ratings) */
+        .full-start-new__tagline, .full-start__tagline, .full--tagline { text-align: center !important; justify-content: center !important; }
         .full-start-new__rate-line, .full-start__rate-line { justify-content: center !important; flex-wrap: wrap !important; }
-
-        /* Центруємо бейджі плагіна Quality+Mod */
         .quality-badges-under-rate, .quality-badges-after-details { justify-content: center !important; }
       }
     `;
@@ -737,6 +729,7 @@ function setMobileCenteringEnabled(enabled) {
     st.textContent = css;
     document.head.appendChild(st);
   }
+
 
   function injectBookmarksCss() {
     if (document.getElementById('ifx_bookmarks_css')) return;
