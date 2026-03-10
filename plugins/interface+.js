@@ -279,8 +279,8 @@ interface_mod_new_tmdb_api_key_name: {
   uk: 'TMDB API Ключ' 
 },
 interface_mod_new_tmdb_api_key_desc: { 
-  en: 'Custom API key for accurate Ukrainian titles (fixes Cub localization issues)', 
-  uk: 'Власний ключ для точного отримання українських назв (вирішує проблему з перекладом від Cub)' 
+  en: 'Custom API key for accurate Ukrainian titles', 
+  uk: 'Власний ключ для точного отримання українських назв' 
 },
     
 interface_mod_new_title_mode_off:  { en: 'No', uk: 'Ні' },
