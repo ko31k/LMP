@@ -127,7 +127,7 @@
   var parsersInfo = [
     {
       base: 'lampa_ua',
-      name: 'LampaUA (toloka, mazepa, utopia)',
+      name: 'LampaUA (toloka, mazepa, etc.)',
       settings: { url: 'jackettua.mooo.com', key: 'ua', parser_torrent_type: 'jackett' }
     },
     {
