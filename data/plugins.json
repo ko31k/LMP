@@ -8,17 +8,9 @@
       "desc_uk": "Плагін зі списком парсерів та індикацією доступності. Дозволяє вибрати один з декількох готових варіантів, щоб не вводити вручну URL/ключі.",
       "desc_en": "Plugin with a parser list and availability indication. Lets you pick from predefined options instead of typing URL/keys manually.",
       "file": "plugins/Parsers.js",
-      "screens": ["wwwroot/screens/Parsers.png"]
-    },
-    {
-      "id": "quality",
-      "title": "Quality+Mod",
-      "short_uk": "Мітки якості на постерах + налаштування стилю та відображення.",
-      "short_en": "Quality badges on posters + style and display settings.",
-      "desc_uk": "Додає мітки якості на постери, а також власний пункт налаштувань в меню \"Інтерфейс\", де можна вибрати стиль міток (повний чи скорочений варіант), відображення мітки якості у повній картці, наявність мітки якості для серіалів.",
-      "desc_en": "Adds quality badges to posters and a dedicated settings section under \"Interface\". You can choose badge style (full or compact), show/hide the badge in the full card, and enable/disable badges for TV shows.",
-      "file": "plugins/Quality+Mod.js",
-      "screens": ["wwwroot/screens/quality1.png", "wwwroot/screens/quality2.png"]
+      "screens": [
+        "wwwroot/screens/Parsers.png"
+      ]
     },
     {
       "id": "seasons",
@@ -28,7 +20,9 @@
       "desc_uk": "Плагін для відображення інформації про серіали відразу на картках у списку (постерах). Показує останній сезон який вийшов чи виходить для серіалу, а також прогрес кількості епізодів що уже вийшли. Має свій пункт налаштувань в меню \"Інтерфейс\".\n\nДля роботи потрібно отримати та ввести в налаштуваннях API ключ TMDb з сайту http://themoviedb.org/",
       "desc_en": "Displays TV show info directly on list cards (posters). Shows the latest released/airing season and the progress of episodes already released. Includes its own settings section under \"Interface\".\n\nRequires a TMDb API key (enter it in settings) from http://themoviedb.org/",
       "file": "plugins/SeasonsInfo.js",
-      "screens": ["wwwroot/screens/seasons.png"]
+      "screens": [
+        "wwwroot/screens/seasons.png"
+      ]
     },
     {
       "id": "ua-finder",
@@ -38,7 +32,10 @@
       "desc_uk": "Плагін для пошуку українських аудіодоріжок у релізах (Jacred). Аналізує назви торрентів і показує, де доступна українська озвучка, у вигляді мітки з текстом чи прапором на картці (постері). Додає власний пункт налаштувань в меню \"Інтерфейс\".",
       "desc_en": "Searches for Ukrainian audio tracks in releases (Jacred). Parses torrent titles and marks where Ukrainian dubbing is available with a text label or flag on the card (poster). Adds its own settings section under \"Interface\".",
       "file": "plugins/UA-Finder+Mod.js",
-      "screens": ["wwwroot/screens/ukr1.png", "wwwroot/screens/ukr2.png"]
+      "screens": [
+        "wwwroot/screens/ukr1.png",
+        "wwwroot/screens/ukr2.png"
+      ]
     },
     {
       "id": "interface",
@@ -68,6 +65,21 @@
         "wwwroot/screens/rtg-serial.png",
         "wwwroot/screens/rtg1.png",
         "wwwroot/screens/rtg2.png"
+      ]
+    }
+  ],
+  "hidden_plugins": [
+    {
+      "id": "quality",
+      "title": "Quality+Mod",
+      "short_uk": "Мітки якості на постерах + налаштування стилю та відображення.",
+      "short_en": "Quality badges on posters + style and display settings.",
+      "desc_uk": "Додає мітки якості на постери, а також власний пункт налаштувань в меню \"Інтерфейс\", де можна вибрати стиль міток (повний чи скорочений варіант), відображення мітки якості у повній картці, наявність мітки якості для серіалів.",
+      "desc_en": "Adds quality badges to posters and a dedicated settings section under \"Interface\". You can choose badge style (full or compact), show/hide the badge in the full card, and enable/disable badges for TV shows.",
+      "file": "plugins/Quality+Mod.js",
+      "screens": [
+        "wwwroot/screens/quality1.png",
+        "wwwroot/screens/quality2.png"
       ]
     }
   ]
