@@ -12,6 +12,10 @@ if (function() {
     }
     return false;
   }()) return;
+
+  if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
+        return;
+    }
   
   var IFX_TITLE_SIZE_DEFAULT = 0.75;
   var IFX_TMDB_UA_TTL_MS = 1000 * 60 * 60 * 24 * 2;
