@@ -1,6 +1,22 @@
 (function () {
 	"use strict";
 
+	if (function() {
+    var k = ['multi_plugins_list', 'multi_enabled_plugins', 'multiplugin'];
+    for (var i = 0; i < k.length; i++) {
+      if (window.localStorage && window.localStorage.getItem(k[i])) return true;
+    }
+    var s = document.getElementsByTagName('script');
+    for (var j = 0; j < s.length; j++) {
+      if (s[j].src && s[j].src.indexOf('addonslmp.github.io') !== -1) return true;
+    }
+    	return false;
+    }()) return;
+
+    if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
+        return;
+	}
+
 	var DISABLE_CACHE = false;
 
 	function startPlugin() {
@@ -121,6 +137,7 @@
 			img.style.transition = "none";
 		}
 		
+
 		Lampa.Listener.follow("full", function (e) {
 			if (e.type == "complite" && Lampa.Storage.get("logo_glav") != "1") {
 				
@@ -130,8 +147,6 @@
 				
 				if (align_top && !is_mobile && full_start_left.length) {
 					full_start_left.css("align-self", "flex-start");
-					// Якщо потрібно трохи опустити постер, щоб він був ідеально на лінії з текстом, розкоментуй рядок нижче:
-					// full_start_left.css("margin-top", "1em");
 				}
 
 				var data = e.data.movie;
