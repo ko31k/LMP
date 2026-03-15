@@ -2,17 +2,6 @@
 (function () {
   'use strict';
 
-  if (function() {
-    var k = ['multi_plugins_list', 'multi_enabled_plugins', 'multiplugin'];
-    for (var i = 0; i < k.length; i++) {
-      if (window.localStorage && window.localStorage.getItem(k[i])) return true;
-    }
-    var s = document.getElementsByTagName('script');
-    for (var j = 0; j < s.length; j++) {
-      if (s[j].src && s[j].src.indexOf('addonslmp.github.io') !== -1) return true;
-    }
-    return false;
-  }()) return;
 
   if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
         return;
