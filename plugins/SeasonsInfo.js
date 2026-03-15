@@ -12,9 +12,9 @@
         return false;
       }()) return;
 
-    if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
+     if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
         return;
-    }
+     }
 
     if (window.SeasonBadgePlugin && window.SeasonBadgePlugin.__initialized) return;
     window.SeasonBadgePlugin = window.SeasonBadgePlugin || {};
