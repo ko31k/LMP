@@ -88,8 +88,8 @@
     {
       "id": "cardify",
       "title": "Cardify+",
-      "short_uk": "Динамічний фон у картці: фонові трейлери або слайдшоу.",
-      "short_en": "Dynamic background in cards: playing trailers or image slideshows.",
+      "short_uk": "Широкий інтефейс для картки. Чистіша картка, фонові трейлери або слайдшоу.",
+      "short_en": "Wide interface for the card. Cleaner card, background trailers or slideshows.",
       "desc_uk": "Модифікація плагіну (від @ipavlin98 та @Yaroslav_Films). Замінює статичний фон у картці фільму чи серіалу на динамічний. Вміє автоматично відтворювати трейлер на фоні (без звуку) або показувати плавне слайдшоу з постерів, якщо відео вимкнено.\n\nМає гнучкі налаштування: можна додати ефект розмиття (Blur) для фонового відео, налаштувати масштабування (щоб приховати чорні смуги), обрати якість та швидкість слайдшоу. Також додає гарний градієнт, який плавно реагує на скролінг сторінки.\n\nДодатково дозволяє оптимізувати інтерфейс: перемістити опис у правий кут для широких екранів та сховати зайві елементи (вікові обмеження, статуси).",
       "desc_en": "Plugin modification (by @ipavlin98 and @Yaroslav_Films). Replaces the static background in the movie or series card with a dynamic one. It can automatically play a background trailer (muted) or show a smooth backdrop slideshow if the video is disabled.\n\nIncludes flexible settings: you can add a blur effect to the background video, adjust zoom (to hide black bars), and choose slideshow quality and speed. Also adds a beautiful gradient overlay that reacts to scrolling.\n\nAdditionally, it optimizes the UI by moving the description to the right side for wide screens and allows hiding unnecessary elements (age ratings, statuses).",
       "file": "plugins/cardify+.js",
