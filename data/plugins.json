@@ -79,6 +79,8 @@
       "screens": [
         "wwwroot/screens/rtg-film.png",
         "wwwroot/screens/rtg-serial.png",
+        "wwwroot/screens/rtg-serial1.png",
+        "wwwroot/screens/rtg-serial2.png",
         "wwwroot/screens/rtg1.png",
         "wwwroot/screens/rtg2.png"
       ]
