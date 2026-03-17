@@ -59,12 +59,10 @@
       "short_en": "Button editor in movie/series card.",
       "desc_uk": "Повне налаштування кнопок у картці фільму чи серіалу. Має власний візуальний редактор, де можна змінити вигляд кнопок (стандартний, тільки іконки або завжди з текстом), їх порядок та приховати непотрібні.\n\nДозволяє групувати кнопки у власні папки, перейменовувати їх, а також повністю кастомізувати іконки — обирати з понад 60 вбудованих варіантів та змінювати їхній колір (через палітру або HEX-код). Розумне фарбування зберігає оригінальний дизайн контурних та багатоколірних іконок.\n\nКнопка редактора знаходиться безпосередньо в картці. Всі зміни можна легко скинути до стандартних налаштувань в один клік.",
       "desc_en": "Complete customization of buttons in the movie or TV series card. Includes a visual editor to change button view modes (default, icons only, or always text), reorder them, and hide unwanted ones.\n\nAllows you to group buttons into custom folders, rename them, and fully customize icons — choose from over 60 built-in options and change their color (via palette or HEX code). Smart coloring preserves the original design of outlined and multi-colored icons.\n\nThe editor button is located right in the card next to other buttons. You can easily reset all changes to default settings at any time.",  
-      "file": "plugins/rtg.js",
+      "file": "plugins/buttons+.js",
       "screens": [
-        "wwwroot/screens/rtg-film.png",
-        "wwwroot/screens/rtg-serial.png",
-        "wwwroot/screens/rtg1.png",
-        "wwwroot/screens/rtg2.png"
+        "wwwroot/screens/btns1.png",
+        "wwwroot/screens/btns2.png",
       ]
     },
     {
