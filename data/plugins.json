@@ -70,7 +70,7 @@
     },
     {
       "id": "rtg",
-      "title": "rtg",
+      "title": "RTG+",
       "short_uk": "Рейтинги та нагороди в картці + гнучкий стиль логотипів і міток.",
       "short_en": "Ratings and awards on the card + flexible logo/badge styling.",
       "desc_uk": "Відображення рейтингів та нагород у картці фільму чи серіалу. Має своє меню налаштувань, де можна змінити стиль логотипів (розмір, прозорість фону, яскравість плиток, ч/б варіант тощо) або вимкнути непотрібні рейтинги та нагороди.\n\nДодає середній рейтинг, нагороди (Оскар чи Еммі), рейтинги IMDB, TMDB, Metacritic, Rotten Tomatoes, Popcornmeter та Trakt. Додатково рейтинги можуть показуватись і на постері. Працює для фільмів та серіалів.\n\nДля роботи потрібно отримати та ввести API ключі OMDb та MDBlist з відповідних сайтів.",
@@ -82,7 +82,37 @@
         "wwwroot/screens/rtg1.png",
         "wwwroot/screens/rtg2.png"
       ]
-    }
+    },
+    {
+      "id": "cardify",
+      "title": "Cardify+",
+      "short_uk": "Динамічний фон у картці: фонові трейлери або слайдшоу.",
+      "short_en": "Dynamic background in cards: playing trailers or image slideshows.",
+      "desc_uk": "Модифікація плагіну (від @ipavlin98 та @Yaroslav_Films). Замінює статичний фон у картці фільму чи серіалу на динамічний. Вміє автоматично відтворювати трейлер на фоні (без звуку) або показувати плавне слайдшоу з постерів, якщо відео вимкнено.\n\nМає гнучкі налаштування: можна додати ефект розмиття (Blur) для фонового відео, налаштувати масштабування (щоб приховати чорні смуги), обрати якість та швидкість слайдшоу. Також додає гарний градієнт, який плавно реагує на скролінг сторінки.\n\nДодатково дозволяє оптимізувати інтерфейс: перемістити опис у правий кут для широких екранів та сховати зайві елементи (вікові обмеження, статуси).",
+      "desc_en": "Plugin modification (by @ipavlin98 and @Yaroslav_Films). Replaces the static background in the movie or series card with a dynamic one. It can automatically play a background trailer (muted) or show a smooth backdrop slideshow if the video is disabled.\n\nIncludes flexible settings: you can add a blur effect to the background video, adjust zoom (to hide black bars), and choose slideshow quality and speed. Also adds a beautiful gradient overlay that reacts to scrolling.\n\nAdditionally, it optimizes the UI by moving the description to the right side for wide screens and allows hiding unnecessary elements (age ratings, statuses).",
+      "file": "plugins/cardify+.js",
+      "screens": [
+        "wwwroot/screens/cardify1.png",
+        "wwwroot/screens/cardify2.png",
+        "wwwroot/screens/cardify3.png",
+        "wwwroot/screens/cardify4.png",
+      ]
+    },
+    {
+      "id": "logo",
+      "title": "Logo",
+      "short_uk": "Графічні логотипи замість текстових назв у картці.",
+      "short_en": "Graphic logos instead of text titles in the card.",
+      "desc_uk": "Модифікація плагіну (від @ipavlin98). Замінює звичайну текстову назву фільму або серіалу в картці на офіційний графічний логотип. Має гарну плавну анімацію появи замість тексту.\n\nУ налаштуваннях можна вибрати пріоритетну мову логотипа, його якість та спосіб відображення: налаштувати розмір відносно висоти тексту (через коефіцієнт) або задати фіксовану ширину. Також є опції центрування для телефонів та вирівнювання постера по верхньому краю екрану.\n\nПлагін використовує систему кешування для миттєвого завантаження вже переглянутих логотипів (в налаштуваннях є кнопка для очищення кешу).",
+      "desc_en": "Plugin modification (by @ipavlin98). Replaces the standard text title of a movie or series in the card with its official graphic logo. Features a smooth, beautiful appearance animation.\n\nIn the settings, you can choose the preferred logo language, quality, and display method: adjust the size relative to the text height (using a multiplier) or set a fixed width. It also includes options for centering on mobile devices and poster alignment on TVs.\n\nThe plugin uses a caching system for instant loading of previously viewed logos. There is a built-in button to clear the cache if needed.",
+      "file": "plugins/logo.js",
+      "screens": [
+        "wwwroot/screens/logo1.png",
+        "wwwroot/screens/logo2.png",
+        "wwwroot/screens/logo3.png",
+        "wwwroot/screens/logo4.png",
+      ]
+    }    
   ],
   "hidden_plugins": [
     {
