@@ -62,7 +62,7 @@
       "file": "plugins/buttons+.js",
       "screens": [
         "wwwroot/screens/btns1.png",
-        "wwwroot/screens/btns2.png",
+        "wwwroot/screens/btns2.png"
       ]
     },
     {
