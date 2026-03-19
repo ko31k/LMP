@@ -25,19 +25,6 @@
       ]
     },
     {
-      "id": "ua-finder",
-      "title": "UA-Finder+Mod",
-      "short_uk": "Пошук українських доріжок у релізах (Jacred) + мітка/прапор на постері.",
-      "short_en": "Finds Ukrainian audio tracks in releases (Jacred) + badge/flag on posters.",
-      "desc_uk": "Плагін для пошуку українських аудіодоріжок у релізах (Jacred). Аналізує назви торрентів і показує, де доступна українська озвучка, у вигляді мітки з текстом чи прапором на картці (постері). Додає власний пункт налаштувань в меню \"Інтерфейс\".",
-      "desc_en": "Searches for Ukrainian audio tracks in releases (Jacred). Parses torrent titles and marks where Ukrainian dubbing is available with a text label or flag on the card (poster). Adds its own settings section under \"Interface\".",
-      "file": "plugins/UA-Finder+Mod.js",
-      "screens": [
-        "wwwroot/screens/ukr1.png",
-        "wwwroot/screens/ukr2.png"
-      ]
-    },
-    {
       "id": "interface",
       "title": "Interface+",
       "short_uk": "Комплексне покращення інтерфейсу: панелі, мітки, теми, керування кнопками.",
@@ -128,6 +115,19 @@
       "screens": [
         "wwwroot/screens/quality1.png",
         "wwwroot/screens/quality2.png"
+      ]
+    },
+    {
+      "id": "ua-finder",
+      "title": "UA-Finder+Mod",
+      "short_uk": "Пошук українських доріжок у релізах (Jacred) + мітка/прапор на постері.",
+      "short_en": "Finds Ukrainian audio tracks in releases (Jacred) + badge/flag on posters.",
+      "desc_uk": "Плагін для пошуку українських аудіодоріжок у релізах (Jacred). Аналізує назви торрентів і показує, де доступна українська озвучка, у вигляді мітки з текстом чи прапором на картці (постері). Додає власний пункт налаштувань в меню \"Інтерфейс\".",
+      "desc_en": "Searches for Ukrainian audio tracks in releases (Jacred). Parses torrent titles and marks where Ukrainian dubbing is available with a text label or flag on the card (poster). Adds its own settings section under \"Interface\".",
+      "file": "plugins/UA-Finder+Mod.js",
+      "screens": [
+        "wwwroot/screens/ukr1.png",
+        "wwwroot/screens/ukr2.png"
       ]
     }
   ]
