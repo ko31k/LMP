@@ -1,9 +1,9 @@
 (function () {
     'use strict';
 
-    /*if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
+    if (document.currentScript && document.currentScript.src.indexOf('ko31k') === -1) {
         return;
-    }*/
+    }
 
     if (typeof Lampa === 'undefined') return;
 
@@ -64,6 +64,9 @@
             // Розмір шрифту опису
             root.style.setProperty('--ni-desc-font-size', Lampa.Storage.get('ni_desc_font_size', '0.87em'));
 
+            // Відступ від інфо-блоку
+            root.style.setProperty('--ni-info-margin', Lampa.Storage.get('ni_info_margin', '0'));
+
             // Керування відображенням
             const body = document.body;
             body.classList.toggle('ni-hide-rate', !Lampa.Storage.get('ni_show_rate', true));
@@ -77,6 +80,7 @@
             const layout = Lampa.Storage.get('ni_info_layout', '2col');
             body.classList.toggle('ni-layout-1col', layout === '1col');
             body.classList.toggle('ni-layout-2col', layout === '2col');
+            body.classList.toggle('ni-layout-title-only', layout === 'title_only');
             body.classList.toggle('ni-layout-none', layout === 'none');
 
             // Орієнтація карток
@@ -115,14 +119,46 @@
 
         add({
             component: 'new_interface',
-            param: { name: 'ni_info_layout', type: 'select', values: { '2col': 'У дві колонки (Опис справа)', '1col': 'В одну колонку (Опис зліва)', 'none': 'Не показувати інфо-блок' }, default: '2col' },
+            param: { name: 'ni_info_layout', type: 'select', values: { '2col': 'У дві колонки (Опис справа)', '1col': 'В одну колонку (Опис зліва)', 'title_only': 'Тільки назва/логотип', 'none': 'Не показувати інфо-блок' }, default: '2col' },
             field: { name: 'Дизайн інфо-блоку', description: 'Розташування тексту зверху екрана.' },
             onChange: applyDynamicStyles
         });
 
         add({
             component: 'new_interface',
-            param: { name: 'ni_desc_lines', type: 'select', values: { '3': '3 рядки', '4': '4 рядки', '5': '5 рядків', '7': '7 рядків', '10': '10 рядків' }, default: '7' },
+            param: { name: 'ni_info_margin_btn', type: 'button' },
+            field: { 
+                name: 'Відступ від інфо-блоку', 
+                description: 'Вказуйте значення у vh, em або px (наприклад: 5vh або -2em).<br>За замовчуванням: 0' 
+            },
+            onChange: function () {
+                if (typeof Lampa.Input !== 'undefined') {
+                    Lampa.Input.edit({
+                        title: 'Введіть відступ (напр. 5vh, -2em)',
+                        value: Lampa.Storage.get('ni_info_margin', '0'),
+                        free: true,
+                        nosave: true,
+                        onChange: function (val) {
+                            // Динамічно показуємо зміну прямо під час вводу
+                            document.documentElement.style.setProperty('--ni-info-margin', val);
+                        }
+                    }, function (new_value) {
+                        if (new_value !== undefined) {
+                            // Зберігаємо і застосовуємо
+                            Lampa.Storage.set('ni_info_margin', new_value);
+                            applyDynamicStyles();
+                        } else {
+                            // Якщо скасували ввід (натиснули Назад) — повертаємо старе значення
+                            applyDynamicStyles();
+                        }
+                    });
+                }
+            }
+        });
+
+        add({
+            component: 'new_interface',
+            param: { name: 'ni_desc_lines', type: 'select', values: { '2': '2 рядки', '3': '3 рядки', '4': '4 рядки', '5': '5 рядків', '7': '7 рядків', '10': '10 рядків' }, default: '6' },
             field: { name: 'Ліміт рядків опису', description: 'Максимальна кількість рядків в описі фільму' },
             onChange: applyDynamicStyles
         });
@@ -1238,6 +1274,7 @@
             --ni-card-logo-h: 4.5vh;
             --ni-desc-lines: 7;
             --ni-desc-font-size: 0.87em;
+            --ni-info-margin: 0;
         }
         
         /* Висота інфо-блоку залежно від орієнтації карток */
@@ -1249,6 +1286,10 @@
         /* --- КЕРУВАННЯ ВІДОБРАЖЕННЯМ ЧЕРЕЗ НАЛАШТУВАННЯ --- */
         body.ni-layout-none .new-interface-info { display: none !important; }
         body.ni-layout-none .new-interface { --ni-info-h: 0px !important; }
+
+        /* Тільки назва/логотип */
+        body.ni-layout-title-only .new-interface-info__right,
+        body.ni-layout-title-only .new-interface-info__head { display: none !important; }
 
         body.ni-hide-rate .new-interface-info__rate,
         body.ni-hide-rate .dot-rate-genre { display: none !important; }
@@ -1291,21 +1332,23 @@
         .new-interface .new-interface-card-logo img { position: absolute; bottom: 0.45em; left: 5%; right: 5%; display: block; max-width: 90%; max-height: min(var(--ni-card-logo-h), 92%); width: auto; height: auto; object-fit: contain; object-position: center bottom; margin: 0 auto; }
 
         /* --- ІНФО-БЛОК --- */
-        .new-interface-info { position: relative; padding: 1.5em; height: var(--ni-info-h); overflow: hidden; z-index: 3; }
+        .new-interface-info { position: relative; padding: 1.5em; height: var(--ni-info-h); overflow: hidden; z-index: 3; margin-bottom: var(--ni-info-margin); }
         .new-interface-info:before { display: none !important; }
         
         .new-interface-info__body { position: relative; z-index: 1; width: min(96%, 78em); padding-top: 1.1em; height: 100%; box-sizing: border-box; }
         
-        /* Розкладка 2 колонки */
-        body.ni-layout-2col .new-interface-info__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); column-gap: clamp(16px, 3vw, 54px); align-items: start; }
+        /* Розкладка 2 колонки (Flexbox для притискання до правого краю) */
+        body.ni-layout-2col .new-interface-info__body { display: flex; justify-content: space-between; gap: 2em; align-items: flex-start; width: 100%; max-width: 100%; padding-right: 1.5em; }
+        body.ni-layout-2col .new-interface-info__left { flex: 1; min-width: 0; }
+        body.ni-layout-2col .new-interface-info__right { flex: 0 0 40%; max-width: 36em; padding-top: 0; padding-bottom: clamp(0.8em, 2.4vh, 2.0em); display: flex; flex-direction: column; margin-left: auto; }
         body.ni-layout-2col .new-interface-info__textblock { display: flex; flex-direction: column; gap: 0.55em; }
-        body.ni-layout-2col .new-interface-info__right { padding-top: 0; padding-bottom: clamp(0.8em, 2.4vh, 2.0em); display: flex; flex-direction: column; }
         
         /* Розкладка 1 колонка */
         body.ni-layout-1col .new-interface-info__body { display: flex; flex-direction: column; max-width: 70em; gap: 0.5em; }
         body.ni-layout-1col .new-interface-info__left { flex: 0 0 auto; }
         body.ni-layout-1col .new-interface-info__right { padding-top: 0.5em; flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; }
         body.ni-layout-1col .new-interface-info__textblock { margin-top: 0; display: flex; flex-direction: column; gap: 0.5em; }
+        body.ni-layout-1col .new-interface-info__description { max-width: 60%; } /* Зменшено на чверть */
         
         .new-interface-info__head { color: rgba(255, 255, 255, 0.6); margin-bottom: 1em; font-size: 1.3em; min-height: 1em; }
         .new-interface-info__head span { color: #fff; }
