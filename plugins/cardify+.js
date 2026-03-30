@@ -926,18 +926,6 @@
 						}
 					}
 
-					if (!Main.cases()[Main.stor()].field("cardify_show_status")) {
-						render.find(".full-start__status").hide();
-					}
-
-					if (!Main.cases()[Main.stor()].field("cardify_show_pg")) {
-						render.find(".full-start__pg").hide();
-					}
-
-					if (!Main.cases()[Main.stor()].field("cardify_show_rating")) {
-						render.find(".full-start-new__rate-line.rate-fix").hide();
-					}
-
 					this.loadOriginalPoster(e, render);
 
 					if (Main.cases()[Main.stor()].field("cardify_move_text")) {
@@ -1182,7 +1170,11 @@
 			".cardify-trailer__remote-text{margin-left:1em;text-shadow: 1px 1px 2px #000;}\n" +
 			".cardify-trailer.display{opacity:1}\n" +
 			".cardify-trailer.display .cardify-trailer__controlls{transform:translate3d(0,0,0);opacity:1}\n" +
+			"body.cardify-hide-status .full-start__status { display: none !important; }\n" +
+			"body.cardify-hide-pg .full-start__pg { display: none !important; }\n" +
+			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; }\n" +			
 			"        </style>\n    ";
+		
 		Lampa.Template.add("cardify_css", style);
 		$("body").append(Lampa.Template.get("cardify_css", {}, true));
 		var icon =
@@ -1344,6 +1336,29 @@
 			},
 			field: {
 				name: "Показувати віковий рейтинг"
+			}
+		});
+
+		function updateCardifyVisibility() {
+			var showStatus = Lampa.Storage.field("cardify_show_status");
+			var showPg = Lampa.Storage.field("cardify_show_pg");
+			var showRating = Lampa.Storage.field("cardify_show_rating");
+
+			if (showStatus === false) $('body').addClass('cardify-hide-status');
+			else $('body').removeClass('cardify-hide-status');
+
+			if (showPg === false) $('body').addClass('cardify-hide-pg');
+			else $('body').removeClass('cardify-hide-pg');
+
+			if (showRating === false) $('body').addClass('cardify-hide-rating');
+			else $('body').removeClass('cardify-hide-rating');
+		}
+
+		updateCardifyVisibility();
+
+		Lampa.Storage.listener.follow('change', function (e) {
+			if (e.name === 'cardify_show_status' || e.name === 'cardify_show_pg' || e.name === 'cardify_show_rating') {
+				updateCardifyVisibility();
 			}
 		});
 
