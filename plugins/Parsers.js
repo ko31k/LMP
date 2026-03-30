@@ -9,7 +9,7 @@
     var PROXY_PREFIX    = 'https://parserbridge.lampame.v6.rocks/';
 
     var DEFAULT_PARSERS = [
-        { base: 'lampa_ua', shortName: 'LampaUA', name: 'LampaUA (toloka, mazepa, utopia)', url: 'jackettua.mooo.com', displayUrl: 'http://jackettua.mooo.com', settings: { key: 'ua', parser_torrent_type: 'jackett' } },
+        { base: 'lampa_ua', shortName: 'LampaUA', name: 'LampaUA (toloka, mazepa, etc.)', url: 'jackettua.mooo.com', displayUrl: 'http://jackettua.mooo.com', settings: { key: 'ua', parser_torrent_type: 'jackett' } },
         { base: 'spawnum_duckdns_org_49117', shortName: 'Spawn (1)', name: 'SpawnUA (toloka, mazepa only)', url: 'http://spawnum.duckdns.org:49117', settings: { key: '2', parser_torrent_type: 'jackett' } },
         { base: 'spawnum_duckdns_org_59117', shortName: 'Spawn (2)', name: 'SpawnUA (toloka, mazepa, etc.)', url: 'http://spawnum.duckdns.org:59117', settings: { key: '2', parser_torrent_type: 'jackett' } },
         { base: 'jac_red', shortName: 'Jac.red', name: 'Jac.red', url: 'Jac.red', settings: { key: '', parser_torrent_type: 'jackett' } },
