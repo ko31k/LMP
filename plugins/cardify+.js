@@ -1340,18 +1340,13 @@
 		});
 
 		function updateCardifyVisibility() {
-			var showStatus = Lampa.Storage.field("cardify_show_status");
-			var showPg = Lampa.Storage.field("cardify_show_pg");
-			var showRating = Lampa.Storage.field("cardify_show_rating");
+			var hideStatus = Lampa.Storage.field("cardify_show_status") === false || Lampa.Storage.field("cardify_show_status") === "false";
+			var hidePg = Lampa.Storage.field("cardify_show_pg") === false || Lampa.Storage.field("cardify_show_pg") === "false";
+			var hideRating = Lampa.Storage.field("cardify_show_rating") === false || Lampa.Storage.field("cardify_show_rating") === "false";
 
-			if (showStatus === false) $('body').addClass('cardify-hide-status');
-			else $('body').removeClass('cardify-hide-status');
-
-			if (showPg === false) $('body').addClass('cardify-hide-pg');
-			else $('body').removeClass('cardify-hide-pg');
-
-			if (showRating === false) $('body').addClass('cardify-hide-rating');
-			else $('body').removeClass('cardify-hide-rating');
+			$('body').toggleClass('cardify-hide-status', hideStatus);
+			$('body').toggleClass('cardify-hide-pg', hidePg);
+			$('body').toggleClass('cardify-hide-rating', hideRating);
 		}
 
 		updateCardifyVisibility();
@@ -1416,8 +1411,12 @@
 			if (Type.co(e)) {
 				Follow.skodf(e);
 				var fixOpacity = function() {
-					var $render = e.object.activity.render();
-					var $bg = $render.find(".full-start__background");
+					if (!e || !e.object || !e.object.activity || typeof e.object.activity.render !== 'function') return;
+					
+					var renderEl = e.object.activity.render();
+					if (!renderEl) return;
+					
+					var $bg = renderEl.find(".full-start__background");
 					if ($bg.length) {
 						$bg.stop(true, true).css("opacity", "1");
 					}
