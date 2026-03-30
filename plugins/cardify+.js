@@ -1170,9 +1170,9 @@
 			".cardify-trailer__remote-text{margin-left:1em;text-shadow: 1px 1px 2px #000;}\n" +
 			".cardify-trailer.display{opacity:1}\n" +
 			".cardify-trailer.display .cardify-trailer__controlls{transform:translate3d(0,0,0);opacity:1}\n" +
-			"body.cardify-hide-status .full-start__status { display: none !important; }\n" +
-			"body.cardify-hide-pg .full-start__pg { display: none !important; }\n" +
-			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; }\n" +			
+			"body.cardify-hide-status .full-start__status { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
+			"body.cardify-hide-pg .full-start__pg { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
+			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +			
 			"        </style>\n    ";
 		
 		Lampa.Template.add("cardify_css", style);
