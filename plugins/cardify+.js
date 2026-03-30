@@ -927,11 +927,15 @@
 					}
 
 					if (!Main.cases()[Main.stor()].field("cardify_show_status")) {
-						render.find(".full-start__status").css("opacity", "0");
+						render.find(".full-start__status").hide();
 					}
 
 					if (!Main.cases()[Main.stor()].field("cardify_show_pg")) {
-						render.find(".full-start__pg").css("opacity", "0");
+						render.find(".full-start__pg").hide();
+					}
+
+					if (!Main.cases()[Main.stor()].field("cardify_show_rating")) {
+						render.find(".full-start-new__rate-line.rate-fix").hide();
 					}
 
 					this.loadOriginalPoster(e, render);
@@ -1327,7 +1331,19 @@
 				default: true
 			},
 			field: {
-				name: "Показувати рейтинг"
+				name: "Показувати рейтинги"
+			}
+		});
+
+		Lampa.SettingsApi.addParam({
+			component: "cardify",
+			param: {
+				name: "cardify_show_pg",
+				type: "trigger",
+				default: true
+			},
+			field: {
+				name: "Показувати віковий рейтинг"
 			}
 		});
 
