@@ -213,7 +213,23 @@ function isMonoEnabled() {
     interface_mod_new_colored_ratings_desc: {
       en: 'Enable colored rating highlight',
       uk: 'Увімкнути кольорове виділення рейтингу в повній картці'
+    },    
+    interface_mod_new_show_status: {
+      en: 'Show statuses',
+      uk: 'Показувати статуси'
     },
+    interface_mod_new_show_status_desc: {
+      en: 'Show or hide movie/series statuses',
+      uk: 'Відображати або приховувати статус фільму/серіалу (напр. "Випущено")'
+    },
+    interface_mod_new_show_age: {
+      en: 'Show age rating',
+      uk: 'Показувати віковий рейтинг'
+    },
+    interface_mod_new_show_age_desc: {
+      en: 'Show or hide age rating badge (PG)',
+      uk: 'Відображати або приховувати плашку вікового рейтингу (PG)'
+    },    
     interface_mod_new_colored_status: {
       en: 'Colored statuses',
       uk: 'Кольорові статуси'
@@ -599,6 +615,8 @@ function getTitleMode() {
     mobile_center: getBool('interface_mod_new_mobile_center', false),
     hide_tagline: getBool('interface_mod_new_hide_tagline', false),
     colored_ratings: getBool('interface_mod_new_colored_ratings', false),
+    show_status: getBool('interface_mod_new_show_status', true),
+    show_age: getBool('interface_mod_new_show_age', true),
     colored_status: getBool('interface_mod_new_colored_status', false),
     colored_age: getBool('interface_mod_new_colored_age', false),
     mono_mode: getBool('interface_mod_new_mono_mode', false),
@@ -706,6 +724,25 @@ var css = `
     display:flex !important;
     flex-wrap:wrap !important;
     gap:10px !important;
+  }
+  /* Приховування статусів */
+  body.ifx-hide-status .full-start__status,
+  body.ifx-hide-status .full-start-new__status,
+  body.ifx-hide-status .full-start__soon,
+  body.ifx-hide-status .full-start-new__soon,
+  body.ifx-hide-status .full-start [data-status],
+  body.ifx-hide-status .full-start-new [data-status] {
+    display: none !important;
+  }
+
+  /* Приховування вікового рейтингу */
+  body.ifx-hide-age .full-start__pg,
+  body.ifx-hide-age .full-start-new__pg,
+  body.ifx-hide-age .full-start [data-pg],
+  body.ifx-hide-age .full-start-new [data-pg],
+  body.ifx-hide-age .full-start [data-age],
+  body.ifx-hide-age .full-start-new [data-age] {
+    display: none !important;
   }
 `;
 
@@ -1073,6 +1110,20 @@ function setMobileCenteringEnabled(enabled) {
     add({
       component: 'interface_mod_new',
       param: {
+        name: 'interface_mod_new_show_status',
+        type: 'trigger',
+        values: true,
+        default: true
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_show_status'),
+        description: Lampa.Lang.translate('interface_mod_new_show_status_desc')
+      }
+    });
+
+    add({
+      component: 'interface_mod_new',
+      param: {
         name: 'interface_mod_new_colored_status',
         type: 'trigger',
         values: true,
@@ -1084,6 +1135,22 @@ function setMobileCenteringEnabled(enabled) {
       }
     });
 
+    
+    add({
+      component: 'interface_mod_new',
+      param: {
+        name: 'interface_mod_new_show_age',
+        type: 'trigger',
+        values: true,
+        default: true
+      },
+      field: {
+        name: Lampa.Lang.translate('interface_mod_new_show_age'),
+        description: Lampa.Lang.translate('interface_mod_new_show_age_desc')
+      }
+    });
+    
+    
     add({
       component: 'interface_mod_new',
       param: {
@@ -1337,6 +1404,16 @@ add({
               settings.colored_ratings = getBool(key, false);
               if (settings.colored_ratings) updateVoteColors();
               else clearVoteColors();
+              break;
+
+            case 'interface_mod_new_show_status':
+              settings.show_status = getBool(key, true);
+              document.body.classList.toggle('ifx-hide-status', !settings.show_status);
+              break;
+
+            case 'interface_mod_new_show_age':
+              settings.show_age = getBool(key, true);
+              document.body.classList.toggle('ifx-hide-age', !settings.show_age);
               break;
               
             case 'interface_mod_new_colored_status':
@@ -1730,7 +1807,7 @@ function updateVoteColors() {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
-        'display:inline-block!important;' +
+        'display:inline-block;' +
         '}';
     } else {
       st.id = idDis;
@@ -1742,7 +1819,7 @@ function updateVoteColors() {
         'padding:0.3em!important;' +
         'margin-right:0.3em!important;' +
         'margin-left:0!important;' +
-        'display:inline-block!important;' +
+        'display:inline-block;' +
         '}';
     }
     document.head.appendChild(st);
@@ -1835,7 +1912,8 @@ function applyStatusOnceIn(elRoot) {
 
     if (mono) {
       applyMonoBadgeStyle(el);
-      el.style.setProperty('display', 'inline-block', 'important');
+      //el.style.setProperty('display', 'inline-block', 'important');
+      el.style.display = 'inline-block';
       return;
     }
 
@@ -1891,6 +1969,7 @@ function applyStatusOnceIn(elRoot) {
       this.style.removeProperty('border-color');
       this.style.removeProperty('background-color');
       this.style.removeProperty('color');
+      this.style.removeProperty('display');
     }).css({
       'background-color': '',
       color: '',
@@ -2548,6 +2627,8 @@ function wireFullCardEnhancers() {
     applyMargins();
     setupVoteColorsObserver();
     setTaglineHidden(settings.hide_tagline);
+    document.body.classList.toggle('ifx-hide-status', !settings.show_status);
+    document.body.classList.toggle('ifx-hide-age', !settings.show_age);
     
     injectBookmarksCss();
     toggleBookmarksColor(getBool('interface_mod_new_colored_bookmarks', true));
