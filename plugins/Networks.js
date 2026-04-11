@@ -55,9 +55,10 @@
         return null;
     }
 
+    // Хелпер: перетворює просто число на "em", або залишає "px"/"em" як є
     function formatCSSValue(value) {
         var val = (value + '').trim();
-        if (val === '') return '0em';
+        if (val === '') return '0em'; // Захист від пустого поля
         if (/^-?\d*\.?\d+$/.test(val)) {
             return val + 'em';
         }
@@ -81,7 +82,7 @@
             tmdb_networks_plugin_about: { en: 'About the plugin', uk: 'Про плагін' },
             tmdb_networks_plugin_descr: {
                 en: 'The plugin adds buttons for streaming services and platforms to cards, showing where movies and series were released or sold, making them easier to find. Buttons with production studios are also added.',
-                uk: 'Плагін додає в картки кнопки стримінгових сервісів і платформ, де виходили або продавалися фільми та серіали, що спрощує їх пошук. Також додаються кнопки з виробничими студіями.'
+                uk: 'Модифікація плагіну від @levende, @Yaroslav_Films. Додає в картки кнопки стримінгових сервісів і платформ, де виходили або продавалися фільми та серіали, що спрощує їх пошук. Також додаються кнопки з виробничими студіями.'
             },
             platfroms_list: { en: 'List', uk: 'Перелік' },
             platfroms_list_limit: { en: 'List limit', uk: 'Ліміт переліку' },
@@ -99,6 +100,7 @@
             networks_margin_buttons: { en: 'Margin between buttons', uk: 'Відступ між кнопками' },
             networks_btn_height: { en: 'Button height', uk: 'Висота кнопок' },
             networks_margin_input_descr: { en: 'Manual entry (e.g., 2.2, 10px, -3)', uk: 'Ручний ввід (напр. 2.2, 10px, -3)' },
+            // Нові переклади для кнопки скидання
             tmdb_networks_reset: { en: 'Reset to defaults', uk: 'Скинути за замовчуванням' },
             tmdb_networks_reset_descr: { en: 'Restore default margin and size values', uk: 'Повернути стандартні значення відступів та розмірів' }
         });
@@ -229,6 +231,7 @@
         network.silent(url, function (data) {
             if (!data.results) return callback([]);
 
+            // ВИПРАВЛЕНО ДЛЯ ES5: indexOf замість includes
             var countryCodes = Object.keys(data.results).filter(function(countryCode) {
                 return allowedCountryCodes.indexOf(countryCode) !== -1;
             });
@@ -536,6 +539,7 @@
     }
 
     function addSettingsByType(type) {
+        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: {
@@ -564,6 +568,7 @@
             onChange: initSettings
         });
 
+        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: {
@@ -614,6 +619,7 @@
 
         Lampa.SettingsApi.addParam({ component: 'platforms', param: { type: 'title' }, field: { name: Lampa.Lang.translate('studios_title') } });
         
+        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: {
@@ -660,6 +666,7 @@
             }
         });
 
+        // Кнопка для переходу в налаштування відступів
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: { type: 'button', component: 'platforms_margins' },
@@ -675,6 +682,7 @@
             }
         });
 
+        // ВВІД РУКАМИ З ДИНАМІЧНИМ ОНОВЛЕННЯМ (ТИП: INPUT)
         var marginSettings = ['top', 'bottom', 'buttons'];
         marginSettings.forEach(function(pos) {
             Lampa.SettingsApi.addParam({
@@ -684,6 +692,7 @@
                     type: 'input',
                     values: true,
                     default: settings['networks_margin_' + pos]
+                    // Прибрали placeholder
                 },
                 field: {
                     name: Lampa.Lang.translate('networks_margin_' + pos),
@@ -694,6 +703,7 @@
                     Lampa.Storage.set('networks_margin_' + pos, formattedValue);
                     settings['networks_margin_' + pos] = formattedValue;
                     
+                    // Динамічне оновлення DOM "на льоту"
                     var networksEl = $('.tmdb-networks');
                     if (networksEl.length) {
                         if (pos === 'top') networksEl.css('margin-top', formattedValue);
@@ -713,6 +723,7 @@
                 type: 'input',
                 values: true,
                 default: settings.networks_btn_height
+                // Прибрали placeholder
             },
             field: {
                 name: Lampa.Lang.translate('networks_btn_height'),
@@ -723,6 +734,7 @@
                 Lampa.Storage.set('networks_btn_height', formattedValue);
                 settings.networks_btn_height = formattedValue;
                 
+                // Динамічне оновлення висоти
                 var networksEl = $('.tmdb-networks');
                 if (networksEl.length) {
                     networksEl.css('--tmdb-net-btn-h', formattedValue);
@@ -732,6 +744,7 @@
             }
         });
 
+        // НОВА КНОПКА "Скинути за замовчуванням"
         Lampa.SettingsApi.addParam({
             component: 'platforms_margins',
             param: { type: 'button' },
@@ -747,6 +760,7 @@
                     height: '2.2em'
                 };
 
+                // Оновлюємо Storage та локальні змінні
                 Lampa.Storage.set('networks_margin_top', defaults.top);
                 settings.networks_margin_top = defaults.top;
                 
@@ -759,6 +773,7 @@
                 Lampa.Storage.set('networks_btn_height', defaults.height);
                 settings.networks_btn_height = defaults.height;
 
+                // Динамічне оновлення DOM
                 var networksEl = $('.tmdb-networks');
                 if (networksEl.length) {
                     networksEl.css('margin-top', defaults.top);
@@ -766,6 +781,8 @@
                     networksEl.css('--tmdb-net-gap', defaults.buttons);
                     networksEl.css('--tmdb-net-btn-h', defaults.height);
                 }
+
+                // Перемальовуємо вікно налаштувань, щоб підтягнулись дефолтні значення в інпути
                 Lampa.Settings.update();
             }
         });
@@ -784,17 +801,25 @@
     }
 
     function initSettings() {
+        // НАЛАШТУВАННЯ ДЛЯ СЕРІАЛІВ (TV) - залишаємо логотипи (LOGO)
         settings.platfroms_tv_list_mode = Lampa.Storage.get('platfroms_tv_list_mode', LIST_DISPLAY_MODE.LOGO);
         settings.platfroms_tv_list_max_visible = Lampa.Storage.get('platfroms_tv_list_max_visible', 3);
+        // Додаткова кнопка ПРИХОВАНА
         settings.platfroms_tv_extra_btn_mode = Lampa.Storage.get('platfroms_tv_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.HIDE);
+
+        // НАЛАШТУВАННЯ ДЛЯ ФІЛЬМІВ (MOVIE) - ставимо ТЕКСТ (TEXT)
         settings.platfroms_movie_list_mode = Lampa.Storage.get('platfroms_movie_list_mode', LIST_DISPLAY_MODE.TEXT);
         settings.platfroms_movie_list_max_visible = Lampa.Storage.get('platfroms_movie_list_max_visible', 3);
+        // Додаткова кнопка ПРИХОВАНА
         settings.platfroms_movie_extra_btn_mode = Lampa.Storage.get('platfroms_movie_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.HIDE);
+
+        // НАЛАШТУВАННЯ ДЛЯ СТУДІЙ
         settings.studios_list_mode = Lampa.Storage.get('studios_list_mode', LIST_DISPLAY_MODE.LOGO);
         settings.studios_list_max_visible = Lampa.Storage.get('studios_list_max_visible', 3);
         
         var isMC = Lampa.Storage.get('platforms_mobile_center', false);
         settings.platforms_mobile_center = (isMC === true || isMC === 'true');
+
         settings.networks_margin_top = Lampa.Storage.get('networks_margin_top', '-3em');
         settings.networks_margin_bottom = Lampa.Storage.get('networks_margin_bottom', '3em');
         settings.networks_margin_buttons = Lampa.Storage.get('networks_margin_buttons', '0.5em');
@@ -810,13 +835,26 @@
             '.platforms-group, .studios-group { display: flex; flex-wrap: wrap; align-items: center; } ' +
             '.platforms-group > *, .studios-group > * { margin-right: var(--tmdb-net-gap, 0.5em); margin-bottom: var(--tmdb-net-gap, 0.5em); } ' +
             '.network-btn { height: var(--tmdb-net-btn-h, 2.2em); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; } ' +
+            
+            /* Прибираємо "кружечки" від Lampa */
             '.full-descr__left .tag-count.network-btn::before { display: none !important; content: none !important; } ' +
+            
             '.network-separator { width: 2px; height: 1.8em; background: rgba(255,255,255,0.2); margin: 0 var(--tmdb-net-gap, 0.5em) var(--tmdb-net-gap, 0.5em) 0.1em; border-radius: 2px; } ' +
+            
+            /* ВІДНОВЛЕНО БІЛИЙ ФОН ДЛЯ ВСІХ КНОПОК З ЛОГОТИПАМИ (!important гарантує білий фон) */
             '.network-logo { background-color: #ffffff !important; position: relative; padding: 0.3em 0.6em; border-radius: 0.6em; } ' +
+            
             '.network-logo img { height: calc(var(--tmdb-net-btn-h, 2.2em) * 0.7); width: auto; max-width: 100%; object-fit: contain; border-radius: 0; } ' +
+            
+            /* Відновлено базові стилі затемнення (overlay) */
             '.network-logo .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0); border-radius: 0.6em; } ' +
+            
+            /* Відновлено радіус для "Додаткової кнопки" */
             '.network-logo.full-start__button .overlay { border-radius: 1em; } ' +
+            
             '.network-logo.focus { box-shadow: 0 0 0 0.2em #fff !important; } ' +
+            
+            /* Ефект затемнення при фокусі */
             '.network-logo.focus .overlay { background: rgba(0, 0, 0, 0.2) !important; } ' +
             
             '@media (max-width: 768px) { ' +
@@ -850,5 +888,4 @@
         });
     }
 
-  
 })();
