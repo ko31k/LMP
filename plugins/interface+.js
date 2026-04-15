@@ -706,13 +706,26 @@ var css = `
   }
 
   .ifx-original-title{
-    color:#aaa;
+    color: #ccc;
     font-size: var(--ifx-title-size, 0.75em);
     font-weight: 600;
     margin-top: 4px;
     border-left: 2px solid #777;
     padding-left: 8px;
+    
+    text-shadow: 
+      1px 1px 2px rgba(0, 0, 0, 0.9),
+      -1px -1px 2px rgba(0, 0, 0, 0.6),
+      0 0 6px rgba(0, 0, 0, 0.9);
   }
+
+
+  .full-start-new__head {
+    text-shadow: 
+      1px 1px 2px rgba(0, 0, 0, 0.9),
+      -1px -1px 2px rgba(0, 0, 0, 0.6),
+      0 0 6px rgba(0, 0, 0, 0.9);
+}
 
   .ifx-btn-icon-only .full-start__button span,
   .ifx-btn-icon-only .full-start__button .full-start__text{
@@ -725,7 +738,7 @@ var css = `
     flex-wrap:wrap !important;
     gap:10px !important;
   }
-  /* Приховування статусів */
+  
   body.ifx-hide-status .full-start__status,
   body.ifx-hide-status .full-start-new__status,
   body.ifx-hide-status .full-start__soon,
@@ -735,7 +748,6 @@ var css = `
     display: none !important;
   }
 
-  /* Приховування вікового рейтингу */
   body.ifx-hide-age .full-start__pg,
   body.ifx-hide-age .full-start-new__pg,
   body.ifx-hide-age .full-start [data-pg],
