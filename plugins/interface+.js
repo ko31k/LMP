@@ -1714,13 +1714,15 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
     }
   }
 
-  function newInfoPanel() {
+function newInfoPanel() {
     Lampa.Listener.follow('full', function (data) {
       if (data.type !== 'complite') return;
 
       setTimeout(function () {
-        var details = $('.full-start-new__details');
-        if (!details.length) details = $('.full-start__details');
+        var root = $(data.object.activity.render());
+   
+        var details = root.find('.full-start-new__details, .full-start__details').first();
+        
         if (!details.length) return;
 
         var movie = data.data.movie || {};
@@ -1734,7 +1736,7 @@ function buildInfoPanel(details, movie, isTvShow, originalDetails) {
         __ifx_last.movie = movie;
         __ifx_last.isTv = isTvShow;
         __ifx_last.originalHTML = details.html();
-        __ifx_last.fullRoot = $(data.object.activity.render());
+        __ifx_last.fullRoot = root;
 
         if (!getBool('interface_mod_new_info_panel', true)) return;
 
