@@ -217,7 +217,8 @@
         tmdbApiKey: '',
         cacheTime: 23 * 60 * 60 * 1000,
         enabled: true,                 
-        language: 'uk'                  
+        language: 'uk',
+        badgeView: 'standard'
     };
 
     function tmdbGet(tvId, resolve, reject) {
@@ -338,9 +339,15 @@
         "    @media (max-width: 768px) {\n" +
         "        .card--season-complete div,\n" +
         "        .card--season-progress div {\n" +
-        "            font-size: 0.8em;\n" +
+        "            font-size: 0.80em;\n" +
         "            padding: 0.35em 0.40em;\n" +
         "        }\n" +
+        "    }\n" +
+        "\n" +
+        "    .card--season-alt {\n" +
+        "        left: 0.3em !important;\n" +
+        "        margin-left: 0 !important;\n" +
+        "        border-radius: 0.6em !important;\n" +
         "    }\n";
     document.head.appendChild(style);
 
@@ -426,6 +433,9 @@
     function createBadge(content, isComplete, loading) {
         var badge = document.createElement('div');
         var badgeClass = isComplete ? 'card--season-complete' : 'card--season-progress';
+        if (CONFIG.badgeView === 'alt') {
+            badgeClass += ' card--season-alt';
+        }
         badge.className = badgeClass + (loading ? ' loading' : '');
         badge.innerHTML = '<div>' + content + '</div>';
 
@@ -557,6 +567,9 @@
                     }
 
                     badge.className = isComplete ? 'card--season-complete' : 'card--season-progress';
+                    if (CONFIG.badgeView === 'alt') {
+                        badge.className += ' card--season-alt';
+                    }
                     badge.innerHTML = '<div>' + content + '</div>';
                     adjustBadgePosition(cardEl, badge);
                     setTimeout(function () {
@@ -720,9 +733,28 @@
     setTimeout(function(){ el.style.opacity='0'; },1300);
   }
 
-  function load(){ var s=Lampa.Storage.get(SETTINGS_KEY)||{}; return { tmdb_key: s.tmdb_key || '' }; }
-  function apply(){ if (st.tmdb_key) CONFIG.tmdbApiKey = String(st.tmdb_key).trim(); }
-  function save(){ Lampa.Storage.set(SETTINGS_KEY, st); apply(); sbToast('Збережено'); }
+  function load(){ var s=Lampa.Storage.get(SETTINGS_KEY)||{}; return { tmdb_key: s.tmdb_key || '', badge_view: s.badge_view || 'standard' }; }
+  function apply(){ if (st.tmdb_key) CONFIG.tmdbApiKey = String(st.tmdb_key).trim(); CONFIG.badgeView = st.badge_view || 'standard'; }
+  function updateBadgesOnScreen() {
+    var badges = document.querySelectorAll('.card--season-complete, .card--season-progress');
+    for (var i = 0; i < badges.length; i++) {
+      var b = badges[i];
+      if (CONFIG.badgeView === 'alt') {
+        if (b.className.indexOf('card--season-alt') === -1) {
+          b.className += ' card--season-alt';
+        }
+      } else {
+        b.className = b.className.replace(' card--season-alt', '').replace('card--season-alt', '');
+      }
+    }
+  }
+
+  function save(){ 
+    Lampa.Storage.set(SETTINGS_KEY, st); 
+    apply(); 
+    updateBadgesOnScreen();
+    sbToast('Збережено'); 
+  }
 
   function clearCache(){
     try{
@@ -753,6 +785,24 @@
       field:{ name:'TMDB API ключ', description:'Потрібен для отримання даних про сезони. Можна отримати на themoviedb.org' },
       onRender:function(item){ try{ $(item).find('input').attr('placeholder','встав ключ TMDB'); }catch(e){} },
       onChange:function(v){ st.tmdb_key = String(v||'').trim(); save(); }
+    });
+
+    Lampa.SettingsApi.addParam({
+      component:'sbadger',
+      param:{
+        name: 'sbadger_badge_view',
+        type: 'select',
+        values: {
+          'standard': 'Стандартний вигляд',
+          'alt': 'Альтернативний вигляд'
+        },
+        "default": (st.badge_view || 'standard')
+      },
+      field:{ name:'Вигляд мітки', description:'Оберіть стиль відображення мітки на картці' },
+      onChange: function(v){ 
+        st.badge_view = v; 
+        save(); 
+      }
     });
 
     Lampa.SettingsApi.addParam({
