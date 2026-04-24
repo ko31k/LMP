@@ -345,9 +345,21 @@
         "    }\n" +
         "\n" +
         "    .card--season-alt {\n" +
-        "        left: 0.3em !important;\n" +
+        "        left: 0.7em !important;\n" +
         "        margin-left: 0 !important;\n" +
         "        border-radius: 0.6em !important;\n" +
+        "    }\n" +
+        "\n" +
+        "    .card--season-alt div {\n" +
+        "        letter-spacing: 0.05em !important;\n" +
+        "    }\n" +
+        "\n" +
+        "    .card--season-complete.card--season-alt div {\n" +
+        "        padding: 0.29em 0.8em !important;\n" +
+        "    }\n" +
+        "\n" +
+        "    .card--season-progress.card--season-alt div {\n" +
+        "        padding: 0.29em 0.5em !important;\n" +
         "    }\n";
     document.head.appendChild(style);
 
