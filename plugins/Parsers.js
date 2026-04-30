@@ -2,9 +2,9 @@
     'use strict';
 
 
-    var STORAGE_PARSERS = 'ps_list_combo_v4.1';
+    var STORAGE_PARSERS = 'ps_list_combo_v4.2';
     var STORAGE_PRI_ACT = 'bat_url_two';
-    var STORAGE_SEC_ACT = 'ps_active_sec_v4.1';
+    var STORAGE_SEC_ACT = 'ps_active_sec_v4.2';
     var NO_PARSER       = 'no_parser';
     var PROXY_PREFIX    = 'https://parserbridge.lampame.v6.rocks/';
 
@@ -16,8 +16,11 @@
         { base: 'jacred_pro', shortName: 'Jacred.pro', name: 'Jacred.pro', url: 'jacred.pro', settings: { key: '', parser_torrent_type: 'jackett' } },
         { base: 'jacblack_ru', shortName: 'Jacblack', name: 'Jacblack.ru', url: 'jacblack.ru:9117', settings: { key: '', parser_torrent_type: 'jackett' } },
         { base: 'jac_red_ru', shortName: 'Jac-red.ru', name: 'Jac-red.ru', url: 'jac-red.ru', settings: { key: '', parser_torrent_type: 'jackett' } },
+        { base: 'jac_stull', shortName: 'Jac.Stull', name: 'Jac.stull', url: 'jac.stull.xyz', settings: { key: '1', parser_torrent_type: 'jackett' } },
         { base: 'jr_maxvol', shortName: 'Jr.Maxvol', name: 'Jr.Maxvol.pro', url: 'jr.maxvol.pro', settings: { key: '', parser_torrent_type: 'jackett' } },
-        { base: 'maxvol_pro', shortName: 'Jac.Maxvol', name: 'Jac.Maxvol.pro', url: 'jac.maxvol.pro', settings: { key: '1', parser_torrent_type: 'jackett' } }
+        { base: 'maxvol_pro', shortName: 'Jac.Maxvol', name: 'Jac.Maxvol.pro', url: 'jac.maxvol.pro', settings: { key: '1', parser_torrent_type: 'jackett' } },
+        { base: 'no_name', shortName: 'NoName', name: 'NoName', url: 'http://87.120.84.218:9117', settings: { key: '333', parser_torrent_type: 'jackett' } },
+        { base: '407_xyz', shortName: '407-Xyz', name: '407-Xyz', url: '11.307407.xyz', settings: { key: '', parser_torrent_type: 'jackett' } }
     ];
 
     function getProto() {
