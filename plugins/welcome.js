@@ -33,54 +33,33 @@
     
     var headOrDoc = document.head || document.documentElement;
     headOrDoc.appendChild(style);
-    function delayFadeOut() {
-        if (typeof $ !== 'undefined' && $.fn && $.fn.fadeOut && !window.myBgFadeHooked) {
-            window.myBgFadeHooked = true;
-            var origFadeOut = $.fn.fadeOut;
-            
-            $.fn.fadeOut = function(speed, callback) {
-                if (this.hasClass && this.hasClass('welcome')) {
-                    var $el = this;
-                    var elapsed = Date.now() - startTime;
-                    var remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
-                    
-                    setTimeout(function() {
-                        origFadeOut.call($el, speed, callback);
-                    }, remaining);
-                    return this;
-                }
-                return origFadeOut.apply(this, arguments);
-            };
-        } else if (!window.myBgFadeHooked) {
-            setTimeout(delayFadeOut, 50);
-        }
-    }
-    delayFadeOut();
-    function delayTexts() {
-        if (window.Lampa && window.Lampa.LoadingProgress && !window.myTextsHooked) {
-            window.myTextsHooked = true;
-            var origDestroy = window.Lampa.LoadingProgress.destroy;
-            
-            window.Lampa.LoadingProgress.destroy = function() {
-                var self = this, args = arguments;
-                var elapsed = Date.now() - startTime;
-                var remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
-                
-                setTimeout(function() {
-                    var $progressContainer = $('.lp-step').parent();
-                    if ($progressContainer.length && typeof $ !== 'undefined' && $.fn.fadeOut) {
-                        $progressContainer.fadeOut(500, function() {
-                            if (origDestroy) origDestroy.apply(self, args);
-                        });
-                    } else {
+    
+    function unifiedRemoval() {
+        if (window.myRemovalHooked) return;
+        window.myRemovalHooked = true;
+        var origDestroy = window.Lampa.LoadingProgress.destroy;        
+        window.Lampa.LoadingProgress.destroy = function() {
+            var self = this, args = arguments;
+            var elapsed = Date.now() - startTime;
+            var remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+            setTimeout(function() {
+                var $elements = $('.lp-step').parent().add('.welcome');
+                if (typeof $ !== 'undefined' && $.fn.fadeOut) {
+                    $elements.fadeOut(500, function() {
                         if (origDestroy) origDestroy.apply(self, args);
-                    }
-                }, remaining);
-            };
-        } else if (!window.myTextsHooked) {
-            setTimeout(delayTexts, 50);
-        }
+                    });
+                } else {
+                    if (origDestroy) origDestroy.apply(self, args);
+                }
+            }, remaining);
+        };
     }
-    delayTexts();
+
+    var checkRemoval = setInterval(function() {
+        if (window.Lampa && window.Lampa.LoadingProgress) {
+            clearInterval(checkRemoval);
+            unifiedRemoval();
+        }
+    }, 50);
 
 })();
