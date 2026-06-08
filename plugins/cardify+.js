@@ -898,6 +898,17 @@
 						bg.last().after('<div class="cardify-effects-overlay"></div>');
 					}
 
+
+					// =============================================
+					var posRating = Lampa.Storage.field("cardify_ratings_position") || "card";
+					if (posRating === 'corner') {
+						var rateLine = render.find('.cardify__left .rate-fix');
+						if (rateLine.length) {
+							render.find('.cardify__right').prepend(rateLine);
+						}
+					}
+					// ==============================================
+					
 					var details = render.find(".full-start-new__details");
 					if (details.length) {
 						var nextEpisodeSpan = null;
@@ -1172,8 +1183,11 @@
 			".cardify-trailer.display .cardify-trailer__controlls{transform:translate3d(0,0,0);opacity:1}\n" +
 			"body.cardify-hide-status .full-start__status { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
 			"body.cardify-hide-pg .full-start__pg { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
-			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +			
-			"        </style>\n    ";
+			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +						
+            "body.cardify-ratings-corner .cardify__right { gap: 1em; }\n" + 
+            "body.cardify-ratings-corner .rate-fix { margin: 0 !important; }\n" +
+            "        </style>\n    ";
+
 		
 		Lampa.Template.add("cardify_css", style);
 		$("body").append(Lampa.Template.get("cardify_css", {}, true));
@@ -1314,7 +1328,8 @@
 				name: "Показувати статус"
 			}
 		});
-		
+
+
 		Lampa.SettingsApi.addParam({
 			component: "cardify",
 			param: {
@@ -1324,8 +1339,37 @@
 			},
 			field: {
 				name: "Показувати рейтинги"
+			},
+			onChange: function () {
+				updateCardifyVisibility();
+				Lampa.Settings.update();
 			}
 		});
+
+		Lampa.SettingsApi.addParam({
+			component: "cardify",
+			param: {
+				name: "cardify_ratings_position",
+				type: "select",
+				values: {
+					card: "У картці",
+					corner: "У правому нижньому куті"
+				},
+				default: "card"
+			},
+			field: {
+				name: "Розташування рейтингів"
+			},
+			onChange: function(value) {
+				Lampa.Storage.set('cardify_ratings_position', value);
+				updateCardifyVisibility();
+			},
+			onRender: function(item) {
+				var showRatings = Lampa.Storage.field('cardify_show_rating');
+				if (showRatings === false || showRatings === "false") item.hide();
+			}
+		});
+
 
 		Lampa.SettingsApi.addParam({
 			component: "cardify",
@@ -1339,18 +1383,26 @@
 			}
 		});
 
+
 		function updateCardifyVisibility() {
 			var hideStatus = Lampa.Storage.field("cardify_show_status") === false || Lampa.Storage.field("cardify_show_status") === "false";
 			var hidePg = Lampa.Storage.field("cardify_show_pg") === false || Lampa.Storage.field("cardify_show_pg") === "false";
 			var hideRating = Lampa.Storage.field("cardify_show_rating") === false || Lampa.Storage.field("cardify_show_rating") === "false";
+			var posRating = Lampa.Storage.field("cardify_ratings_position") || "card";
 
 			$('body').toggleClass('cardify-hide-status', hideStatus);
 			$('body').toggleClass('cardify-hide-pg', hidePg);
 			$('body').toggleClass('cardify-hide-rating', hideRating);
+			
+			$('body').removeClass('cardify-ratings-card cardify-ratings-corner');
+			$('body').addClass('cardify-ratings-' + posRating);
 		}
 
+
+		// Запускаємо при старті плагіна
 		updateCardifyVisibility();
 
+		// Слухаємо зміни в налаштуваннях і застосовуємо їх динамічно
 		Lampa.Storage.listener.follow('change', function (e) {
 			if (e.name === 'cardify_show_status' || e.name === 'cardify_show_pg' || e.name === 'cardify_show_rating') {
 				updateCardifyVisibility();
