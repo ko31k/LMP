@@ -900,11 +900,12 @@
 
 
 					// =============================================
+					// Переміщення блоку рейтингів залежно від налаштувань
 					var posRating = Lampa.Storage.field("cardify_ratings_position") || "card";
 					if (posRating === 'corner') {
 						var rateLine = render.find('.cardify__left .rate-fix');
 						if (rateLine.length) {
-							render.find('.cardify__right').prepend(rateLine);
+							rateLine.insertBefore(render.find('.cardify__right .full-start-new__rate-line'));
 						}
 					}
 					// ==============================================
@@ -1184,9 +1185,11 @@
 			"body.cardify-hide-status .full-start__status { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
 			"body.cardify-hide-pg .full-start__pg { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +
 			"body.cardify-hide-rating .full-start-new__rate-line.rate-fix { display: none !important; visibility: hidden !important; opacity: 0 !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; font-size: 0 !important; }\n" +						
-            "body.cardify-ratings-corner .cardify__right { gap: 1em; }\n" + 
-            "body.cardify-ratings-corner .rate-fix { margin: 0 !important; }\n" +
-            "        </style>\n    ";
+			"body.cardify-ratings-corner .cardify__right { align-items: center; }\n" +
+			"body.cardify-ratings-corner .cardify__right .full-start-new__rate-line { margin: 0 !important; display: flex; align-items: center; }\n" +
+			"body.cardify-ratings-corner .cardify__right > * { margin-left: 1.5em; }\n" +
+			"body.cardify-ratings-corner .cardify__right > *:first-child { margin-left: 0; }\n" +
+			"        </style>\n    ";
 
 		
 		Lampa.Template.add("cardify_css", style);
