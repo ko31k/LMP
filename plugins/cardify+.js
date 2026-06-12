@@ -1545,20 +1545,19 @@
 										}
 									});
 									
-									var final_backdrops = [].concat(lang_backdrops);
-									
-									if (final_backdrops.length < 5 && no_lang_backdrops.length > 0) {
-										var needed = 5 - final_backdrops.length;
-										final_backdrops = final_backdrops.concat(no_lang_backdrops.slice(0, needed));
-									}
-									
-									if (final_backdrops.length < 5 && other_backdrops.length > 0) {
-										var needed2 = 5 - final_backdrops.length;
-										other_backdrops.sort(function(a, b) {
-											return (b.vote_average || 0) - (a.vote_average || 0);
-										});
-										final_backdrops = final_backdrops.concat(other_backdrops.slice(0, needed2));
-									}
+// Віддаємо пріоритет чистим зображенням без тексту/логотипів
+var final_backdrops = [].concat(no_lang_backdrops);
+
+// Якщо чистих фонів зовсім мало, добираємо інші для підтримки слайдшоу
+if (final_backdrops.length < 3 && lang_backdrops.length > 0) {
+    final_backdrops = final_backdrops.concat(lang_backdrops);
+}
+if (final_backdrops.length < 3 && other_backdrops.length > 0) {
+    other_backdrops.sort(function(a, b) {
+        return (b.vote_average || 0) - (a.vote_average || 0);
+    });
+    final_backdrops = final_backdrops.concat(other_backdrops);
+}
 									
 									final_backdrops = final_backdrops.slice(0, 15);
 									
