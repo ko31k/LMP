@@ -2931,7 +2931,8 @@
                 $stack.children('.ifx-year-pill').remove();
             }
             var isPerson = $card.hasClass('card--person') || $card.closest('.scroll--persons, .items--persons, .crew').length > 0;
-            if (!isPerson) {
+            var isMusic = $card.hasClass('card--vinyl') || $card.closest('.vinyl-line, .vinyl-all-grid, .vinyl-main').length > 0;
+            if (!isPerson && !isMusic) {
                 var isTv = $card.hasClass('card--tv') || $card.find('.card__type').text().trim() === 'TV';
                 var cardText = $card.text().toLowerCase();
                 var hasMovieTraits = $card.find('.card__age').length > 0 ||
