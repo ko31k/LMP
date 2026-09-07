@@ -157,7 +157,7 @@ function translate(){
         bat_parser_selected_label: { en:'Selected:', uk:'Обрано:', zh:'已选择：' },
         bat_check_parsers: { en:'Check parsers', uk:'Перевірити парсери', zh:'检查解析器' },
         bat_check_search: { en:'Check search', uk:'Перевірити пошук', zh:'检查搜索' },
-        bat_update_merge: { en:'Update (keep custom)', uk:'Оновити (зберегти власні)', zh:'更新（保留自定义）' },
+        bat_update_merge: { en:'Update (keep custom)', uk:'Оновити та зберегти власні', zh:'更新（保留自定义）' },
         bat_update_reset: { en:'Reset to default', uk:'Скинути до стандартних', zh:'重置为默认' },
         bat_check_done: { en:'Check completed', uk:'Готово', zh:'完成' },
         bat_status_checking_server: { en:'Checking server…', uk:'Перевірка сервера…', zh:'检查服务器…' },
