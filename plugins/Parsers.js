@@ -24,12 +24,12 @@ var DEFAULT_PARSERS=[
     {base:'jr_maxvol',shortName:'Jr.Maxvol',name:'Jr.Maxvol.pro',url:'jr.maxvol.pro',displayUrl:'jr.maxvol.pro',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'maxvol_pro',shortName:'Jac.Maxvol',name:'Jac.Maxvol.pro',url:'jac.maxvol.pro',displayUrl:'jac.maxvol.pro',settings:{key:'1',parser_torrent_type:'jackett'}},
     {base:'no_name',shortName:'NoName',name:'NoName',url:'http://87.120.84.218:9117',displayUrl:'http://87.120.84.218:9117',settings:{key:'333',parser_torrent_type:'jackett'}},
-    {base:'407_xyz',shortName:'12407_xyz',name:'407-Xyz',url:'12.307407.xyz',displayUrl:'12.307407.xyz',settings:{key:'12307407',parser_torrent_type:'jackett'}},    
+    {base:'407_xyz',shortName:'407_xyz',name:'407-Xyz',url:'12.307407.xyz',displayUrl:'12.307407.xyz',settings:{key:'12307407',parser_torrent_type:'jackett'}},
     {base:'alco1',shortName:'alcoV1',name:'Alpac v1',url:'https://alpacv1filt.pubgpityx.workers.dev/',displayUrl:'https://alpacv1filt.pubgpityx.workers.dev/',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'alco2',shortName:'alcoV2',name:'Alpac v2',url:'https://tv.alcopa.cc/api/v2.0/indexers/all/results?title=',displayUrl:'https://tv.alcopa.cc',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'nmjc',shortName:'nmjc',name:'NMJC',url:'nmjc.duckdns.org',displayUrl:'nmjc.duckdns.org',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'lampaapp',shortName:'lampaapp',name:'LampaApp',url:'lampa.app',displayUrl:'lampa.app',settings:{key:'1',parser_torrent_type:'jackett'}}
-];
+    ];
 
 /* ============================================================
    WORKING PROTOCOL CONTROLLER
@@ -126,8 +126,9 @@ function setRawUrl(key,url){ Lampa.Storage.set(key,stripProxy(url||'')); }
 function updateStandardFieldsUI(){
     setTimeout(function(){
         var pri=getParserByBase(getSelectedBase());
-        var secList=getParsers(), secIdx=Lampa.Storage.get(STORAGE_SEC_ACT,-1);
-        var sec= (secIdx>=0 && secIdx<secList.length) ? secList[secIdx] : null;
+        var secList=getParsers();
+        var secIdx=parseInt(Lampa.Storage.get(STORAGE_SEC_ACT,'-1'),10);
+        var sec= (!isNaN(secIdx) && secIdx>=0 && secIdx<secList.length) ? secList[secIdx] : null;
 
         var j1 = pri ? getFinalParserUrl(pri, 'primary') : ''; 
         var p1 = (pri && pri.settings && pri.settings.parser_torrent_type === 'prowlarr') ? j1 : '';
@@ -141,7 +142,8 @@ function updateStandardFieldsUI(){
 
 function refreshExistingUrls(){
     applySelectedParser(getSelectedBase());
-    applySecondaryParser(Lampa.Storage.get(STORAGE_SEC_ACT, -1));
+    var secIdx = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+    applySecondaryParser(isNaN(secIdx) ? -1 : secIdx);
     updateStandardFieldsUI();
 }
 
@@ -157,7 +159,7 @@ function translate(){
         bat_parser_selected_label: { en:'Selected:', uk:'Обрано:', zh:'已选择：' },
         bat_check_parsers: { en:'Check parsers', uk:'Перевірити парсери', zh:'检查解析器' },
         bat_check_search: { en:'Check search', uk:'Перевірити пошук', zh:'检查搜索' },
-        bat_update_merge: { en:'Update (keep custom)', uk:'Оновити та зберегти власні', zh:'更新（保留自定义）' },
+        bat_update_merge: { en:'Update (keep custom)', uk:'Оновити (зберегти власні)', zh:'更新（保留自定义）' },
         bat_update_reset: { en:'Reset to default', uk:'Скинути до стандартних', zh:'重置为默认' },
         bat_check_done: { en:'Check completed', uk:'Готово', zh:'完成' },
         bat_status_checking_server: { en:'Checking server…', uk:'Перевірка сервера…', zh:'检查服务器…' },
@@ -205,7 +207,8 @@ function notifyDone(msg){
    ============================================================ */
 function updateParserUseLink() {
     var priBase = getSelectedBase();
-    var secIdx = Lampa.Storage.get(STORAGE_SEC_ACT, -1);
+    var secIdx = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+    if(isNaN(secIdx)) secIdx = -1;
 
     var hasPri = (priBase && priBase !== NO_PARSER);
     var hasSec = (secIdx !== -1);
@@ -537,7 +540,7 @@ function openParserModal(){
             Lampa.Storage.set(STORAGE_PRI_ACT, NO_PARSER);
             applySelectedParser(NO_PARSER);
         }
-        Lampa.Storage.set(STORAGE_SEC_ACT, -1); 
+        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
         applySecondaryParser(-1);
         
         Lampa.Noty.show('Скинуто до стандартних');
@@ -559,7 +562,8 @@ function openParserModal(){
    ============================================================ */
 function initPrimarySettings(){
     applySelectedParser(getSelectedBase());
-    applySecondaryParser(Lampa.Storage.get(STORAGE_SEC_ACT, -1));
+    var initialSecIdx = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+    applySecondaryParser(isNaN(initialSecIdx) ? -1 : initialSecIdx);
 
     Lampa.SettingsApi.addParam({
         component:'parser',
@@ -623,7 +627,8 @@ function initPrimarySettings(){
    SECONDARY PARSER
    ============================================================ */
 function applySecondaryParser(idx){
-    if(idx === -1) {
+    idx = parseInt(idx, 10);
+    if(isNaN(idx) || idx === -1) {
         setRawUrl(STORAGE_RAW_SEC, '');
         Lampa.Storage.set('jackett_url_two', '');
         Lampa.Storage.set('jackett_key_two', '');
@@ -645,16 +650,12 @@ function applySecondaryParser(idx){
 }
 
 function activeShortName(){
-    var secIdx = Lampa.Storage.get(STORAGE_SEC_ACT, -1);
-    if(secIdx === -1) return Lampa.Lang.translate('bat_parser_none');
+    var secIdx = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+    if(isNaN(secIdx) || secIdx === -1) return Lampa.Lang.translate('bat_parser_none');
 
-    var currentUrl=normalizeUrl(Lampa.Storage.get('jackett_url_two','')), list=getParsers();
-    for(var i=0;i<list.length;i++){
-        if(normalizeUrl(list[i].url)===currentUrl || normalizeUrl(getFinalParserUrl(list[i], 'secondary'))===currentUrl){
-            Lampa.Storage.set(STORAGE_SEC_ACT,i);
-            setRawUrl(STORAGE_RAW_SEC, stripProxy(list[i].url));
-            return list[i].shortName||list[i].name;
-        }
+    var list=getParsers();
+    if(secIdx >= 0 && secIdx < list.length){
+        return list[secIdx].shortName||list[secIdx].name;
     }
     return 'Ручне нал.';
 }
@@ -692,13 +693,12 @@ function tryInjectSecondaryButton(torrentFilter){
    SECONDARY SELECT MENU
    ============================================================ */
 function openSecondarySelectMenu(btn){
-    var list=getParsers(), currentUrl=normalizeUrl(Lampa.Storage.get('jackett_url_two','')), active=-1;
-    var secIdx = Lampa.Storage.get(STORAGE_SEC_ACT, -1);
+    var list=getParsers();
     
-    if (secIdx !== -1) {
-        for(var i=0;i<list.length;i++){
-            if(normalizeUrl(list[i].url)===currentUrl || normalizeUrl(getFinalParserUrl(list[i], 'secondary'))===currentUrl){ active=i; break; }
-        }
+    var active = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+    if(isNaN(active) || active >= list.length) {
+        active = -1;
+        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
     }
     
     var enabled=Lampa.Controller.enabled().name;
@@ -714,7 +714,7 @@ function openSecondarySelectMenu(btn){
         var sub=getFinalParserUrl(p, 'secondary');
         if(p.settings && p.settings.key) sub+='  |  apikey: '+p.settings.key;
         var dotHtml='<span class="sec-dot" data-base="'+p.base+'" style="display:inline-block;width:.55em;height:.55em;border-radius:50%;background-color:'+COLOR_WARN+';margin-right:.6em;box-shadow:0 0 .6em rgba(0,0,0,.35);vertical-align:middle;"></span>';
-        items.push({ title:dotHtml+p.name, subtitle:sub, selected:i===active, myIdx:i });
+        items.push({ title:dotHtml+p.name, subtitle:sub, selected: i === active, myIdx:i });
     });
 
     items.push({ title:'Керування парсерами…', manage:true });
@@ -724,7 +724,7 @@ function openSecondarySelectMenu(btn){
         onSelect:function(item){
             if(item.manage){ openManageMenu(btn,enabled); }
             else{
-                Lampa.Storage.set(STORAGE_SEC_ACT,item.myIdx);
+                Lampa.Storage.set(STORAGE_SEC_ACT, String(item.myIdx)); // FIX ФАЛЬШИВОГО НУЛЯ
                 applySecondaryParser(item.myIdx);
                 updateBtnName(btn);
                 if(item.myIdx !== -1) Lampa.Noty.show('Парсер: '+activeShortName());
@@ -792,7 +792,7 @@ function openManageMenu(btn,enabled){
             else if(item.reset){
                 saveParsers(JSON.parse(JSON.stringify(DEFAULT_PARSERS)));
                 clearAllWorkingProtos();
-                Lampa.Storage.set(STORAGE_SEC_ACT,-1);
+                Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
                 applySecondaryParser(-1);
                 updateBtnName(btn);
                 Lampa.Noty.show('Список відновлено');
@@ -820,8 +820,25 @@ function editMenu(idx,btn,enabled){
         onSelect:function(item){
             if(item.action==='delete'){
                 clearWorkingProto(list[idx].base);
-                list.splice(idx,1); saveParsers(list); updateBtnName(btn);
-                Lampa.Noty.show('Видалено'); Lampa.Controller.toggle(enabled);
+                list.splice(idx,1); 
+                saveParsers(list); 
+
+                var priBase = getSelectedBase();
+                if (priBase === p.base) { 
+                    Lampa.Storage.set(STORAGE_PRI_ACT, NO_PARSER);
+                    applySelectedParser(NO_PARSER);
+                }
+                var currentSec = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+                if (currentSec === idx) {
+                     Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
+                     applySecondaryParser(-1);
+                } else if (currentSec > idx) {
+                     Lampa.Storage.set(STORAGE_SEC_ACT, String(currentSec - 1)); // FIX ФАЛЬШИВОГО НУЛЯ
+                }
+
+                updateBtnName(btn);
+                Lampa.Noty.show('Видалено'); 
+                Lampa.Controller.toggle(enabled);
             }
             else if(item.action==='url'){
                 inputDialog('Новий URL (з протоколом або без нього)',stripProxy(p.url),function(val){
@@ -830,7 +847,8 @@ function editMenu(idx,btn,enabled){
                     clearWorkingProto(list[idx].base); 
                     saveParsers(list);
                     
-                    if(Lampa.Storage.get(STORAGE_SEC_ACT,-1)===idx) applySecondaryParser(idx);
+                    var currentSec = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
+                    if(currentSec === idx) applySecondaryParser(idx);
                     if(getSelectedBase()===list[idx].base) applySelectedParser(list[idx].base);
                     updateBtnName(btn); updateStandardFieldsUI();
                     Lampa.Noty.show('URL оновлено'); Lampa.Controller.toggle(enabled);
@@ -909,9 +927,11 @@ function initSecondaryPlugin(){
                     p = getParserByBase(getSelectedBase());
                     if(p && p.settings.parser_torrent_type === 'prowlarr') expectedUrl = getFinalParserUrl(p, 'primary');
                 } else if (e.name === 'jackett_url_two') {
-                    var secIdx = Lampa.Storage.get(STORAGE_SEC_ACT,-1);
+                    var secIdx = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT,'-1'), 10);
                     var secList = getParsers();
-                    if(secIdx >= 0 && secIdx < secList.length) expectedUrl = getFinalParserUrl(secList[secIdx], 'secondary');
+                    if(!isNaN(secIdx) && secIdx >= 0 && secIdx < secList.length) {
+                        expectedUrl = getFinalParserUrl(secList[secIdx], 'secondary');
+                    }
                 }
 
                 if(expectedUrl && e.value !== expectedUrl) {
@@ -948,7 +968,7 @@ function initAll(){
     translate();
     initPrimarySettings();
     initSecondaryPlugin();
-    console.log('[CombinedParserPlugin V21 - Smart Auto-Switching] Loaded successfully');
+    console.log('[CombinedParserPlugin V25 - The Falsy Zero Fix] Loaded successfully');
 }
 
 if(!window.plugin_combined_parser_ready){
