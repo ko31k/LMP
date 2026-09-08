@@ -1,9 +1,9 @@
 (function(){
 'use strict';
 
-var STORAGE_PARSERS='ps_list_combo_v4.5',
+var STORAGE_PARSERS='ps_list_combo_v0.9',
     STORAGE_PRI_ACT='bat_url_two',
-    STORAGE_SEC_ACT='ps_active_sec_v4.5',
+    STORAGE_SEC_ACT='ps_active_sec_v0.9',
     NO_PARSER='no_parser',
     PROXY_PREFIX='https://parserbridge.lampame.v6.rocks/',
     STORAGE_RAW_PRI='bat_raw_primary_url_v1',
@@ -24,12 +24,12 @@ var DEFAULT_PARSERS=[
     {base:'jr_maxvol',shortName:'Jr.Maxvol',name:'Jr.Maxvol.pro',url:'jr.maxvol.pro',displayUrl:'jr.maxvol.pro',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'maxvol_pro',shortName:'Jac.Maxvol',name:'Jac.Maxvol.pro',url:'jac.maxvol.pro',displayUrl:'jac.maxvol.pro',settings:{key:'1',parser_torrent_type:'jackett'}},
     {base:'no_name',shortName:'NoName',name:'NoName',url:'http://87.120.84.218:9117',displayUrl:'http://87.120.84.218:9117',settings:{key:'333',parser_torrent_type:'jackett'}},
-    {base:'407_xyz',shortName:'407_xyz',name:'407-Xyz',url:'12.307407.xyz',displayUrl:'12.307407.xyz',settings:{key:'12307407',parser_torrent_type:'jackett'}},
+    {base:'407_xyz',shortName:'407-Xyz',name:'407-Xyz',url:'12.307407.xyz',displayUrl:'12.307407.xyz',settings:{key:'12307407',parser_torrent_type:'jackett'}},
     {base:'alco1',shortName:'alcoV1',name:'Alpac v1',url:'https://alpacv1filt.pubgpityx.workers.dev/',displayUrl:'https://alpacv1filt.pubgpityx.workers.dev/',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'alco2',shortName:'alcoV2',name:'Alpac v2',url:'https://tv.alcopa.cc/api/v2.0/indexers/all/results?title=',displayUrl:'https://tv.alcopa.cc',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'nmjc',shortName:'nmjc',name:'NMJC',url:'nmjc.duckdns.org',displayUrl:'nmjc.duckdns.org',settings:{key:'',parser_torrent_type:'jackett'}},
-    {base:'lampaapp',shortName:'lampaapp',name:'LampaApp',url:'lampa.app',displayUrl:'lampa.app',settings:{key:'1',parser_torrent_type:'jackett'}}
-    ];
+    {base:'lampaapp',shortName:'lampaapp',name:'LampaApp',url:'lampa.app',displayUrl:'lampa.app',settings:{key:'1',parser_torrent_type:'jackett'}}    
+];
 
 /* ============================================================
    WORKING PROTOCOL CONTROLLER
@@ -179,8 +179,27 @@ function translate(){
 }
 
 /* ============================================================
-   STATUS / CACHE
+   NOTIFICATIONS / MESSAGES (BELL FALLBACK)
    ============================================================ */
+function showMessage(msg){
+    var text = msg || Lampa.Lang.translate('bat_check_done');
+    try{
+        if(window.Lampa && Lampa.Bell && typeof Lampa.Bell.push === 'function'){
+            Lampa.Bell.push({text: text});
+            return;
+        }
+        if(window.Lampa && Lampa.Noty && typeof Lampa.Noty.show === 'function'){
+            Lampa.Noty.show(text);
+            return;
+        }
+        if(window.Lampa && Lampa.Toast && typeof Lampa.Toast.show === 'function'){
+            Lampa.Toast.show(text);
+            return;
+        }
+    }catch(e){}
+    alert(text);
+}
+
 var COLOR_OK='#1aff00', COLOR_BAD='#ff2e36', COLOR_WARN='#f3d900', COLOR_AUTH='#ff9900', COLOR_UNKNOWN='#8c8c8c';
 var cache={
     data:{}, ttlHealth:30000, ttlSearch:900000,
@@ -192,15 +211,6 @@ var cache={
         this.data[k]={ value:v, expiresAt:Date.now()+t };
     }
 };
-
-function notifyDone(msg){
-    var text = msg || Lampa.Lang.translate('bat_check_done');
-    try{
-        if(Lampa.Noty && typeof Lampa.Noty.show==='function'){ Lampa.Noty.show(text); return; }
-        if(Lampa.Toast && typeof Lampa.Toast.show==='function'){ Lampa.Toast.show(text); return; }
-    }catch(e){}
-    alert(text);
-}
 
 /* ============================================================
    SMART AUTO-SWITCHING (PARSER USE LINK)
@@ -402,11 +412,28 @@ function runDeepSearchChecks(parsers){
 function injectStyleOnce(){
     if(window.__bat_parser_modal_style__) return;
     window.__bat_parser_modal_style__=true;
-    var css=".bat-parser-modal{display:flex;flex-direction:column;gap:1em}.bat-parser-modal__head{display:flex;align-items:center;justify-content:space-between;gap:1em}.bat-parser-modal__current-label{font-size:.9em;opacity:.7}.bat-parser-modal__current-value{font-size:1.1em}.bat-parser-modal__list{display:flex;flex-direction:column;gap:.6em}.bat-parser-modal__item{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.8em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}.bat-parser-modal__item.is-selected,.bat-parser-modal__item.focus{border-color:#fff}.bat-parser-modal__left{display:flex;align-items:center;gap:.65em;min-width:0}.bat-parser-modal__dot{width:.55em;height:.55em;border-radius:50%;background:"+COLOR_UNKNOWN+";box-shadow:0 0 .6em rgba(0,0,0,.35);flex:0 0 auto}.bat-parser-modal__name{font-size:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bat-parser-modal__status{font-size:.85em;opacity:.75;text-align:right;flex:0 0 auto}.bat-parser-modal__actions{display:flex;flex-direction:column;gap:.6em}.bat-parser-modal__actions-row{display:flex;gap:.6em;width:100%}.bat-parser-modal__action{flex:1;text-align:center;padding:.55em .9em;border-radius:.6em;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}.bat-parser-modal__action.focus{border-color:#fff}";
+    var css=".bat-parser-modal{display:flex;flex-direction:column;gap:1em}.bat-parser-modal__head{display:flex;align-items:center;justify-content:space-between;gap:1em}.bat-parser-modal__current-label{font-size:.9em;opacity:.7}.bat-parser-modal__current-value{font-size:1.1em}.bat-parser-modal__list{display:flex;flex-direction:column;gap:.6em}.bat-parser-modal__item{display:flex;align-items:center;justify-content:space-between;gap:1em;padding:.8em 1em;border-radius:.7em;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}.bat-parser-modal__item.is-selected,.bat-parser-modal__item.focus{border-color:#fff}.bat-parser-modal__left{display:flex;align-items:center;gap:.65em;min-width:0}.bat-parser-modal__dot{width:.55em;height:.55em;border-radius:50%;background:"+COLOR_UNKNOWN+";box-shadow:0 0 .6em rgba(0,0,0,.35);flex:0 0 auto}.bat-parser-modal__name{font-size:1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bat-parser-modal__status{font-size:.85em;opacity:.75;text-align:right;flex:0 0 auto}.bat-parser-modal__actions{display:flex;flex-direction:column;gap:.6em}.bat-parser-modal__actions-row{display:flex;gap:.6em;width:100%}.bat-parser-modal__action{flex:1;text-align:center;padding:.55em .9em;border-radius:.6em;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}.bat-parser-modal__action.focus{border-color:#fff}"+
+    ".bat-parser-compact-item{padding:.35em 1em!important; min-height:initial!important;}"+
+    ".bat-parser-compact-item .select__title{font-size:.92em!important;}"+
+    ".bat-parser-compact-item .select__subtitle{font-size:.72em!important; margin-top:.1em!important; opacity:.65!important;}";
     var style=document.createElement('style');
     style.type='text/css';
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
+}
+
+/* ============================================================
+   COMPACT UI HELPER (SAFE INJECTION)
+   ============================================================ */
+function makeMenuCompact(){
+    setTimeout(function(){
+        var menus = $('.select');
+        if(menus.length) {
+            menus.last().find('.select__item').addClass('bat-parser-compact-item');
+        } else {
+            $('.modal').last().find('.select__item').addClass('bat-parser-compact-item');
+        }
+    }, 30);
 }
 
 /* ============================================================
@@ -502,7 +529,7 @@ function openParserModal(){
         return runHealthChecks(listData).then(function(map){ 
             applyMapToList(map); 
             refreshExistingUrls(); 
-            notifyDone(); 
+            showMessage('Перевірку доступності завершено!'); 
         });
     }
 
@@ -514,24 +541,25 @@ function openParserModal(){
         return runDeepSearchChecks(listData).then(function(map){ 
             applyMapToList(map); 
             refreshExistingUrls();
-            notifyDone(); 
+            showMessage('Перевірку пошуку завершено'); 
         });
     }
 
-    btnHealth.on('hover:enter click', runHealthUI);
-    btnSearch.on('hover:enter click', runSearchUI);
+    // Безпечні події (без click)
+    btnHealth.on('hover:enter', runHealthUI);
+    btnSearch.on('hover:enter', runSearchUI);
     
-    btnUpdateMerge.on('hover:enter click', function(){
+    btnUpdateMerge.on('hover:enter', function(){
         var current = getParsers();
         var custom = current.filter(function(p){ return p.base.indexOf('base_') === 0; });
         var fresh = JSON.parse(JSON.stringify(DEFAULT_PARSERS));
         saveParsers(fresh.concat(custom));
-        Lampa.Noty.show('Список оновлено (власні збережено)');
+        showMessage('Список оновлено (власні збережено)');
         Lampa.Modal.close();
         setTimeout(openParserModal, 150);
     });
 
-    btnReset.on('hover:enter click', function(){
+    btnReset.on('hover:enter', function(){
         var fresh = JSON.parse(JSON.stringify(DEFAULT_PARSERS));
         saveParsers(fresh);
         clearAllWorkingProtos(); 
@@ -540,10 +568,10 @@ function openParserModal(){
             Lampa.Storage.set(STORAGE_PRI_ACT, NO_PARSER);
             applySelectedParser(NO_PARSER);
         }
-        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
+        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); 
         applySecondaryParser(-1);
         
-        Lampa.Noty.show('Скинуто до стандартних');
+        showMessage('Скинуто до стандартних');
         Lampa.Modal.close();
         setTimeout(openParserModal, 150);
     });
@@ -693,12 +721,13 @@ function tryInjectSecondaryButton(torrentFilter){
    SECONDARY SELECT MENU
    ============================================================ */
 function openSecondarySelectMenu(btn){
+    injectStyleOnce(); 
     var list=getParsers();
     
     var active = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
     if(isNaN(active) || active >= list.length) {
         active = -1;
-        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
+        Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); 
     }
     
     var enabled=Lampa.Controller.enabled().name;
@@ -714,26 +743,28 @@ function openSecondarySelectMenu(btn){
         var sub=getFinalParserUrl(p, 'secondary');
         if(p.settings && p.settings.key) sub+='  |  apikey: '+p.settings.key;
         var dotHtml='<span class="sec-dot" data-base="'+p.base+'" style="display:inline-block;width:.55em;height:.55em;border-radius:50%;background-color:'+COLOR_WARN+';margin-right:.6em;box-shadow:0 0 .6em rgba(0,0,0,.35);vertical-align:middle;"></span>';
-        items.push({ title:dotHtml+p.name, subtitle:sub, selected: i === active, myIdx:i });
+        items.push({ title: dotHtml + p.name, subtitle: sub, selected: i === active, myIdx:i });
     });
 
-    items.push({ title:'Керування парсерами…', manage:true });
+    items.push({ title: 'Керування парсерами…', manage:true });
 
     Lampa.Select.show({
         title:'Вибір додаткового парсера', items:items,
         onSelect:function(item){
             if(item.manage){ openManageMenu(btn,enabled); }
             else{
-                Lampa.Storage.set(STORAGE_SEC_ACT, String(item.myIdx)); // FIX ФАЛЬШИВОГО НУЛЯ
+                Lampa.Storage.set(STORAGE_SEC_ACT, String(item.myIdx)); 
                 applySecondaryParser(item.myIdx);
                 updateBtnName(btn);
-                if(item.myIdx !== -1) Lampa.Noty.show('Парсер: '+activeShortName());
+                if(item.myIdx !== -1) showMessage('Парсер: '+activeShortName());
                 Lampa.Controller.toggle(enabled);
                 reloadTorrents();
             }
         },
         onBack:function(){ Lampa.Controller.toggle(enabled); }
     });
+
+    makeMenuCompact(); // Компактний вигляд меню
 
     runHealthChecks(list).then(function(map){
         list.forEach(function(p){
@@ -747,15 +778,16 @@ function openSecondarySelectMenu(btn){
    MANAGE MENU
    ============================================================ */
 function openManageMenu(btn,enabled){
+    injectStyleOnce();
     var list=getParsers();
     var items=list.map(function(p,i){
         var sub=getFinalParserUrl(p, 'secondary');
         if(p.settings && p.settings.key) sub+='  |  apikey: '+p.settings.key;
-        return{ title:p.name, subtitle:sub, myIdx:i };
+        return{ title: p.name, subtitle:sub, myIdx:i };
     });
 
-    items.push({ title:'+ Додати парсер', add:true });
-    items.push({ title:'Скинути за замовчуванням', reset:true });
+    items.push({ title: '+ Додати парсер', add:true });
+    items.push({ title: 'Скинути за замовчуванням', reset:true });
 
     Lampa.Select.show({
         title:'Керування парсерами', items:items,
@@ -779,7 +811,7 @@ function openManageMenu(btn,enabled){
                                                 settings:{ key:(key||'').trim(), parser_torrent_type:'jackett' }
                                             });
                                             saveParsers(l);
-                                            Lampa.Noty.show('Додано: '+name.trim());
+                                            showMessage('Додано: '+name.trim());
                                             Lampa.Controller.toggle(enabled);
                                         });
                                     },350);
@@ -792,16 +824,18 @@ function openManageMenu(btn,enabled){
             else if(item.reset){
                 saveParsers(JSON.parse(JSON.stringify(DEFAULT_PARSERS)));
                 clearAllWorkingProtos();
-                Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
+                Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); 
                 applySecondaryParser(-1);
                 updateBtnName(btn);
-                Lampa.Noty.show('Список відновлено');
+                showMessage('Список відновлено');
                 Lampa.Controller.toggle(enabled);
             }
             else{ editMenu(item.myIdx,btn,enabled); }
         },
         onBack:function(){ Lampa.Controller.toggle(enabled); }
     });
+
+    makeMenuCompact(); // Компактний вигляд меню
 }
 
 /* ============================================================
@@ -830,14 +864,14 @@ function editMenu(idx,btn,enabled){
                 }
                 var currentSec = parseInt(Lampa.Storage.get(STORAGE_SEC_ACT, '-1'), 10);
                 if (currentSec === idx) {
-                     Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); // FIX ФАЛЬШИВОГО НУЛЯ
+                     Lampa.Storage.set(STORAGE_SEC_ACT, String(-1)); 
                      applySecondaryParser(-1);
                 } else if (currentSec > idx) {
-                     Lampa.Storage.set(STORAGE_SEC_ACT, String(currentSec - 1)); // FIX ФАЛЬШИВОГО НУЛЯ
+                     Lampa.Storage.set(STORAGE_SEC_ACT, String(currentSec - 1)); 
                 }
 
                 updateBtnName(btn);
-                Lampa.Noty.show('Видалено'); 
+                showMessage('Видалено'); 
                 Lampa.Controller.toggle(enabled);
             }
             else if(item.action==='url'){
@@ -851,14 +885,14 @@ function editMenu(idx,btn,enabled){
                     if(currentSec === idx) applySecondaryParser(idx);
                     if(getSelectedBase()===list[idx].base) applySelectedParser(list[idx].base);
                     updateBtnName(btn); updateStandardFieldsUI();
-                    Lampa.Noty.show('URL оновлено'); Lampa.Controller.toggle(enabled);
+                    showMessage('URL оновлено'); Lampa.Controller.toggle(enabled);
                 });
             }
             else if(item.action==='apikey'){
                 inputDialog('API-ключ',(p.settings&&p.settings.key)||'',function(val){
                     if(!list[idx].settings) list[idx].settings={};
                     list[idx].settings.key=(val||'').trim(); saveParsers(list); updateBtnName(btn);
-                    Lampa.Noty.show('API-ключ оновлено'); Lampa.Controller.toggle(enabled);
+                    showMessage('API-ключ оновлено'); Lampa.Controller.toggle(enabled);
                 });
             }
             else if(item.action==='rename'){
@@ -868,7 +902,7 @@ function editMenu(idx,btn,enabled){
                         inputDialog('Нова коротка назва',p.shortName||nameVal,function(shortVal){
                             list[idx].name=nameVal.trim(); list[idx].shortName=(shortVal||nameVal).trim();
                             saveParsers(list); updateBtnName(btn);
-                            Lampa.Noty.show('Перейменовано'); Lampa.Controller.toggle(enabled);
+                            showMessage('Перейменовано'); Lampa.Controller.toggle(enabled);
                         });
                     },350);
                 });
@@ -968,7 +1002,7 @@ function initAll(){
     translate();
     initPrimarySettings();
     initSecondaryPlugin();
-    console.log('[CombinedParserPlugin V25 - The Falsy Zero Fix] Loaded successfully');
+    console.log('[CombinedParserPlugin V28 - Safe Polish & Bell] Loaded successfully');
 }
 
 if(!window.plugin_combined_parser_ready){
