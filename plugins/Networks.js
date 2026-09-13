@@ -1,6 +1,13 @@
 (function () {
     'use strict';
 
+    var pluginManifest = {
+        version: '2.0.5',
+        author: 'levende',
+        docs: 'https://levende.github.io/lampa-plugins/docs/tmdb-networks',
+        contact: 'https://t.me/levende'
+    };
+
     var LIST_DISPLAY_MODE = Object.freeze({
         HIDE: 0,
         LOGO: 1,
@@ -14,6 +21,14 @@
         LIST_BTN: 3
     });
 
+
+    var STYLE_DEFAULTS = {
+        margin_top: '-3em',
+        margin_bottom: '3em',
+        margin_btn: '0',
+        btn_height: '2.05em'
+    };
+
     var settings = {
         platfroms_tv_list_mode: -1,
         platfroms_tv_list_max_visible: -1,
@@ -23,102 +38,95 @@
         platfroms_movie_list_max_visible: -1,
         platfroms_movie_extra_btn_mode: -1,
 
-        studios_list_mode: -1,
-        studios_list_max_visible: -1,
-        
-        platforms_mobile_center: false,
-        
-        networks_margin_top: '-3em',
-        networks_margin_bottom: '3em',
-        networks_margin_buttons: '0.5em',
-        networks_btn_height: '2.2em'
+        style_margin_top: '',
+        style_margin_bottom: '',
+        style_margin_btn: '',
+        style_btn_height: ''
     };
 
     var network = new Lampa.Reguest();
 
-    var customLogos = {
-        '20th century': { url: 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/20th-Century-Fox-Logo.png' },
-        'twentieth century': { url: 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/20th-Century-Fox-Logo.png' },
-        '127928': { url: 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/20th-Century-Fox-Logo.png' },
-        'h0rjx5vjw5r8yenubstfarjclt4': { url: 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/20th-Century-Fox-Logo.png' },
-        '1+1 media': { forceText: true } 
-    };
-
-    function getCustomLogo(name, path, id) {
-        var searchStr = ((name || '') + ' ' + (path || '') + ' ' + (id || '')).toLowerCase();
-        
-        for (var key in customLogos) {
-            if (searchStr.indexOf(key.toLowerCase()) !== -1) {
-                return customLogos[key];
-            }
-        }
-        return null;
-    }
-
-    // Хелпер: перетворює просто число на "em", або залишає "px"/"em" як є
-    function formatCSSValue(value) {
-        var val = (value + '').trim();
-        if (val === '') return '0em'; // Захист від пустого поля
-        if (/^-?\d*\.?\d+$/.test(val)) {
-            return val + 'em';
-        }
-        return val;
-    }
-
     function addLocalization() {
         Lampa.Lang.add({
-            tmdb_networks_open: { en: 'Open', uk: 'Відкрити' },
-            tmdb_networks_top: { en: 'Top', uk: 'Популярні' },
-            tmdb_networks_new: { en: 'New', uk: 'Новинки' },
-            tmdb_networks_hide: { en: 'Hide', uk: 'Сховати' },
-            tmdb_networks_plugin_platforms: {
-                en: 'Platforms and Studios',
-                uk: 'Платформи та студії'
-            },
+            tmdb_networks_open: { en: 'Open', uk: 'Відкрити', ru: 'Открыть' },
+            tmdb_networks_top: { en: 'Top', uk: 'Популярні', ru: 'Популярные' },
+            tmdb_networks_new: { en: 'New', uk: 'Новинки', ru: 'Новинки' },
+            tmdb_networks_hide: { en: 'Hide', uk: 'Сховати', ru: 'Скрыть' },
+            tmdb_networks_plugin_platforms: { en: 'Plaftorms', uk: 'Платформи', ru: 'Платформы' },
             tmdb_networks_plugin_platforms_setting_descr: {
-                en: 'Display configuration settings for platforms adn studios in cards',
-                uk: 'Налаштування відображення платформ та студій-виробників у картках'
+                en: 'Display configuration settings for platforms in cards',
+                uk: 'Налаштування відображення платформ у картках',
+                ru: 'Настройки отображения платформ в карточках'
             },
-            tmdb_networks_plugin_about: { en: 'About the plugin', uk: 'Про плагін' },
+            tmdb_networks_plugin_about: { en: 'About the plugin', uk: 'Про плагін', ru: 'О плагине' },
             tmdb_networks_plugin_descr: {
-                en: 'The plugin adds buttons for streaming services and platforms to cards, showing where movies and series were released or sold, making them easier to find. Buttons with production studios are also added.',
-                uk: 'Модифікація плагіну від @levende, @Yaroslav_Films. Додає в картки кнопки стримінгових сервісів і платформ, де виходили або продавалися фільми та серіали, що спрощує їх пошук. Також додаються кнопки з виробничими студіями.'
+                en: 'The plugin adds buttons for streaming services and platforms to cards, showing where movies and series were released or sold, making them easier to find',
+                uk: 'Плагін додає в картки кнопки стримінгових сервісів і платформ, де виходили або продавалися фільми та серіали, що спрощує їх пошук',
+                ru: 'Плагин добавляет в карточки кнопки стриминговых сервисов и платформ, где выходили или продавались фильмы и сериалы, упрощая их поиск'
             },
-            platfroms_list: { en: 'List', uk: 'Перелік' },
-            platfroms_list_limit: { en: 'List limit', uk: 'Ліміт переліку' },
-            platform_display_hide: { en: 'Do not show', uk: 'Не показувати' },
-            platform_display_logo: { en: 'Logo', uk: 'Логотип' },
-            platform_display_name: { en: 'Name', uk: 'Назва' },
-            platform_display_combo_btn: { en: 'Select button', uk: 'Кнопка з вибором' },
-            platform_extra_btn: { en: 'Extra button', uk: 'Додаткова кнопка' },
-            studios_title: { en: 'Studios', uk: 'Студії' },
-            platforms_mobile_center: { en: 'Center on mobile', uk: 'Центрувати на смартфонах' },
-            networks_margins_title: { en: 'Sizes and margins', uk: 'Розміри та відступи' },
-            networks_margins_descr: { en: 'Configure spacing and button sizes', uk: 'Налаштування розмірів та відступів' },
-            networks_margin_top: { en: 'Top margin', uk: 'Відступ зверху' },
-            networks_margin_bottom: { en: 'Bottom margin', uk: 'Відступ знизу' },
-            networks_margin_buttons: { en: 'Margin between buttons', uk: 'Відступ між кнопками' },
-            networks_btn_height: { en: 'Button height', uk: 'Висота кнопок' },
-            networks_margin_input_descr: { en: 'Manual entry (e.g., 2.2, 10px, -3)', uk: 'Ручний ввід (напр. 2.2, 10px, -3)' },
-            // Нові переклади для кнопки скидання
-            tmdb_networks_reset: { en: 'Reset to defaults', uk: 'Скинути за замовчуванням' },
-            tmdb_networks_reset_descr: { en: 'Restore default margin and size values', uk: 'Повернути стандартні значення відступів та розмірів' }
+            platfroms_list: { en: 'List', uk: 'Перелік', ru: 'Список' },
+            platfroms_list_limit: { en: 'List limit', uk: 'Ліміт переліку', ru: 'Лимит списка' },
+            platform_display_hide: { en: 'Do not show', uk: 'Не показувати', ru: 'Не показывать' },
+            platform_display_logo: { en: 'Logo', uk: 'Логотип', ru: 'Логотип' },
+            platform_display_name: { en: 'Name', uk: 'Назва', ru: 'Имя' },
+            platform_display_combo_btn: { en: 'Select button', uk: 'Кнопка з вибором', ru: 'Кнопка с выбором' },
+            platform_extra_btn: { en: 'Extra button', uk: 'Додаткова кнопка', ru: 'Дополнительная кнопка' },
+
+            tmdb_networks_style_title: { en: 'Style settings', uk: 'Налаштування стилів', ru: 'Настройки стилей' },
+            tmdb_networks_style_margin_top: { en: 'Top margin', uk: 'Відступ зверху', ru: 'Отступ сверху' },
+            tmdb_networks_style_margin_bottom: { en: 'Bottom margin', uk: 'Відступ знизу', ru: 'Отступ снизу' },
+            tmdb_networks_style_margin_btn: { en: 'Margin between buttons', uk: 'Відступ між кнопками', ru: 'Отступ между кнопками' },
+            tmdb_networks_style_btn_height: { en: 'Button height', uk: 'Висота кнопок', ru: 'Высота кнопок' }
         });
     }
 
-    function createNetworkButton(network, index, type, mode, limit) {
-        var networkBtn = $('<div class="tag-count selector network-btn platform-btn"></div>');
-        var custom = getCustomLogo(network.name, network.logo_path, network.id);
+    function initSettings() {
+        settings.platfroms_tv_list_mode = Lampa.Storage.get('platfroms_tv_list_mode', LIST_DISPLAY_MODE.LOGO);
+        settings.platfroms_tv_list_max_visible = Lampa.Storage.get('platfroms_tv_list_max_visible', 3);
+        settings.platfroms_tv_extra_btn_mode = Lampa.Storage.get('platfroms_tv_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.LIST_BTN);
 
-        if (mode == LIST_DISPLAY_MODE.LOGO && (network.logo_path || custom)) {
+        settings.platfroms_movie_list_mode = Lampa.Storage.get('platfroms_movie_list_mode', LIST_DISPLAY_MODE.TEXT);
+        settings.platfroms_movie_list_max_visible = Lampa.Storage.get('platfroms_movie_list_max_visible', 3);
+        settings.platfroms_movie_extra_btn_mode = Lampa.Storage.get('platfroms_movie_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.LIST_BTN);
+
+
+        settings.style_margin_top = Lampa.Storage.get('platfroms_style_margin_top', STYLE_DEFAULTS.margin_top);
+        settings.style_margin_bottom = Lampa.Storage.get('platfroms_style_margin_bottom', STYLE_DEFAULTS.margin_bottom);
+        settings.style_margin_btn = Lampa.Storage.get('platfroms_style_margin_btn', STYLE_DEFAULTS.margin_btn);
+        settings.style_btn_height = Lampa.Storage.get('platfroms_style_btn_height', STYLE_DEFAULTS.btn_height);
+    }
+
+
+    function applyStyles() {
+        $('#tmdb-networks-dynamic-style').remove();
+        $('<style id="tmdb-networks-dynamic-style">').prop('type', 'text/css').html(
+            '.tmdb-networks { margin-top: ' + settings.style_margin_top + '; } ' +
+            '.network-btn { height: ' + settings.style_btn_height + '; margin-right: ' + settings.style_margin_btn + '; } ' +
+            '.network-btn.movie { height: ' + settings.style_btn_height + '; } ' +
+            '.network-logo { background-color: #fff; position: relative; } ' +
+            '.network-logo.tv { background-color: #fff; position: relative; } ' +
+            '.network-logo.movie { background: none; padding: 0; } ' +
+            '.network-logo .overlay { ' +
+                'position: absolute; top: 0; left: 0; right: 0; bottom: 0; ' +
+                'background: rgba(255, 255, 255, 0); ' +
+            '} ' +
+            '.network-logo img { border-radius: 0.6em; height: 100%; } ' +
+            '.network-logo.full-start__button .overlay, .network-logo.full-start__button.movie * { border-radius: 1em }' + 
+            '.network-logo.focus .overlay { background: rgba(0, 0, 0, 0.3); } ' +
+            '.network-logo.focus { box-shadow: 0 0 0 0.2em rgb(255, 255, 255); }'
+        ).appendTo('head');
+    }
+
+    function createNetworkButton(network, index, type, mode, limit) {
+        var networkBtn = $('<div class="tag-count selector network-btn"></div>');
+
+        if (network.logo_path && mode == LIST_DISPLAY_MODE.LOGO) {
             networkBtn.addClass('network-logo');
             networkBtn.addClass(type);
 
             networkBtn.append($('<div class="tag-count overlay"></div>'));
-            
-            var imgSrc = custom ? custom.url : Lampa.TMDB.image("t/p/w300" + network.logo_path);
             var logo = $('<img/>').attr({
-                src: imgSrc,
+                src: Lampa.TMDB.image("t/p/w300" + network.logo_path),
                 alt: network.name
             });
             networkBtn.append(logo);
@@ -137,51 +145,7 @@
         return networkBtn;
     }
 
-    function createStudioButton(company, type, mode, index, limit) {
-        var btn = $('<div class="tag-count selector network-btn studio-btn"></div>');
-        var custom = getCustomLogo(company.name, company.logo_path, company.id);
-
-        if (custom && custom.forceText) {
-            company.logo_path = null;
-            custom = null;
-        }
-
-        if (mode == LIST_DISPLAY_MODE.LOGO && (company.logo_path || custom)) {
-            btn.addClass('network-logo');
-            btn.addClass(type);
-
-            btn.append($('<div class="tag-count overlay"></div>'));
-            
-            var imgSrc = custom ? custom.url : Lampa.TMDB.image("t/p/w300" + company.logo_path);
-            var logo = $('<img/>').attr({
-                src: imgSrc,
-                alt: company.name
-            });
-
-            btn.append(logo);
-        } else {
-            btn.append($('<div class="tag-count__name">' + company.name + '</div>'));
-        }
-
-        if (index >= limit) {
-            btn.addClass('hide');
-        }
-
-        btn.on('hover:enter click', function () {
-            Lampa.Activity.push({
-                url: 'movie',
-                id: company.id,
-                title: company.name,
-                component: 'company',
-                source: 'tmdb',
-                page: 1
-            });
-        });
-
-        return btn;
-    }
-
-    function createMoreButton(hiddenCount, limit, container) {
+    function createMoreButton(hiddenCount, type, container) {
         var moreBtn = $(
             '<div class="tag-count selector network-btn network-more">' +
                 '<div class="tag-count__name">' + Lampa.Lang.translate('more') + '</div>' +
@@ -189,8 +153,10 @@
             '</div>'
         );
 
+        var limit = settings['platfroms_' + type + '_list_max_visible'];
+
         moreBtn.on('hover:enter', function () {
-            $('.network-btn.hide', container).removeClass('hide');
+            $('.network-btn.hide').removeClass('hide');
             $(this).addClass('hide');
             Lampa.Controller.collectionFocus($('.network-btn', container).eq(limit + 1), Lampa.Activity.active().activity.render());
         });
@@ -198,23 +164,19 @@
         return moreBtn;
     }
 
-    function createHideButton(limit, container) {
+    function createHideButton(type) {
         var hideBtn = $(
-            '<div class="tag-count selector network-btn hide-btn hide">' +
+            '<div class="tag-count selector network-btn hide">' +
                 '<div class="tag-count__name">' + Lampa.Lang.translate('tmdb_networks_hide') + '</div>' +
-            '</div>'
-        );
+            '</div>');
+            
+        var limit = settings['platfroms_' + type + '_list_max_visible'];
 
         hideBtn.on('hover:enter', function () {
             $(this).addClass('hide');
-            
-            $('.network-btn', container).not('.network-more').not('.hide-btn').each(function(idx) {
-                if (idx >= limit) {
-                    $(this).addClass('hide');
-                }
-            });
+            $('.network-btn:not(.button--plaftorms):gt(' + (limit - 1) + ')').addClass('hide');
 
-            var moreBtn = $('.network-more', container);
+            var moreBtn = $('.network-more');
             moreBtn.removeClass('hide');
             Lampa.Controller.collectionFocus(moreBtn, Lampa.Activity.active().activity.render());
         });
@@ -229,11 +191,12 @@
 
         var url = Lampa.TMDB.api('movie/' + movie.id + '/watch/providers?api_key=' + Lampa.TMDB.key());
         network.silent(url, function (data) {
-            if (!data.results) return callback([]);
+            if (!data.results) {
+                return [];
+            }
 
-            // ВИПРАВЛЕНО ДЛЯ ES5: indexOf замість includes
             var countryCodes = Object.keys(data.results).filter(function(countryCode) {
-                return allowedCountryCodes.indexOf(countryCode) !== -1;
+                return allowedCountryCodes.includes(countryCode);
             });
 
             var providers = [];
@@ -250,6 +213,7 @@
 
             providers.forEach(function (provider) {
                 if (provider.display_priority > maxDisplayPriority) return;
+
                 if (uniqueProviders.some(function(p) { return p.id == provider.provider_id } )) return;
 
                 var name = provider.provider_name;
@@ -269,6 +233,7 @@
             });
 
             uniqueProviders = uniqueProviders.sort(function (a, b) { return a.display_priority - b.display_priority });
+            console.log(uniqueProviders);
             callback(uniqueProviders);
         });
     }
@@ -277,7 +242,7 @@
         var movie = object.card;
         if (!movie || movie.source !== 'tmdb') return callback([]);
 
-        var getFn = movie.networksList 
+        var getFn = movie.networksList // cache
             ? function() { callback(movie.networksList); }
             : movie.networks 
                 ? function() { callback(movie.networks); }
@@ -316,14 +281,13 @@
                             '<path d="M2435 3235 c-417 -77 -668 -518 -519 -912 111 -298 421 -488 723 -445 326 46 557 277 603 603 41 289 -136 595 -412 710 -130 55 -260 69 -395 44z m197 -316 c77 -17 137 -50 190 -107 57 -61 83 -110 98 -190 22 -111 -12 -222 -96 -312 -138 -148 -359 -156 -510 -18 -96 88 -138 210 -114 330 16 82 42 132 99 191 52 55 97 81 174 102 65 17 92 18 159 4z"/>' +
                         '</g>' +
                     '</svg>' +
-                    '<span>' + title + '</span>'
-                );
+                    '<span>' + title + '</span>');
         
                 btn.on('hover:enter', function () {
                     var controllerName = Lampa.Controller.enabled().name;
                     Lampa.Select.show({
                         title: title,
-                        items: networks.map(function(n) { return { title: n.name, network: n }; }),
+                        items: networks.map(function(network) { return { title: network.name, network: network } } ),
                         onBack: function () {
                             Lampa.Controller.toggle(controllerName);
                             Lampa.Controller.collectionFocus(btn, render);
@@ -345,45 +309,27 @@
     function renderNetworks() {
         var object = Lampa.Activity.active();
         var render = object.activity.render();
-        var detailedMovie = render.data('movie') || render.data('item') || object.card;
-
         $('.tmdb-networks', render).remove();
 
         getNetworks(object, function(networks) {
+            if (networks.length == 0) return;
+
             var type = object.method;
+
+            renderExtraBtn(render, networks, type, object);
+
             var displayMode = settings['platfroms_' + type + '_list_mode'];
-            var studiosMode = settings.studios_list_mode;
+
+            if (displayMode == LIST_DISPLAY_MODE.HIDE) return;
+            var displayLimit = settings['platfroms_' + type + '_list_max_visible'];
             
-            var companies = (detailedMovie && detailedMovie.production_companies) ? detailedMovie.production_companies : [];
-
-            var validStudios = companies.filter(function(company) {
-                if (!company.id) return false;
-                var custom = getCustomLogo(company.name, company.logo_path, company.id);
-                return studiosMode != LIST_DISPLAY_MODE.LOGO || company.logo_path || custom;
-            });
-
-            var hasPlatforms = displayMode != LIST_DISPLAY_MODE.HIDE && networks.length > 0;
-            var hasStudios = studiosMode != LIST_DISPLAY_MODE.HIDE && validStudios.length > 0;
-
-            if (!hasPlatforms && !hasStudios) return;
-
-            if (networks.length > 0) {
-                renderExtraBtn(render, networks, type, object);
-            }
-
-            var wrapClass = settings.platforms_mobile_center ? 'networks-wrapper center-on-mobile' : 'networks-wrapper';
-
-            var mTop = formatCSSValue(settings.networks_margin_top);
-            var mBot = formatCSSValue(settings.networks_margin_bottom);
-            var mGap = formatCSSValue(settings.networks_margin_buttons);
-            var btnH = formatCSSValue(settings.networks_btn_height);
 
             var networksLine = $(
-                '<div class="tmdb-networks" style="margin-top:' + mTop + '; --tmdb-net-gap:' + mGap + '; --tmdb-net-btn-h:' + btnH + ';">' +
-                    '<div class="items-line__body" style="margin-bottom:' + mBot + ';">' +
+                '<div class="tmdb-networks">' +
+                    '<div class="items-line__body" style="margin-bottom:' + settings.style_margin_bottom + ';">' +
                         '<div class="full-descr">' +
                             '<div class="full-descr__left">' +
-                                '<div class="full-descr__tags ' + wrapClass + '" style="margin-top:0;"></div>' +
+                                '<div class="full-descr__tags" style="margin-top:0;"></div>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
@@ -391,85 +337,22 @@
             );
 
             var container = $('.full-descr__tags', networksLine);
-            var platformsContainer = null;
-            var studiosContainer = null;
-            var separator = null;
 
-            if (hasPlatforms) {
-                platformsContainer = $('<div class="platforms-group"></div>');
-                var displayLimit = settings['platfroms_' + type + '_list_max_visible'];
-                var hasMoreBtn = false;
-                
-                networks.forEach(function (network, index) {
-                    platformsContainer.append(createNetworkButton(network, index, type, displayMode, displayLimit));
+            var hasMoreBtn = false;
+            networks.forEach(function (network, index) {
+                container.append(createNetworkButton(network, index, type, displayMode, displayLimit));
 
-                    if (networks.length > displayLimit && index === displayLimit - 1) {
-                        platformsContainer.append(createMoreButton(networks.length - displayLimit, displayLimit, platformsContainer));
-                        hasMoreBtn = true;
-                    }
-                });
-
-                if (hasMoreBtn) {
-                    platformsContainer.append(createHideButton(displayLimit, platformsContainer));
+                if (networks.length > displayLimit && index === displayLimit - 1) {
+                    container.append(createMoreButton(networks.length - displayLimit, type, container));
+                    hasMoreBtn = true;
                 }
-                
-                container.append(platformsContainer);
+            });
+
+            if (hasMoreBtn) {
+                container.append(createHideButton(type));
             }
 
-            if (hasPlatforms && hasStudios) {
-                separator = $('<div class="network-separator"></div>');
-                container.append(separator);
-            }
-
-            if (hasStudios) {
-                studiosContainer = $('<div class="studios-group"></div>');
-                var studiosLimit = settings.studios_list_max_visible;
-                var hasStudioMoreBtn = false;
-                
-                validStudios.forEach(function(company, index) {
-                    studiosContainer.append(createStudioButton(company, type, studiosMode, index, studiosLimit));
-
-                    if (validStudios.length > studiosLimit && index === studiosLimit - 1) {
-                        studiosContainer.append(createMoreButton(validStudios.length - studiosLimit, studiosLimit, studiosContainer));
-                        hasStudioMoreBtn = true;
-                    }
-                });
-
-                if (hasStudioMoreBtn) {
-                    studiosContainer.append(createHideButton(studiosLimit, studiosContainer));
-                }
-                
-                container.append(studiosContainer);
-            }
-
-            if (container.children().length > 0) {
-                $('.items-line', render).eq(0).prepend(networksLine);
-                
-                if (hasPlatforms && hasStudios && separator && platformsContainer && studiosContainer) {
-                    var eventName = 'resize.tmdbnet_' + Date.now();
-                    
-                    var checkSeparatorWrap = function() {
-                        if (!document.body.contains(separator[0])) {
-                            $(window).off(eventName);
-                            return;
-                        }
-                        
-                        if (platformsContainer.length && studiosContainer.length) {
-                            var pTop = platformsContainer.offset().top;
-                            var sTop = studiosContainer.offset().top;
-                            
-                            if (sTop > pTop + 10) {
-                                separator.hide();
-                            } else {
-                                separator.show();
-                            }
-                        }
-                    };
-                    
-                    setTimeout(checkSeparatorWrap, 100);
-                    $(window).on(eventName, checkSeparatorWrap);
-                }
-            }
+            $('.items-line', render).eq(0).prepend(networksLine);
         });
     }
 
@@ -529,30 +412,22 @@
         });
     }
 
-    function showSettingsMenu() {
-        Lampa.Settings.create('platforms', {
-            template: 'settings_platforms',
-            onBack: function() { 
-                Lampa.Settings.create('interface'); 
-            }
-        });
-    }
-
     function addSettingsByType(type) {
-        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: {
                 name: 'platfroms_' + type + '_list_mode',
                 type: 'select',
                 values: {
-                    '0': Lampa.Lang.translate('platform_display_hide'),
-                    '1': Lampa.Lang.translate('platform_display_logo'),
-                    '2': Lampa.Lang.translate('platform_display_name')
+                    [LIST_DISPLAY_MODE.HIDE]: Lampa.Lang.translate('platform_display_hide'),
+                    [LIST_DISPLAY_MODE.LOGO]: Lampa.Lang.translate('platform_display_logo'),
+                    [LIST_DISPLAY_MODE.TEXT]: Lampa.Lang.translate('platform_display_name'),
                 },
-                default: settings['platfroms_' + type + '_list_mode'],
+                default: Lampa.Storage.get('platfroms_' + type + '_list_mode', settings['platfroms_' + type + '_list_mode']),
             },
-            field: { name: Lampa.Lang.translate('platfroms_list') },
+            field: {
+                name: Lampa.Lang.translate('platfroms_list'),
+            },
             onChange: initSettings
         });
 
@@ -562,48 +437,63 @@
                 name: 'platfroms_' + type + '_list_max_visible',
                 type: 'select',
                 values: { 1: 1, 2: 2, 3: 3, 5: 5 },
-                default: settings['platfroms_' + type + '_list_max_visible'],
+                default: Lampa.Storage.get('platfroms_' + type + '_list_max_visible', settings['platfroms_' + type + '_list_max_visible']),
             },
-            field: { name: Lampa.Lang.translate('platfroms_list_limit') },
+            field: {
+                name: Lampa.Lang.translate('platfroms_list_limit')
+            },
             onChange: initSettings
         });
 
-        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
         Lampa.SettingsApi.addParam({
             component: 'platforms',
             param: {
                 name: 'platfroms_' + type + '_extra_btn_mode',
                 type: 'select',
                 values: {
-                    '0': Lampa.Lang.translate('platform_display_hide'),
-                    '1': Lampa.Lang.translate('platform_display_logo'),
-                    '2': Lampa.Lang.translate('platform_display_name'),
-                    '3': Lampa.Lang.translate('platform_display_combo_btn')
+                    [EXTRA_BTN_DISPLAY_MODE.HIDE]: Lampa.Lang.translate('platform_display_hide'),
+                    [EXTRA_BTN_DISPLAY_MODE.LOGO]: Lampa.Lang.translate('platform_display_logo'),
+                    [EXTRA_BTN_DISPLAY_MODE.TEXT]: Lampa.Lang.translate('platform_display_name'),
+                    [EXTRA_BTN_DISPLAY_MODE.LIST_BTN]: Lampa.Lang.translate('platform_display_combo_btn')
                 },
-                default: settings['platfroms_' + type + '_extra_btn_mode'],
+                default: Lampa.Storage.get('platfroms_' + type + '_extra_btn_mode', settings['platfroms_' + type + '_extra_btn_mode']),
             },
-            field: { name: Lampa.Lang.translate('platform_extra_btn') },
+            field: {
+                name: Lampa.Lang.translate('platform_extra_btn'),
+            },
             onChange: initSettings
         });
     }
 
     function addSettings() {
         Lampa.Template.add('settings_platforms', '<div></div>');
-        Lampa.Template.add('settings_platforms_margins', '<div></div>');
 
         Lampa.SettingsApi.addParam({
             component: 'interface',
-            param: { type: 'button', component: 'platforms' },
+            param: { 
+                type: 'button',
+                component: 'platforms' 
+            },
             field: {
                 name: Lampa.Lang.translate('tmdb_networks_plugin_platforms'),
                 description: Lampa.Lang.translate('tmdb_networks_plugin_platforms_setting_descr')
             },
-            onChange: showSettingsMenu
+            onChange: function() {
+                Lampa.Settings.create('platforms', {
+                    template: 'settings_platforms',
+                    onBack: function() {
+                        Lampa.Settings.create('interface');
+                    }
+                });
+            }
         });
 
         Lampa.SettingsApi.addParam({
             component: 'platforms',
-            param: { type: 'button', component: 'about' },
+            param: {
+                type: 'button',
+                component: 'about'
+            },
             field: {
                 name: Lampa.Lang.translate('tmdb_networks_plugin_about'),
                 description: Lampa.Lang.translate('menu_about'),
@@ -611,272 +501,96 @@
             onChange: showAbout
         });
 
-        Lampa.SettingsApi.addParam({ component: 'platforms', param: { type: 'title' }, field: { name: Lampa.Lang.translate('menu_tv') } });
+        Lampa.SettingsApi.addParam({
+            component: 'platforms',
+            param: { type: 'title' },
+            field: { name: Lampa.Lang.translate('menu_tv') }
+        });
+
         addSettingsByType('tv');
 
-        Lampa.SettingsApi.addParam({ component: 'platforms', param: { type: 'title' }, field: { name: Lampa.Lang.translate('menu_movies') } });
+        Lampa.SettingsApi.addParam({
+            component: 'platforms',
+            param: { type: 'title' },
+            field: { name: Lampa.Lang.translate('menu_movies') }
+        });
+
         addSettingsByType('movie');
 
-        Lampa.SettingsApi.addParam({ component: 'platforms', param: { type: 'title' }, field: { name: Lampa.Lang.translate('studios_title') } });
-        
-        // ВИПРАВЛЕНО ДЛЯ ES5: прибрали квадратні дужки
-        Lampa.SettingsApi.addParam({
-            component: 'platforms',
-            param: {
-                name: 'studios_list_mode',
-                type: 'select',
-                values: {
-                    '0': Lampa.Lang.translate('platform_display_hide'),
-                    '1': Lampa.Lang.translate('platform_display_logo')
-                },
-                default: settings.studios_list_mode,
-            },
-            field: { name: Lampa.Lang.translate('platfroms_list') },
-            onChange: initSettings
-        });
 
         Lampa.SettingsApi.addParam({
             component: 'platforms',
-            param: {
-                name: 'studios_list_max_visible',
-                type: 'select',
-                values: { 1: 1, 2: 2, 3: 3, 5: 5, 10: 10 },
-                default: settings.studios_list_max_visible,
-            },
-            field: { name: Lampa.Lang.translate('platfroms_list_limit') },
-            onChange: initSettings
+            param: { type: 'title' },
+            field: { name: Lampa.Lang.translate('tmdb_networks_style_title') }
         });
 
-        var isMobileCenter = Lampa.Storage.get('platforms_mobile_center', false);
-        var mobileCenterDefault = (isMobileCenter === true || isMobileCenter === 'true');
+        var styleFields = [
+            { key: 'margin_top', name: 'tmdb_networks_style_margin_top' },
+            { key: 'margin_bottom', name: 'tmdb_networks_style_margin_bottom' },
+            { key: 'margin_btn', name: 'tmdb_networks_style_margin_btn' },
+            { key: 'btn_height', name: 'tmdb_networks_style_btn_height' }
+        ];
 
-        Lampa.SettingsApi.addParam({
-            component: 'platforms',
-            param: {
-                name: 'platforms_mobile_center',
-                type: 'trigger',
-                default: mobileCenterDefault
-            },
-            field: {
-                name: Lampa.Lang.translate('platforms_mobile_center')
-            },
-            onChange: function (value) {
-                Lampa.Storage.set('platforms_mobile_center', value);
-                settings.platforms_mobile_center = value;
-            }
-        });
-
-        // Кнопка для переходу в налаштування відступів
-        Lampa.SettingsApi.addParam({
-            component: 'platforms',
-            param: { type: 'button', component: 'platforms_margins' },
-            field: {
-                name: Lampa.Lang.translate('networks_margins_title'),
-                description: Lampa.Lang.translate('networks_margins_descr')
-            },
-            onChange: function() {
-                Lampa.Settings.create('platforms_margins', {
-                    template: 'settings_platforms_margins',
-                    onBack: showSettingsMenu
-                });
-            }
-        });
-
-        // ВВІД РУКАМИ З ДИНАМІЧНИМ ОНОВЛЕННЯМ (ТИП: INPUT)
-        var marginSettings = ['top', 'bottom', 'buttons'];
-        marginSettings.forEach(function(pos) {
+        styleFields.forEach(function(field) {
             Lampa.SettingsApi.addParam({
-                component: 'platforms_margins',
+                component: 'platforms',
                 param: {
-                    name: 'networks_margin_' + pos,
+                    name: 'platfroms_style_' + field.key,
                     type: 'input',
-                    values: true,
-                    default: settings['networks_margin_' + pos]
-                    // Прибрали placeholder
+
+                    default: Lampa.Storage.get('platfroms_style_' + field.key, STYLE_DEFAULTS[field.key])
                 },
                 field: {
-                    name: Lampa.Lang.translate('networks_margin_' + pos),
-                    description: Lampa.Lang.translate('networks_margin_input_descr')
+                    name: Lampa.Lang.translate(field.name)
                 },
-                onChange: function (value) {
-                    var formattedValue = formatCSSValue(value);
-                    Lampa.Storage.set('networks_margin_' + pos, formattedValue);
-                    settings['networks_margin_' + pos] = formattedValue;
-                    
-                    // Динамічне оновлення DOM "на льоту"
-                    var networksEl = $('.tmdb-networks');
-                    if (networksEl.length) {
-                        if (pos === 'top') networksEl.css('margin-top', formattedValue);
-                        if (pos === 'bottom') networksEl.find('.items-line__body').css('margin-bottom', formattedValue);
-                        if (pos === 'buttons') networksEl.css('--tmdb-net-gap', formattedValue);
-                    }
-                    
-                    Lampa.Settings.update();
+                onChange: function() {
+
+                    initSettings();
+                    applyStyles();
                 }
             });
-        });
-
-        Lampa.SettingsApi.addParam({
-            component: 'platforms_margins',
-            param: {
-                name: 'networks_btn_height',
-                type: 'input',
-                values: true,
-                default: settings.networks_btn_height
-                // Прибрали placeholder
-            },
-            field: {
-                name: Lampa.Lang.translate('networks_btn_height'),
-                description: Lampa.Lang.translate('networks_margin_input_descr')
-            },
-            onChange: function (value) {
-                var formattedValue = formatCSSValue(value);
-                Lampa.Storage.set('networks_btn_height', formattedValue);
-                settings.networks_btn_height = formattedValue;
-                
-                // Динамічне оновлення висоти
-                var networksEl = $('.tmdb-networks');
-                if (networksEl.length) {
-                    networksEl.css('--tmdb-net-btn-h', formattedValue);
-                }
-                
-                Lampa.Settings.update();
-            }
-        });
-
-        // НОВА КНОПКА "Скинути за замовчуванням"
-        Lampa.SettingsApi.addParam({
-            component: 'platforms_margins',
-            param: { type: 'button' },
-            field: {
-                name: Lampa.Lang.translate('tmdb_networks_reset'),
-                description: Lampa.Lang.translate('tmdb_networks_reset_descr')
-            },
-            onChange: function() {
-                var defaults = {
-                    top: '-3em',
-                    bottom: '3em',
-                    buttons: '0.5em',
-                    height: '2.2em'
-                };
-
-                // Оновлюємо Storage та локальні змінні
-                Lampa.Storage.set('networks_margin_top', defaults.top);
-                settings.networks_margin_top = defaults.top;
-                
-                Lampa.Storage.set('networks_margin_bottom', defaults.bottom);
-                settings.networks_margin_bottom = defaults.bottom;
-                
-                Lampa.Storage.set('networks_margin_buttons', defaults.buttons);
-                settings.networks_margin_buttons = defaults.buttons;
-                
-                Lampa.Storage.set('networks_btn_height', defaults.height);
-                settings.networks_btn_height = defaults.height;
-
-                // Динамічне оновлення DOM
-                var networksEl = $('.tmdb-networks');
-                if (networksEl.length) {
-                    networksEl.css('margin-top', defaults.top);
-                    networksEl.find('.items-line__body').css('margin-bottom', defaults.bottom);
-                    networksEl.css('--tmdb-net-gap', defaults.buttons);
-                    networksEl.css('--tmdb-net-btn-h', defaults.height);
-                }
-
-                // Перемальовуємо вікно налаштувань, щоб підтягнулись дефолтні значення в інпути
-                Lampa.Settings.update();
-            }
         });
     }
 
     function showAbout() {
-        var html = '<p>' + Lampa.Lang.translate('tmdb_networks_plugin_descr') + '</p>';
+        var html =
+            '<p>' + Lampa.Lang.translate('tmdb_networks_plugin_descr') + '</p>' +
+            '<div style="width: 65%; float: left;">' +
+                '<p><span class="account-add-device__site">' + Lampa.Lang.translate('title_author') + '</span> ' + pluginManifest.author + '</p>' +
+                '<p><span class="account-add-device__site">' + Lampa.Lang.translate('about_version') + '</span> '+ pluginManifest.version + '</p>' +
+            '</div>' +
+            '<div style="width: 30%; float: right; text-align: center;">' +
+                '<img src="https://quickchart.io/qr?text=' + pluginManifest.docs + '&size=200" alt="Documentation"/>' +
+            '</div>' +
+            '<div style="clear: both;"></div>';
+
         var controller = Lampa.Controller.enabled().name;
-        
         Lampa.Select.show({
             title: Lampa.Lang.translate('tmdb_networks_plugin_about'),
-            items: [{ title: html, disabled: true }],
+            items: [{
+                title: html,
+                disabled: true
+            }],
             onSelect: function () { Lampa.Controller.toggle(controller); },
             onBack: function () { Lampa.Controller.toggle(controller); }
         });
     }
 
-    function initSettings() {
-        // НАЛАШТУВАННЯ ДЛЯ СЕРІАЛІВ (TV) - залишаємо логотипи (LOGO)
-        settings.platfroms_tv_list_mode = Lampa.Storage.get('platfroms_tv_list_mode', LIST_DISPLAY_MODE.LOGO);
-        settings.platfroms_tv_list_max_visible = Lampa.Storage.get('platfroms_tv_list_max_visible', 3);
-        // Додаткова кнопка ПРИХОВАНА
-        settings.platfroms_tv_extra_btn_mode = Lampa.Storage.get('platfroms_tv_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.HIDE);
-
-        // НАЛАШТУВАННЯ ДЛЯ ФІЛЬМІВ (MOVIE) - ставимо ТЕКСТ (TEXT)
-        settings.platfroms_movie_list_mode = Lampa.Storage.get('platfroms_movie_list_mode', LIST_DISPLAY_MODE.TEXT);
-        settings.platfroms_movie_list_max_visible = Lampa.Storage.get('platfroms_movie_list_max_visible', 3);
-        // Додаткова кнопка ПРИХОВАНА
-        settings.platfroms_movie_extra_btn_mode = Lampa.Storage.get('platfroms_movie_extra_btn_mode', EXTRA_BTN_DISPLAY_MODE.HIDE);
-
-        // НАЛАШТУВАННЯ ДЛЯ СТУДІЙ
-        settings.studios_list_mode = Lampa.Storage.get('studios_list_mode', LIST_DISPLAY_MODE.LOGO);
-        settings.studios_list_max_visible = Lampa.Storage.get('studios_list_max_visible', 3);
-        
-        var isMC = Lampa.Storage.get('platforms_mobile_center', false);
-        settings.platforms_mobile_center = (isMC === true || isMC === 'true');
-
-        settings.networks_margin_top = Lampa.Storage.get('networks_margin_top', '-3em');
-        settings.networks_margin_bottom = Lampa.Storage.get('networks_margin_bottom', '3em');
-        settings.networks_margin_buttons = Lampa.Storage.get('networks_margin_buttons', '0.5em');
-        settings.networks_btn_height = Lampa.Storage.get('networks_btn_height', '2.2em');
-    }
-
     function startPlugin() {
-        if (window.tmdb_networks) return;
+        if (window.tmdb_networks) {
+            return;
+        }
         window.tmdb_networks = true;
-        
-        $('<style>').prop('type', 'text/css').html(
-            '.networks-wrapper { display: flex; flex-wrap: wrap; align-items: center; } ' +
-            '.platforms-group, .studios-group { display: flex; flex-wrap: wrap; align-items: center; } ' +
-            '.platforms-group > *, .studios-group > * { margin-right: var(--tmdb-net-gap, 0.5em); margin-bottom: var(--tmdb-net-gap, 0.5em); } ' +
-            '.network-btn { height: var(--tmdb-net-btn-h, 2.2em); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; } ' +
-            
-            /* Прибираємо "кружечки" від Lampa */
-            '.full-descr__left .tag-count.network-btn::before { display: none !important; content: none !important; } ' +
-            
-            '.network-separator { width: 2px; height: 1.8em; background: rgba(255,255,255,0.2); margin: 0 var(--tmdb-net-gap, 0.5em) var(--tmdb-net-gap, 0.5em) 0.1em; border-radius: 2px; } ' +
-            
-            /* ВІДНОВЛЕНО БІЛИЙ ФОН ДЛЯ ВСІХ КНОПОК З ЛОГОТИПАМИ (!important гарантує білий фон) */
-            '.network-logo { background-color: #ffffff !important; position: relative; padding: 0.3em 0.6em; border-radius: 0.6em; } ' +
-            
-            '.network-logo img { height: calc(var(--tmdb-net-btn-h, 2.2em) * 0.7); width: auto; max-width: 100%; object-fit: contain; border-radius: 0; } ' +
-            
-            /* Відновлено базові стилі затемнення (overlay) */
-            '.network-logo .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0); border-radius: 0.6em; } ' +
-            
-            /* Відновлено радіус для "Додаткової кнопки" */
-            '.network-logo.full-start__button .overlay { border-radius: 1em; } ' +
-            
-            '.network-logo.focus { box-shadow: 0 0 0 0.2em #fff !important; } ' +
-            
-            /* Ефект затемнення при фокусі */
-            '.network-logo.focus .overlay { background: rgba(0, 0, 0, 0.2) !important; } ' +
-            
-            '@media (max-width: 768px) { ' +
-                '.center-on-mobile { justify-content: center; } ' +
-                '.center-on-mobile .platforms-group, .center-on-mobile .studios-group { justify-content: center; } ' +
-            '}'
-        ).appendTo('head');
 
-        initSettings();
         addLocalization();
+        initSettings();
         addSettings();
-
-        var originalTMDBImage = Lampa.TMDB.image;
-        Lampa.TMDB.image = function(url) {
-            if (url && typeof url === 'string' && url.indexOf('h0rjX5vjW5r8yEnUBStFarjcLT4') !== -1) {
-                return 'https://raw.githubusercontent.com/ko31k/LMP/main/wwwroot/img/20th-Century-Fox-Logo.png';
-            }
-            return originalTMDBImage.call(this, url);
-        };
+        applyStyles();
 
         Lampa.Listener.follow('activity,full', function (e) {
-            if (e.type === 'complite' || e.type === 'archive') renderNetworks();
+            if (e.type === 'complite' || e.type === 'archive') {
+                renderNetworks();
+            }
         });
     }
 
@@ -884,8 +598,9 @@
         startPlugin();
     } else {
         Lampa.Listener.follow('app', function (event) {
-            if (event.type === 'ready') startPlugin();
+            if (event.type === 'ready') {
+                startPlugin();
+            }
         });
     }
-
 })();
