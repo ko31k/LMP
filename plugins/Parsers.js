@@ -1,9 +1,9 @@
 (function(){
 'use strict';
 
-var STORAGE_PARSERS='ps_list_combo_v0.9.1',
+var STORAGE_PARSERS='ps_list_combo_v0.9.2',
     STORAGE_PRI_ACT='bat_url_two',
-    STORAGE_SEC_ACT='ps_active_sec_v0.9.1',
+    STORAGE_SEC_ACT='ps_active_sec_v0.9.2',
     NO_PARSER='no_parser',
     PROXY_PREFIX='https://parserbridge.lampame.v6.rocks/',
     STORAGE_RAW_PRI='bat_raw_primary_url_v1',
@@ -14,8 +14,8 @@ var STORAGE_PARSERS='ps_list_combo_v0.9.1',
 var DEFAULT_PARSERS=[
     {base:'lampa_ua',shortName:'LampaUA Jackett',name:'LampaUA Jackett (toloka, mazepa, etc.)',url:'https://jackettua.mooo.com',displayUrl:'https://jackettua.mooo.com',settings:{key:'ua',parser_torrent_type:'jackett'}},
     {base:'lampa_ua_2',shortName:'LampaUA',name:'LampaUA (toloka, mazepa, etc.)',url:'lampaua.mooo.com',displayUrl:'lampaua.mooo.com',settings:{key:'1',parser_torrent_type:'jackett'}},
-    {base:'spawnum_duckdns_org_49117',shortName:'Spawn (1)',name:'SpawnUA (toloka, mazepa only)',url:'http://jackukr.spawn.pp.ua/',displayUrl:'http://jackukr.spawn.pp.ua/',settings:{key:'2',parser_torrent_type:'jackett'}},
-    {base:'spawnum_duckdns_org_59117',shortName:'Spawn (2)',name:'SpawnUA (toloka, mazepa, etc.)',url:'http://jack.spawn.pp.ua/',displayUrl:'http://jack.spawn.pp.ua/',settings:{key:'2',parser_torrent_type:'jackett'}},
+    {base:'spawnum_duckdns_org_49117',shortName:'Spawn (1)',name:'SpawnUA (toloka, mazepa only)',url:'http://jackukr.spawn.pp.ua',displayUrl:'http://jackukr.spawn.pp.ua/',settings:{key:'2',parser_torrent_type:'jackett'}},
+    {base:'spawnum_duckdns_org_59117',shortName:'Spawn (2)',name:'SpawnUA (toloka, mazepa, etc.)',url:'http://jack.spawn.pp.ua',displayUrl:'http://jack.spawn.pp.ua/',settings:{key:'2',parser_torrent_type:'jackett'}},
     {base:'jac_red',shortName:'Jac.red',name:'Jac.red',url:'Jac.red',displayUrl:'Jac.red',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'jacred_pro',shortName:'Jacred.pro',name:'Jacred.pro',url:'jacred.pro',displayUrl:'jacred.pro',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'jac_black',shortName:'Jac.black',name:'Jac.black',url:'jac.black',displayUrl:'jac.black',settings:{key:'',parser_torrent_type:'jackett'}},
