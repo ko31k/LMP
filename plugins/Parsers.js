@@ -1,9 +1,9 @@
 (function(){
 'use strict';
 
-var STORAGE_PARSERS='ps_list_combo_v0.9.2',
+var STORAGE_PARSERS='ps_list_combo_v0.9.3',
     STORAGE_PRI_ACT='bat_url_two',
-    STORAGE_SEC_ACT='ps_active_sec_v0.9.2',
+    STORAGE_SEC_ACT='ps_active_sec_v0.9.3',
     NO_PARSER='no_parser',
     PROXY_PREFIX='https://parserbridge.lampame.v6.rocks/',
     STORAGE_RAW_PRI='bat_raw_primary_url_v1',
@@ -21,6 +21,8 @@ var DEFAULT_PARSERS=[
     {base:'jac_black',shortName:'Jac.black',name:'Jac.black',url:'jac.black',displayUrl:'jac.black',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'jac_red_ru',shortName:'Jac-red.ru',name:'Jac-red.ru',url:'jac-red.ru',displayUrl:'jac-red.ru',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'jac_stull',shortName:'Jac.Stull',name:'Jac.stull',url:'jac.stull.xyz',displayUrl:'jac.stull.xyz',settings:{key:'1',parser_torrent_type:'jackett'}},
+    {base:'jac_su',shortName:'Jacred.su',name:'jacred.su',url:'https://jacred.su',displayUrl:'https://jacred.su',settings:{key:'',parser_torrent_type:'jackett'}},
+    {base:'crab_rip',shortName:'Crab.Rip',name:'crab.rip',url:'https://crab.rip',displayUrl:'https://crab.rip',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'jr_maxvol',shortName:'Jr.Maxvol',name:'Jr.Maxvol.pro',url:'jr.maxvol.pro',displayUrl:'jr.maxvol.pro',settings:{key:'',parser_torrent_type:'jackett'}},
     {base:'maxvol_pro',shortName:'Jac.Maxvol',name:'Jac.Maxvol.pro',url:'jac.maxvol.pro',displayUrl:'jac.maxvol.pro',settings:{key:'1',parser_torrent_type:'jackett'}},
     {base:'no_name',shortName:'NoName',name:'NoName',url:'http://87.120.84.218:9117',displayUrl:'http://87.120.84.218:9117',settings:{key:'333',parser_torrent_type:'jackett'}},
